@@ -1219,3 +1219,43 @@ def debug_persistence(current=Depends(get_current_caregiver)):
         "profile_count": profile_count,
         "environment": "production" if os.getenv("VERCEL") or os.getenv("DATABASE_URL") else "development"
     }
+
+@app.get("/api/debug/auth-health")
+def debug_auth_health(authorization: Optional[str] = Header(None)):
+    db_connected = False
+    engine = "unknown"
+    caregivers_table_exists = False
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("SELECT 1")
+            db_connected = True
+            engine = get_engine_name()
+            if engine == "postgresql":
+                c.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'caregivers')")
+                res = c.fetchone()
+                caregivers_table_exists = list(res.values())[0] if isinstance(res, dict) else res[0]
+            else:
+                c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='caregivers'")
+                caregivers_table_exists = bool(c.fetchone())
+    except Exception as e:
+        logger.error(f"[Auth Health] Diagnostics failed: {e}")
+
+    caregiver_id = None
+    if authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        payload = decode_access_token(token)
+        if payload:
+            caregiver_id = payload.get("caregiver_id")
+
+    res_dict = {
+        "database_connected": db_connected,
+        "database_engine": engine,
+        "caregivers_table_exists": bool(caregivers_table_exists),
+        "auth_routes_loaded": True,
+        "environment": "production" if os.getenv("VERCEL") or os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") else "development"
+    }
+    if caregiver_id is not None:
+        res_dict["authenticated_caregiver_id"] = caregiver_id
+
+    return res_dict

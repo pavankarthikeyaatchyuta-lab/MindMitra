@@ -14,7 +14,11 @@ from contextlib import contextmanager
 
 logger = logging.getLogger("mindmitra.db")
 
-DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_URL_NON_POOLING")
+raw_db_url = os.getenv("POSTGRES_URL_NON_POOLING") or os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+DATABASE_URL = None
+if raw_db_url:
+    DATABASE_URL = raw_db_url.replace("postgres://", "postgresql://", 1) if raw_db_url.startswith("postgres://") else raw_db_url
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.getenv("DB_FILE", os.path.join(BASE_DIR, "mindmitra.db"))
 
@@ -24,7 +28,7 @@ if DATABASE_URL:
         import psycopg2
         import psycopg2.extras
         HAS_POSTGRES = True
-        logger.info(f"PostgreSQL configured via DATABASE_URL")
+        logger.info("PostgreSQL configured via DATABASE_URL")
     except ImportError:
         logger.warning("DATABASE_URL provided but psycopg2-binary not installed. Falling back to SQLite.")
 
