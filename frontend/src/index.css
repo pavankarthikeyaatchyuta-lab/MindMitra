@@ -2,14 +2,15 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
+    --background: #f7f9fc;
+    --bg-page-gradient: linear-gradient(135deg, #f7f9fc 0%, #f3f6fb 50%, #eef3f9 100%);
     --surface: #ffffff;
     --surface-elevated: #f8fafc;
     --text-primary: #000000;
     --text-secondary: #0f172a;
     --text-muted: #1e293b;
     --border: #cbd5e1;
-    --border-subtle: #cbd5e1;
+    --border-subtle: #e2e8f0;
     --border-card: #cbd5e1;
     --accent: #1d4ed8;
     --accent-hover: #1e40af;
@@ -30,15 +31,16 @@
   }
 
   .dark {
-    --background: #0b0f19;
-    --surface: #131b2e;
-    --surface-elevated: #1e293b;
+    --background: #090d16;
+    --bg-page-gradient: linear-gradient(135deg, #090d16 0%, #0e1424 50%, #0b0f19 100%);
+    --surface: #121926;
+    --surface-elevated: #1a2336;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --border: #23304d;
+    --border: #1f293d;
     --border-subtle: #1e293b;
-    --border-card: #23304d;
+    --border-card: #1f293d;
     --accent: #3b82f6;
     --accent-hover: #60a5fa;
     --success: #10b981;
@@ -64,11 +66,17 @@ html {
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-  background-color: var(--bg-page);
+  background-image: var(--bg-page-gradient);
+  background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-image 0.2s ease, color 0.2s ease;
+}
+
+.bg-\[var\(--bg-page\)\], .bg-page-container {
+  background-image: var(--bg-page-gradient) !important;
+  background-attachment: fixed !important;
 }
 
 /* Static clean card surface */
