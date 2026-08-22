@@ -52,6 +52,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/api/debug/ping")
+def debug_ping():
+    return {"ping": "pong", "status": "ok"}
+
 def init_db():
     with get_db() as conn:
         c = conn.cursor()
