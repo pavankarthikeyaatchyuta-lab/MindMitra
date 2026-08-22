@@ -117,11 +117,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-300 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/profiles')}
-            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            className="text-slate-900 dark:text-slate-300 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
             title="Back to Profiles"
           >
             <ArrowLeft size={18} />
@@ -131,8 +131,8 @@ export default function Dashboard() {
               <Activity size={18} />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Caregiver Dashboard</h1>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Longitudinal Behavioral Trend & Baseline Analysis</p>
+              <h1 className="text-lg font-black text-black dark:text-white">Caregiver Dashboard</h1>
+              <p className="text-[11px] text-slate-900 dark:text-slate-400 font-semibold">Longitudinal Behavioral Trend & Baseline Analysis</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={16} className="text-blue-600 dark:text-blue-400" />
+              <Users size={16} className="text-blue-700 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
@@ -153,7 +153,7 @@ export default function Dashboard() {
                     if (user) switchProfile(user);
                   }
                 }}
-                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-black dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
@@ -172,27 +172,27 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
         {/* Responsive Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-300 dark:border-slate-800 pb-3 text-xs sm:text-sm font-bold">
           <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 font-bold">
             <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Session History
           </Link>
         </div>
@@ -205,15 +205,15 @@ export default function Dashboard() {
                 {(selectedUser.name || selectedUser.display_name || '👤').charAt(0)}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedUser.name || selectedUser.display_name}</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+                <h2 className="text-xl font-black text-black dark:text-white">{selectedUser.name || selectedUser.display_name}</h2>
+                <p className="text-slate-900 dark:text-slate-300 text-xs sm:text-sm font-semibold">
                   Age {selectedUser.age} • Language: {(selectedUser.preferred_language || 'EN').toUpperCase()} • Voice: {selectedUser.voice_enabled ? 'Enabled' : 'Disabled'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-300 font-bold">
                 {gameSessions.length} Sessions Recorded
               </span>
               <Link
@@ -231,36 +231,36 @@ export default function Dashboard() {
         {overallTrend && (
           <div className={`card p-5 border ${
             overallTrend.overall_status === 'recent_change'
-              ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20'
+              ? 'border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20'
               : overallTrend.overall_status === 'improving'
-              ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+              ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20'
+              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
           }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                  <Activity size={14} className="text-blue-600 dark:text-blue-400" /> Overall Behavioral Trend
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-400 mb-1">
+                  <Activity size={14} className="text-blue-700 dark:text-blue-400" /> Overall Behavioral Trend
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-lg font-black text-black dark:text-white flex items-center gap-2">
                   {overallTrend.headline}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-300 mt-1 font-medium">
                   {overallTrend.summary}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                <span className={`px-3 py-1 rounded-full text-xs font-black ${
                   overallTrend.overall_status === 'recent_change'
-                    ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
+                    ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
                     : overallTrend.overall_status === 'improving'
-                    ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
-                    : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700'
+                    ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-950 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
+                    : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700'
                 }`}>
                   {overallTrend.overall_status.toUpperCase().replace('_', ' ')}
                 </span>
                 <Link
                   to="/caregiver/trends"
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                  className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 font-bold"
                 >
                   <span>Details</span>
                   <ChevronRight size={14} />
@@ -272,7 +272,7 @@ export default function Dashboard() {
 
         {/* Cognitive Domains Grid */}
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Cognitive Domain Performance</h2>
+          <h2 className="text-lg font-black text-black dark:text-white mb-3">Cognitive Domain Performance</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {trends.map((t) => {
               const cfg = TREND_CONFIG[t.trend] || TREND_CONFIG.insufficient_history;
@@ -283,42 +283,42 @@ export default function Dashboard() {
                 <div
                   key={t.game_type}
                   className={`card p-5 border flex flex-col justify-between transition-all ${
-                    t.trend === 'recent_change' ? 'border-amber-200 dark:border-amber-800' : ''
+                    t.trend === 'recent_change' ? 'border-amber-300 dark:border-amber-800' : ''
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-400">
                         {t.domain_name || t.game_type.replace('_', ' ')}
                       </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center gap-1 ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border flex items-center gap-1 ${cfg.bg} ${cfg.color} ${cfg.border}`}>
                         <Icon size={12} />
                         <span>{t.trend_label || cfg.label}</span>
                       </span>
                     </div>
 
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">
+                      <span className="text-2xl font-black text-black dark:text-white">
                         {t.current_performance != null ? `${Math.round(t.current_performance * 100)}%` : '—'}
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-400">
                         Baseline: {t.baseline != null ? `${Math.round(t.baseline * 100)}%` : 'Calibrating'}
                       </span>
                     </div>
 
-                    <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <div className="mt-2 text-xs font-medium text-slate-900 dark:text-slate-300 leading-relaxed">
                       {t.trend_description}
                     </div>
 
                     {t.reasons && t.reasons.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/60">
+                        <span className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-wider block mb-1">
                           Contributing Factors:
                         </span>
-                        <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                        <ul className="text-[11px] font-bold text-slate-900 dark:text-slate-300 space-y-1">
                           {t.reasons.map((r, ri) => (
                             <li key={ri} className="flex items-start gap-1.5">
-                              <span className="text-blue-500 font-bold">•</span>
+                              <span className="text-blue-700 font-bold">•</span>
                               <span>{REASON_LABELS[r] || r.replace(/_/g, ' ')}</span>
                             </li>
                           ))}
@@ -327,11 +327,11 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[11px] font-bold text-slate-900 dark:text-slate-400">
                     <span>{t.sessions_analyzed || 0} sessions</span>
                     <Link
                       to="/caregiver/insights"
-                      className="text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1"
+                      className="text-blue-700 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"
                     >
                       <span>Explain</span>
                       <ChevronRight size={12} />

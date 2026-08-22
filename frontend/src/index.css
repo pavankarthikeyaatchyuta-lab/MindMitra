@@ -2,20 +2,20 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
+    --background: #ffffff;
     --surface: #ffffff;
-    --surface-elevated: #f1f5f9;
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #64748b;
+    --surface-elevated: #f8fafc;
+    --text-primary: #000000;
+    --text-secondary: #0f172a;
+    --text-muted: #1e293b;
     --border: #cbd5e1;
     --border-subtle: #cbd5e1;
-    --border-card: #e2e8f0;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --success: #059669;
-    --warning: #d97706;
-    --danger: #dc2626;
+    --border-card: #cbd5e1;
+    --accent: #1d4ed8;
+    --accent-hover: #1e40af;
+    --success: #047857;
+    --warning: #b45309;
+    --danger: #b91c1c;
     --focus: rgba(37, 99, 235, 0.4);
 
     /* Token Aliases */

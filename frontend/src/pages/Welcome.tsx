@@ -100,16 +100,16 @@ export default function Welcome() {
 
       {/* 2. Hero Section */}
       <section className="pt-16 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold uppercase tracking-wider mb-6">
-          <Sparkles size={14} className="text-blue-600 dark:text-blue-400" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-300 text-xs font-extrabold uppercase tracking-wider mb-6">
+          <Sparkles size={14} className="text-blue-700 dark:text-blue-400" />
           <span>AI-Powered Cognitive Engagement & Caregiver Support</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.15] max-w-4xl">
-          Personalized cognitive support, <span className="text-blue-600 dark:text-blue-400">built around the person.</span>
+        <h1 className="text-4xl sm:text-6xl font-extrabold text-black dark:text-white tracking-tight leading-[1.15] max-w-4xl">
+          Personalized cognitive support, <span className="text-blue-700 dark:text-blue-400">built around the person.</span>
         </h1>
 
-        <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
+        <p className="mt-6 text-base sm:text-xl text-slate-900 dark:text-slate-200 max-w-3xl leading-relaxed font-medium">
           Engaging cognitive activities, adaptive intelligence, longitudinal insights and caregiver support in one accessible platform.
         </p>
 
@@ -148,8 +148,8 @@ export default function Welcome() {
       {/* 3. Core Product Loop (Play -> Adapt -> Track -> Support) */}
       <section className="py-14 px-6 max-w-7xl mx-auto w-full">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">The MindMitra Cognitive Wellness Loop</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5">Continuous non-invasive engagement that learns and supports</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-black dark:text-white">The MindMitra Cognitive Wellness Loop</h2>
+          <p className="text-slate-900 dark:text-slate-300 text-sm font-medium mt-1.5">Continuous non-invasive engagement that learns and supports</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-5">
@@ -199,19 +199,19 @@ export default function Welcome() {
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
+                    <span className="text-xs font-black text-blue-800 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/80 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800">
                       STEP {item.step}
                     </span>
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-700 dark:text-blue-400">
                       <Icon size={20} />
                     </div>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{item.title}</h3>
-                  <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">{item.subtitle}</h4>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{item.desc}</p>
+                  <h3 className="text-lg font-extrabold text-black dark:text-white mb-1">{item.title}</h3>
+                  <h4 className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">{item.subtitle}</h4>
+                  <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-200 font-medium leading-relaxed">{item.desc}</p>
                 </div>
-                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono">{item.tag}</span>
+                <div className="mt-5 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-400 font-mono">{item.tag}</span>
                 </div>
               </div>
             );
@@ -222,8 +222,8 @@ export default function Welcome() {
       {/* 4. 4 Cognitive Games Preview */}
       <section className="py-14 px-6 max-w-7xl mx-auto w-full">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Four Evidence-Informed Cognitive Activities</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5">Targeting short-term memory, sequence recall, facial recognition, and pattern attention</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-black dark:text-white">Four Evidence-Informed Cognitive Activities</h2>
+          <p className="text-slate-900 dark:text-slate-300 text-sm font-medium mt-1.5">Targeting short-term memory, sequence recall, facial recognition, and pattern attention</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -259,15 +259,15 @@ export default function Welcome() {
           ].map((game) => (
             <div key={game.title} className="card p-6 flex flex-col justify-between">
               <div>
-                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900 flex items-center justify-center text-2xl mb-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-2xl mb-4">
                   {game.emoji}
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">{game.title}</h3>
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{game.domain}</p>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">{game.desc}</p>
+                <h3 className="text-base font-extrabold text-black dark:text-white">{game.title}</h3>
+                <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mt-0.5">{game.domain}</p>
+                <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-200 font-medium mt-2 leading-relaxed">{game.desc}</p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                   {game.badge}
                 </span>
               </div>
@@ -280,24 +280,24 @@ export default function Welcome() {
       <section className="py-12 px-6 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card p-6 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-400 shrink-0">
               <Globe size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Multilingual & Native Voice Support</h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+              <h3 className="text-lg font-extrabold text-black dark:text-white">Multilingual & Native Voice Support</h3>
+              <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-200 mt-1 leading-relaxed font-medium">
                 Full localized UI and Text-to-Speech voice guidance in <strong>English</strong>, <strong>Hindi (हिंदी)</strong>, and <strong>Telugu (తెలుగు)</strong> for elderly comfort and independence.
               </p>
             </div>
           </div>
 
           <div className="card p-6 flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 shrink-0">
               <ShieldCheck size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Ethical & Medical Guardrails</h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+              <h3 className="text-lg font-extrabold text-black dark:text-white">Ethical & Medical Guardrails</h3>
+              <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-200 mt-1 leading-relaxed font-medium">
                 MindMitra is an assistive cognitive companion and does NOT diagnose clinical dementia or disease. All insights are behavioral observations intended to support families.
               </p>
             </div>
@@ -306,13 +306,13 @@ export default function Welcome() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 py-8 px-6 text-center text-xs text-slate-500 dark:text-slate-400">
+      <footer className="mt-auto border-t border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 py-8 px-6 text-center text-xs text-slate-900 dark:text-slate-300 font-medium">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <p>© {new Date().getFullYear()} MindMitra — AI Companion for Cognitive Wellbeing.</p>
-          <div className="flex items-center gap-4">
-            <Link to="/how-it-works" className="hover:text-blue-600 dark:hover:text-blue-400">How It Works</Link>
-            <Link to="/methodology" className="hover:text-blue-600 dark:hover:text-blue-400">Methodology</Link>
-            <Link to="/demo" className="hover:text-blue-600 dark:hover:text-blue-400">Demo</Link>
+          <div className="flex items-center gap-4 font-bold">
+            <Link to="/how-it-works" className="hover:text-blue-700 dark:hover:text-blue-400">How It Works</Link>
+            <Link to="/methodology" className="hover:text-blue-700 dark:hover:text-blue-400">Methodology</Link>
+            <Link to="/demo" className="hover:text-blue-700 dark:hover:text-blue-400">Demo</Link>
           </div>
         </div>
       </footer>

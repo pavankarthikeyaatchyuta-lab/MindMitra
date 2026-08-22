@@ -181,25 +181,25 @@ export default function FamiliarPeople() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-300 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/caregiver')}
-            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            className="text-slate-900 dark:text-slate-300 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
             title="Back to Overview"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Familiar People & Photos</h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Caregiver-managed family cues for personal recognition</p>
+            <h1 className="text-lg font-black text-black dark:text-white">Familiar People & Photos</h1>
+            <p className="text-[11px] text-slate-900 dark:text-slate-400 font-semibold">Caregiver-managed family cues for personal recognition</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={16} className="text-blue-600 dark:text-blue-400" />
+              <Users size={16} className="text-blue-700 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
@@ -208,7 +208,7 @@ export default function FamiliarPeople() {
                   const u = users.find(user => user.id === newId);
                   if (u) switchProfile(u);
                 }}
-                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-black dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
                   <option key={u.id} value={u.id}>{u.display_name || u.name}</option>

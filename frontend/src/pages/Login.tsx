@@ -133,16 +133,16 @@ export default function Login() {
           <Link to="/" className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-md mb-3 text-white hover:bg-blue-700 transition-all transform hover:scale-105">
             <Brain size={34} />
           </Link>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">MindMitra</h1>
-          <p className="text-slate-600 dark:text-slate-300 mt-1 text-sm font-medium">
+          <h1 className="text-3xl font-black text-black dark:text-white tracking-tight">MindMitra</h1>
+          <p className="text-slate-900 dark:text-slate-300 mt-1 text-sm font-bold">
             Caregiver Portal & Cognitive Companion
           </p>
         </div>
 
         {/* Auth Container Card */}
-        <div className="card p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+        <div className="card p-6 sm:p-8 shadow-sm border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
           {/* Form Tabs */}
-          <div className="flex border-b border-slate-200 dark:border-slate-800 pb-3 mb-6">
+          <div className="flex border-b border-slate-300 dark:border-slate-800 pb-3 mb-6">
             <button
               type="button"
               onClick={() => {
@@ -150,10 +150,10 @@ export default function Login() {
                 setError(null);
                 setFieldErrors({});
               }}
-              className={`flex-1 pb-2 text-center text-sm font-bold transition-all ${
+              className={`flex-1 pb-2 text-center text-sm font-black transition-all ${
                 !isRegister
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400'
+                  : 'text-slate-800 hover:text-black dark:hover:text-slate-200'
               }`}
             >
               Sign In
@@ -165,10 +165,10 @@ export default function Login() {
                 setError(null);
                 setFieldErrors({});
               }}
-              className={`flex-1 pb-2 text-center text-sm font-bold transition-all ${
+              className={`flex-1 pb-2 text-center text-sm font-black transition-all ${
                 isRegister
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400'
+                  : 'text-slate-800 hover:text-black dark:hover:text-slate-200'
               }`}
             >
               Register Caregiver
@@ -177,8 +177,8 @@ export default function Login() {
 
           {/* Global Alert Message */}
           {error && (
-            <div className="mb-5 p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
-              <AlertCircle size={16} className="shrink-0 text-rose-500" />
+            <div className="mb-5 p-3.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-800 dark:text-rose-300 text-xs font-bold flex items-center gap-2.5 animate-in fade-in">
+              <AlertCircle size={16} className="shrink-0 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
@@ -187,11 +187,11 @@ export default function Login() {
             {/* Caregiver Name (Registration Only) */}
             {isRegister && (
               <div>
-                <label htmlFor="auth-name" className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Full Name <span className="text-rose-500">*</span>
+                <label htmlFor="auth-name" className="block text-xs font-black text-black dark:text-slate-200 mb-1">
+                  Full Name <span className="text-rose-600">*</span>
                 </label>
                 <div className="relative">
-                  <User size={18} className="absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
+                  <User size={18} className="absolute left-3.5 top-3 text-slate-700 dark:text-slate-500" />
                   <input
                     id="auth-name"
                     type="text"
@@ -203,24 +203,24 @@ export default function Login() {
                       if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined }));
                     }}
                     placeholder="e.g. Sunita Sharma"
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border ${
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${
                       fieldErrors.name ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
-                    } text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2`}
+                    } text-black dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 text-sm font-bold focus:outline-none focus:ring-2`}
                   />
                 </div>
                 {fieldErrors.name && (
-                  <p className="text-[11px] text-rose-500 font-semibold mt-1">{fieldErrors.name}</p>
+                  <p className="text-[11px] text-rose-600 font-bold mt-1">{fieldErrors.name}</p>
                 )}
               </div>
             )}
 
             {/* Email Address */}
             <div>
-              <label htmlFor="auth-email" className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
-                Email Address <span className="text-rose-500">*</span>
+              <label htmlFor="auth-email" className="block text-xs font-black text-black dark:text-slate-200 mb-1">
+                Email Address <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
-                <Mail size={18} className="absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
+                <Mail size={18} className="absolute left-3.5 top-3 text-slate-700 dark:text-slate-500" />
                 <input
                   id="auth-email"
                   type="email"
@@ -232,23 +232,23 @@ export default function Login() {
                     if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined }));
                   }}
                   placeholder="caregiver@example.com"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border ${
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${
                     fieldErrors.email ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
-                  } text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2`}
+                  } text-black dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 text-sm font-bold focus:outline-none focus:ring-2`}
                 />
               </div>
               {fieldErrors.email && (
-                <p className="text-[11px] text-rose-500 font-semibold mt-1">{fieldErrors.email}</p>
+                <p className="text-[11px] text-rose-600 font-bold mt-1">{fieldErrors.email}</p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="auth-password" className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
-                Password <span className="text-rose-500">*</span>
+              <label htmlFor="auth-password" className="block text-xs font-black text-black dark:text-slate-200 mb-1">
+                Password <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
-                <Lock size={18} className="absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
+                <Lock size={18} className="absolute left-3.5 top-3 text-slate-700 dark:text-slate-500" />
                 <input
                   id="auth-password"
                   type={showPassword ? 'text' : 'password'}
@@ -260,21 +260,21 @@ export default function Login() {
                     if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined }));
                   }}
                   placeholder="••••••••"
-                  className={`w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border ${
+                  className={`w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${
                     fieldErrors.password ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
-                  } text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2`}
+                  } text-black dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-400 text-sm font-bold focus:outline-none focus:ring-2`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  className="absolute right-3 top-2.5 p-1 text-slate-700 hover:text-black dark:hover:text-slate-200 transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-[11px] text-rose-500 font-semibold mt-1">{fieldErrors.password}</p>
+                <p className="text-[11px] text-rose-600 font-bold mt-1">{fieldErrors.password}</p>
               )}
 
               {/* Password Strength Indicator (Registration Only) */}

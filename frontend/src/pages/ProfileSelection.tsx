@@ -201,33 +201,33 @@ export default function ProfileSelection() {
       {/* Main Section */}
       <main className="my-8 flex flex-col items-center">
         <div className="text-center mb-8">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-black text-black dark:text-white tracking-tight">
             Who are you caring for today?
           </h2>
-          <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm sm:text-base max-w-xl">
+          <p className="text-slate-900 dark:text-slate-200 mt-2 text-sm sm:text-base max-w-xl font-medium">
             Select an elderly profile. All game sessions, baselines, and family memories remain completely isolated.
           </p>
         </div>
 
         {/* Tab Switcher & Search Bar */}
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700">
             <button
               onClick={() => setActiveTab('active')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
                 activeTab === 'active'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-black dark:text-white shadow-xs'
+                  : 'text-slate-800 dark:text-slate-300 hover:text-black dark:hover:text-white'
               }`}
             >
               Active Profiles ({activeProfiles.length})
             </button>
             <button
               onClick={() => setActiveTab('archived')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
                 activeTab === 'archived'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-black dark:text-white shadow-xs'
+                  : 'text-slate-800 dark:text-slate-300 hover:text-black dark:hover:text-white'
               }`}
             >
               Archived ({archivedProfiles.length})
