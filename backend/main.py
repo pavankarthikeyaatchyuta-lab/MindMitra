@@ -1281,3 +1281,16 @@ def debug_auth_health(authorization: Optional[str] = Header(None)):
         res_dict["authenticated_caregiver_id"] = caregiver_id
 
     return res_dict
+
+@app.get("/api/debug/db-init")
+def debug_db_init():
+    try:
+        init_db()
+        return {"status": "init_db_success"}
+    except Exception as e:
+        import traceback
+        return {
+            "status": "init_db_failed",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
