@@ -20,7 +20,10 @@ if raw_db_url:
     DATABASE_URL = raw_db_url.replace("postgres://", "postgresql://", 1) if raw_db_url.startswith("postgres://") else raw_db_url
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_FILE = os.getenv("DB_FILE", os.path.join(BASE_DIR, "mindmitra.db"))
+if os.getenv("VERCEL"):
+    DB_FILE = os.getenv("DB_FILE", "/tmp/mindmitra.db")
+else:
+    DB_FILE = os.getenv("DB_FILE", os.path.join(BASE_DIR, "mindmitra.db"))
 
 HAS_POSTGRES = False
 if DATABASE_URL:

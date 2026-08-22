@@ -37,10 +37,10 @@ def debug_error():
             "traceback": traceback.format_exc()
         }
 
-# Comment out dynamic loading of backend app to keep fallback app active
-# try:
-#     load_backend_paths()
-#     from backend.main import app as backend_app
-#     app = backend_app
-# except Exception as e:
-#     pass
+# Dynamically route requests to backend app if loaded
+try:
+    load_backend_paths()
+    from backend.main import app as backend_app
+    app = backend_app
+except Exception as e:
+    pass
