@@ -904,7 +904,12 @@ def get_adaptive_history(user_id: int):
 def get_baseline(user_id: int, game_type: str):
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM game_sessions WHERE user_id = ? AND game_type = ? ORDER BY id ASC", (user_id, game_type))
+        c.execute("""
+            SELECT g.* FROM game_sessions g
+            JOIN sessions s ON g.session_id = s.id
+            WHERE s.user_id = ? AND g.game_type = ? AND (s.status = 'completed' OR s.status = 'Completed')
+            ORDER BY g.id ASC
+        """, (user_id, game_type))
         raw_sessions = [dict(row) for row in c.fetchall()]
 
     eligible_sessions, _ = filter_eligible_sessions(raw_sessions)
@@ -933,10 +938,11 @@ def get_trends(user_id: int, current=Depends(get_current_caregiver)):
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
         c = conn.cursor()
         c.execute("""
-            SELECT * FROM game_sessions 
-            WHERE user_id = ? OR session_id IN (SELECT id FROM sessions WHERE user_id = ?)
-            ORDER BY id ASC
-        """, (user_id, user_id))
+            SELECT g.* FROM game_sessions g
+            JOIN sessions s ON g.session_id = s.id
+            WHERE s.user_id = ? AND (s.status = 'completed' OR s.status = 'Completed')
+            ORDER BY g.id ASC
+        """, (user_id,))
         raw_sessions = [dict(row) for row in c.fetchall()]
 
     game_types = ["memory_match", "daily_routine", "object_recognition", "pattern_recall"]
