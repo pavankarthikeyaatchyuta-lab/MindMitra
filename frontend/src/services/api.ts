@@ -27,12 +27,24 @@ async function fetchJSON<T>(url: string, options: RequestInit = {}, cacheKey?: s
       headers,
     });
     if (!response.ok) {
+      let errorDetail = '';
+      try {
+        const errorJson = await response.json();
+        errorDetail = errorJson.detail || JSON.stringify(errorJson);
+      } catch {
+        errorDetail = response.statusText;
+      }
+
       if (response.status === 401) {
-        // Session expired
         localStorage.removeItem('mindmitra_token');
         localStorage.removeItem('mindmitra_caregiver');
       }
-      throw new Error(response.statusText);
+
+      const err: any = new Error(errorDetail || `HTTP Error ${response.status}`);
+      err.status = response.status;
+      err.url = url;
+      err.detail = errorDetail;
+      throw err;
     }
     const data = await response.json();
     if (cacheKey) saveToCache(cacheKey, data);

@@ -35,13 +35,15 @@ export default function FamiliarPeople() {
           setSelectedUserId(targetId);
           const found = profiles.find(p => p.id === targetId);
           if (found) switchProfile(found);
-        } else if (currentUser) {
+        } else if (currentUser && profiles.some(p => p.id === currentUser.id)) {
           setSelectedUserId(currentUser.id);
         } else if (profiles.length > 0) {
           setSelectedUserId(profiles[0].id);
           switchProfile(profiles[0]);
         }
-      } catch {}
+      } catch (err: any) {
+        console.error('[FamiliarPeople] Failed to load caregiver profiles:', err?.detail || err?.message);
+      }
     }
     init();
   }, [profileId]);
@@ -56,8 +58,8 @@ export default function FamiliarPeople() {
     try {
       const data = await api.getFamiliarPeople(selectedUserId!);
       setPeople(data);
-    } catch (err) {
-      console.log('Error loading familiar people');
+    } catch (err: any) {
+      console.error(`[FamiliarPeople] Error loading familiar people for profile_id=${selectedUserId}:`, err?.detail || err?.message);
     }
     setLoading(false);
   };
@@ -100,6 +102,10 @@ export default function FamiliarPeople() {
     e.preventDefault();
     setValidationError(null);
 
+    if (!selectedUserId) {
+      setValidationError('Please select a valid senior profile.');
+      return;
+    }
     if (!name.trim()) {
       setValidationError('Please enter person name');
       return;
@@ -127,7 +133,7 @@ export default function FamiliarPeople() {
         });
       } else {
         await api.addFamiliarPerson({
-          user_id: selectedUserId!,
+          user_id: selectedUserId,
           name: name.trim(),
           relationship: relationship.trim(),
           photo_url: photoUrl,
@@ -142,8 +148,14 @@ export default function FamiliarPeople() {
       setConsentConfirmed(false);
       setEditingId(null);
       await loadPeople();
-    } catch {
-      setValidationError('Failed to save familiar person.');
+    } catch (err: any) {
+      console.error('[FamiliarPeople] Save failed:', {
+        status: err?.status,
+        endpoint: editingId ? `/api/familiar-people/${editingId}` : '/api/familiar-people',
+        profile_id: selectedUserId,
+        detail: err?.detail || err?.message,
+      });
+      setValidationError('Unable to save this familiar person. Please try again.');
     }
   };
 

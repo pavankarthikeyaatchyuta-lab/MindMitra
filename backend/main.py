@@ -12,7 +12,15 @@ from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import aiohttp
+import logging
 from dotenv import load_dotenv
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+)
+logger = logging.getLogger("mindmitra")
 
 # Import modular analytics, adaptive, explanation, quality, auth and demo services
 from services.config import (
@@ -314,6 +322,12 @@ class FamiliarPersonCreate(BaseModel):
     photo_url: str
     consent_confirmed: bool = True
 
+class FamiliarPersonUpdate(BaseModel):
+    name: Optional[str] = None
+    relationship: Optional[str] = None
+    photo_url: Optional[str] = None
+    consent_confirmed: Optional[bool] = None
+
 class ReminderModel(BaseModel):
     user_id: int
     type: str
@@ -472,25 +486,6 @@ def create_elderly_profile(p: ProfileCreate, current=Depends(get_current_caregiv
             INSERT INTO elderly_profiles (caregiver_id, name, age, preferred_language, voice_enabled, created_at, updated_at, active, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'active')
         """, (caregiver_id, p.name.strip(), p.age, p.preferred_language, 1 if p.voice_enabled else 0, now, now))
-        profile_id = c.lastrowid
-
-        # Sync to users table for backward compat
-        c.execute("""
-            INSERT INTO users (id, display_name, age, preferred_language, voice_enabled, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (profile_id, p.name.strip(), p.age, p.preferred_language, 1 if p.voice_enabled else 0, now))
-        conn.commit()
-
-        return {
-            "id": profile_id,
-            "display_name": p.name.strip(),
-            "name": p.name.strip(),
-            "age": p.age,
-            "preferred_language": p.preferred_language,
-            "voice_enabled": p.voice_enabled,
-            "status": "active",
-            "created_at": now
-        }
         profile_id = c.lastrowid
 
         # Sync to users table for backward compat
@@ -939,40 +934,127 @@ async def get_all_insights(user_id: int, current=Depends(get_current_caregiver))
 
 @app.get("/api/familiar-people/{user_id}")
 def list_familiar_people(user_id: int, current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else 1
+    logger.info(f"[GET /api/familiar-people/{user_id}] profile_id={user_id} caregiver_id={caregiver_id}")
     with get_db() as conn:
-        if current and not verify_profile_ownership(conn, current["caregiver_id"], user_id):
+        if current and not verify_profile_ownership(conn, caregiver_id, user_id):
+            logger.warning(f"[GET /api/familiar-people/{user_id}] 403 Forbidden: caregiver_id={caregiver_id} denied access to profile_id={user_id}")
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
         c = conn.cursor()
         c.execute("SELECT * FROM familiar_people WHERE user_id = ? ORDER BY id ASC", (user_id,))
-        return [dict(row) for row in c.fetchall()]
+        rows = [dict(row) for row in c.fetchall()]
+        return rows
 
 @app.post("/api/familiar-people")
 def add_familiar_person(fp: FamiliarPersonCreate, current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else 1
+    logger.info(f"[POST /api/familiar-people] profile_id={fp.user_id} caregiver_id={caregiver_id} name='{fp.name}'")
     with get_db() as conn:
-        if current and not verify_profile_ownership(conn, current["caregiver_id"], fp.user_id):
+        if current and not verify_profile_ownership(conn, caregiver_id, fp.user_id):
+            logger.warning(f"[POST /api/familiar-people] 403 Forbidden: caregiver_id={caregiver_id} denied access to profile_id={fp.user_id}")
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
+        
         c = conn.cursor()
+        # Verify profile exists
+        c.execute("SELECT id FROM elderly_profiles WHERE id = ?", (fp.user_id,))
+        p_row = c.fetchone()
+        if not p_row:
+            c.execute("SELECT id FROM users WHERE id = ?", (fp.user_id,))
+            u_row = c.fetchone()
+            if not u_row:
+                logger.warning(f"[POST /api/familiar-people] 404 Not Found: profile_id={fp.user_id}")
+                raise HTTPException(status_code=404, detail=f"Profile with id {fp.user_id} not found")
+
+        if not fp.photo_url or not fp.photo_url.strip():
+            logger.warning(f"[POST /api/familiar-people] 400 Bad Request: missing photo_url for profile_id={fp.user_id}")
+            raise HTTPException(status_code=400, detail="Photo is required for familiar person.")
+
         now = datetime.datetime.now().isoformat()
-        c.execute("""
-            INSERT INTO familiar_people (user_id, name, relationship, photo_url, consent_confirmed, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (fp.user_id, fp.name, fp.relationship, fp.photo_url, 1 if fp.consent_confirmed else 0, now))
-        conn.commit()
-        return {"id": c.lastrowid, **fp.dict()}
+        try:
+            c.execute("""
+                INSERT INTO familiar_people (user_id, name, relationship, photo_url, consent_confirmed, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (fp.user_id, fp.name.strip(), fp.relationship.strip(), fp.photo_url, 1 if fp.consent_confirmed else 0, now))
+            conn.commit()
+            new_id = c.lastrowid
+            logger.info(f"[POST /api/familiar-people] 201 Created: new_id={new_id} profile_id={fp.user_id} caregiver_id={caregiver_id}")
+            return {
+                "id": new_id,
+                "user_id": fp.user_id,
+                "name": fp.name.strip(),
+                "relationship": fp.relationship.strip(),
+                "photo_url": fp.photo_url,
+                "consent_confirmed": fp.consent_confirmed,
+                "created_at": now
+            }
+        except Exception as e:
+            logger.error(f"[POST /api/familiar-people] 500 DB Error: profile_id={fp.user_id} error={e}")
+            raise HTTPException(status_code=500, detail=f"Database error saving familiar person: {str(e)}")
+
+@app.put("/api/familiar-people/{id}")
+@app.patch("/api/familiar-people/{id}")
+def update_familiar_person(id: int, fp: FamiliarPersonUpdate, current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else 1
+    logger.info(f"[PUT /api/familiar-people/{id}] id={id} caregiver_id={caregiver_id}")
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM familiar_people WHERE id = ?", (id,))
+        existing = c.fetchone()
+        if not existing:
+            logger.warning(f"[PUT /api/familiar-people/{id}] 404 Not Found: id={id}")
+            raise HTTPException(status_code=404, detail="Familiar person not found")
+
+        user_id = existing["user_id"]
+        if current and not verify_profile_ownership(conn, caregiver_id, user_id):
+            logger.warning(f"[PUT /api/familiar-people/{id}] 403 Forbidden: caregiver_id={caregiver_id} denied access to profile_id={user_id}")
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
+
+        new_name = fp.name.strip() if fp.name is not None else existing["name"]
+        new_rel = fp.relationship.strip() if fp.relationship is not None else existing["relationship"]
+        new_photo = fp.photo_url if fp.photo_url is not None else existing["photo_url"]
+        new_consent = (1 if fp.consent_confirmed else 0) if fp.consent_confirmed is not None else existing["consent_confirmed"]
+
+        try:
+            c.execute("""
+                UPDATE familiar_people
+                SET name = ?, relationship = ?, photo_url = ?, consent_confirmed = ?
+                WHERE id = ?
+            """, (new_name, new_rel, new_photo, new_consent, id))
+            conn.commit()
+            logger.info(f"[PUT /api/familiar-people/{id}] 200 OK: updated id={id} profile_id={user_id}")
+            return {
+                "id": id,
+                "user_id": user_id,
+                "name": new_name,
+                "relationship": new_rel,
+                "photo_url": new_photo,
+                "consent_confirmed": bool(new_consent)
+            }
+        except Exception as e:
+            logger.error(f"[PUT /api/familiar-people/{id}] 500 DB Error: id={id} error={e}")
+            raise HTTPException(status_code=500, detail=f"Database error updating familiar person: {str(e)}")
 
 @app.delete("/api/familiar-people/{id}")
 def delete_familiar_person(id: int, current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else 1
+    logger.info(f"[DELETE /api/familiar-people/{id}] id={id} caregiver_id={caregiver_id}")
     with get_db() as conn:
         c = conn.cursor()
         c.execute("SELECT user_id FROM familiar_people WHERE id = ?", (id,))
         row = c.fetchone()
         if not row:
             return {"status": "deleted"}
-        if current and not verify_profile_ownership(conn, current["caregiver_id"], row["user_id"]):
+        if current and not verify_profile_ownership(conn, caregiver_id, row["user_id"]):
+            logger.warning(f"[DELETE /api/familiar-people/{id}] 403 Forbidden: caregiver_id={caregiver_id} denied access to profile_id={row['user_id']}")
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
-        c.execute("DELETE FROM familiar_people WHERE id = ?", (id,))
-        conn.commit()
-        return {"status": "deleted"}
+        try:
+            c.execute("DELETE FROM familiar_people WHERE id = ?", (id,))
+            conn.commit()
+            logger.info(f"[DELETE /api/familiar-people/{id}] 200 OK: deleted id={id}")
+            return {"status": "deleted"}
+        except Exception as e:
+            logger.error(f"[DELETE /api/familiar-people/{id}] 500 DB Error: id={id} error={e}")
+            raise HTTPException(status_code=500, detail=f"Database error deleting familiar person: {str(e)}")
 
 # --- ENDPOINTS: CLOUD TTS ---
 
