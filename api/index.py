@@ -17,5 +17,5 @@ try:
     init_db()
 except Exception as e:
     print(f"[Vercel Initialization Notice] {e}")
-# Version: 2.0.2 Dual Route Decorators Added
+# Version: 2.0.3 - Community and Connect Full API Deployment
 
