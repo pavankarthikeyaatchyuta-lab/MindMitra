@@ -806,33 +806,37 @@ def start_game_session(gs: GameSessionStart):
 @app.post("/api/games/session/{id}/complete")
 def complete_game_session(id: int, data: GameSessionComplete):
     with get_db() as conn:
-        c = conn.cursor()
-        now = datetime.datetime.now().isoformat()
+        try:
+            c = conn.cursor()
+            now = datetime.datetime.now().isoformat()
 
-        session_dict = {
-            "completed_at": now,
-            "accuracy": data.accuracy,
-            "total_events": data.total_events,
-            "avg_response_time_ms": data.avg_response_time_ms,
-            "completion_time_ms": data.completion_time_ms,
-            "difficulty": 2,
-        }
-        is_eligible, exclusion_reason = validate_session_quality(session_dict)
+            session_dict = {
+                "completed_at": now,
+                "accuracy": data.accuracy,
+                "total_events": data.total_events,
+                "avg_response_time_ms": data.avg_response_time_ms,
+                "completion_time_ms": data.completion_time_ms,
+                "difficulty": 2,
+            }
+            is_eligible, exclusion_reason = validate_session_quality(session_dict)
 
-        c.execute("""
-            UPDATE game_sessions 
-            SET completed_at = ?, accuracy = ?, avg_response_time_ms = ?, 
-                total_events = ?, repeat_errors = ?, corrections = ?, completion_time_ms = ?,
-                invalid_for_trend = ?, exclusion_reason = ?
-            WHERE id = ?
-        """, (
-            now, data.accuracy, data.avg_response_time_ms,
-            data.total_events, data.repeat_errors, data.corrections, data.completion_time_ms,
-            0 if is_eligible else 1, exclusion_reason if not is_eligible else None,
-            id
-        ))
-        conn.commit()
-        return {"id": id, "completed_at": now, "eligible_for_trend": is_eligible}
+            c.execute("""
+                UPDATE game_sessions 
+                SET completed_at = ?, accuracy = ?, avg_response_time_ms = ?, 
+                    total_events = ?, repeat_errors = ?, corrections = ?, completion_time_ms = ?,
+                    invalid_for_trend = ?, exclusion_reason = ?
+                WHERE id = ?
+            """, (
+                now, data.accuracy, data.avg_response_time_ms,
+                data.total_events, data.repeat_errors, data.corrections, data.completion_time_ms,
+                False if is_eligible else True, exclusion_reason if not is_eligible else None,
+                id
+            ))
+            conn.commit()
+            return {"id": id, "completed_at": now, "eligible_for_trend": is_eligible}
+        except Exception as e:
+            logger.error(f"[Games] Failed to complete game session id={id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to complete game session: {e}")
 
 @app.post("/api/games/event")
 def record_game_event(evt: GameEventRecord):
