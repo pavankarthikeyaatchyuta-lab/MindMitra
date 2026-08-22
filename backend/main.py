@@ -40,8 +40,7 @@ from services.auth_service import hash_password, verify_password, create_access_
 
 load_dotenv()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.getenv("DB_FILE", "/tmp/mindmitra.db" if os.getenv("VERCEL") else os.path.join(BASE_DIR, "mindmitra.db"))
+from services.db_adapter import get_db, get_engine_name, HAS_POSTGRES, DATABASE_URL, DB_FILE
 
 app = FastAPI(title="MindMitra Backend - Caregiver & Multi-Profile Cognitive Platform")
 
@@ -52,11 +51,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def init_db():
     with get_db() as conn:
@@ -1198,3 +1192,29 @@ def sync_simulate():
 @app.post("/api/demo/seed")
 def seed_demo_endpoint():
     return seed_demo_scenarios(DB_FILE)
+
+@app.get("/api/debug/persistence")
+def debug_persistence(current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else None
+    engine = get_engine_name()
+    profile_count = 0
+    with get_db() as conn:
+        c = conn.cursor()
+        if caregiver_id:
+            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE caregiver_id = ? AND active = 1", (caregiver_id,))
+            res = c.fetchone()
+            profile_count = res["count"] if res else 0
+        else:
+            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE active = 1")
+            res = c.fetchone()
+            profile_count = res["count"] if res else 0
+
+    return {
+        "database_connected": True,
+        "database_engine": engine,
+        "database_url_configured": bool(DATABASE_URL),
+        "database_file": DB_FILE if engine == "sqlite" else None,
+        "authenticated_caregiver_id": caregiver_id,
+        "profile_count": profile_count,
+        "environment": "production" if os.getenv("VERCEL") or os.getenv("DATABASE_URL") else "development"
+    }
