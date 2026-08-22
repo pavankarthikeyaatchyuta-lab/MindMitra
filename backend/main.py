@@ -65,6 +65,28 @@ def debug_ping():
 def init_db():
     with get_db() as conn:
         c = conn.cursor()
+        is_postgres = getattr(conn, 'is_postgres', False)
+
+        def column_exists(cursor, table, column):
+            if is_postgres:
+                cursor.execute("""
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE LOWER(table_name) = LOWER(%s) AND LOWER(column_name) = LOWER(%s)
+                """, (table, column))
+                return bool(cursor.fetchone())
+            else:
+                cursor.execute(f"PRAGMA table_info({table})")
+                rows = cursor.fetchall()
+                cols = []
+                for r in rows:
+                    if isinstance(r, dict):
+                        cols.append(r.get("name"))
+                    elif isinstance(r, (list, tuple)):
+                        cols.append(r[1])
+                    else:
+                        cols.append(getattr(r, 'name', None) or r[1])
+                return column in cols
+
         # 1. Caregivers table
         c.execute("""
             CREATE TABLE IF NOT EXISTS caregivers (
@@ -212,14 +234,16 @@ def init_db():
             ("game_sessions", "invalid_for_trend", "BOOLEAN DEFAULT 0"),
             ("game_sessions", "exclusion_reason", "TEXT"),
             ("adaptive_decisions", "reason", "TEXT"),
+            ("caregivers", "active", "BOOLEAN DEFAULT 1"),
             ("elderly_profiles", "active", "BOOLEAN DEFAULT 1"),
             ("elderly_profiles", "status", "TEXT DEFAULT 'active'"),
         ]:
             tbl, col, dtype = col_def
-            try:
-                c.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {dtype}")
-            except Exception:
-                pass
+            if not column_exists(c, tbl, col):
+                try:
+                    c.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {dtype}")
+                except Exception as alter_err:
+                    logger.warning(f"Failed to add column {col} to {tbl}: {alter_err}")
 
         # If caregivers table is empty, seed demo caregiver
         c.execute("SELECT COUNT(*) as count FROM caregivers")
