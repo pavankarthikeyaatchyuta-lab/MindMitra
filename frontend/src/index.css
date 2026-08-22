@@ -1,0 +1,100 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-space-950: #030612;
+  --color-space-900: #060c20;
+  --color-space-800: #0c1638;
+  --color-space-700: #15224e;
+  --color-space-600: #21356e;
+  --color-primary: #3b82f6;
+  --color-primary-glow: #60a5fa;
+  --color-secondary: #10b981;
+  --color-accent: #f59e0b;
+  --color-cosmic: #8b5cf6;
+  --color-surface: #0a0f24;
+}
+
+html {
+  font-size: 18px;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  background-color: #050816;
+  color: #f1f5f9;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Space Cards */
+.cosmic-card {
+  background: rgba(13, 22, 50, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1.5rem;
+}
+
+.cosmic-card-hover {
+  transition: all 0.25s ease-out;
+}
+
+.cosmic-card-hover:hover {
+  border-color: rgba(129, 140, 248, 0.45);
+  box-shadow: 0 12px 36px 0 rgba(79, 70, 229, 0.22);
+  transform: translateY(-2px);
+}
+
+/* Elderly-friendly large buttons */
+.elderly-btn-primary {
+  min-height: 56px;
+  min-width: 180px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 1rem;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
+  transition: all 0.2s ease;
+}
+
+.elderly-btn-primary:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.55);
+  transform: scale(1.02);
+}
+
+.elderly-btn-secondary {
+  min-height: 56px;
+  min-width: 180px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 1rem;
+  padding: 0.875rem 2rem;
+  background: rgba(30, 41, 79, 0.6);
+  backdrop-filter: blur(8px);
+  color: #93c5fd;
+  border: 1.5px solid rgba(96, 165, 250, 0.4);
+  transition: all 0.2s ease;
+}
+
+.elderly-btn-secondary:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+
+/* Constellation orbit line */
+.constellation-glow {
+  filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.6));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

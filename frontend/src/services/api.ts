@@ -1,0 +1,208 @@
+import { saveOfflineEvent, getOfflineEvents, clearOfflineEvents, saveToCache, getFromCache, isOnline } from './storage';
+import { User, Session, GameSession, GameEvent, AdaptiveMetrics, AdaptiveResult, AdaptiveDecision, Baseline, TrendData, CognitiveDomain, Insight, Reminder, FamiliarPerson } from '../types';
+
+const API_BASE = '/api';
+
+async function fetchJSON<T>(url: string, options: RequestInit = {}, cacheKey?: string): Promise<T> {
+  if (!isOnline()) {
+    if (cacheKey) {
+      const cached = getFromCache(cacheKey);
+      if (cached) return cached as T;
+    }
+    throw new Error('Offline and no cache available');
+  }
+
+  try {
+    const token = localStorage.getItem('mindmitra_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options.headers as Record<string, string>) || {}),
+    };
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}${url}`, {
+      ...options,
+      headers,
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Session expired
+        localStorage.removeItem('mindmitra_token');
+        localStorage.removeItem('mindmitra_caregiver');
+      }
+      throw new Error(response.statusText);
+    }
+    const data = await response.json();
+    if (cacheKey) saveToCache(cacheKey, data);
+    return data;
+  } catch (err) {
+    if (cacheKey) {
+      const cached = getFromCache(cacheKey);
+      if (cached) return cached as T;
+    }
+    throw err;
+  }
+}
+
+export const api = {
+  // Auth
+  login: (credentials: { email: string; password: string }) =>
+    fetchJSON<{ token: string; caregiver: { id: number; name: string; email: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }),
+  register: (data: { name: string; email: string; password: string }) =>
+    fetchJSON<{ token: string; caregiver: { id: number; name: string; email: string } }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getMe: (token?: string) =>
+    fetchJSON<{ caregiver: { id: number; name: string; email: string }; profiles: User[] }>('/auth/me', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }),
+
+  // Profiles Lifecycle
+  getProfiles: (includeArchived: boolean = false) => fetchJSON<User[]>(`/profiles?include_archived=${includeArchived}`, {}, 'profiles'),
+  getArchivedProfiles: () => fetchJSON<User[]>('/profiles/archived', {}, 'profiles_archived'),
+  createProfile: (profile: { name: string; age: number; preferred_language: string; voice_enabled: boolean }) =>
+    fetchJSON<User>('/profiles', { method: 'POST', body: JSON.stringify(profile) }),
+  getProfile: (id: number) => fetchJSON<User>(`/profiles/${id}`, {}, `profile_${id}`),
+  updateProfile: (id: number, profile: { name?: string; age?: number; preferred_language?: string; voice_enabled?: boolean }) =>
+    fetchJSON<User>(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify(profile) }),
+  archiveProfile: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}/archive`, { method: 'POST' }),
+  restoreProfile: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}/restore`, { method: 'POST' }),
+  deleteProfilePermanently: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}`, { method: 'DELETE' }),
+  exportProfileData: (id: number) => fetchJSON<any>(`/profiles/${id}/export`),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    fetchJSON<{ status: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Users (Legacy Alias)
+  getUsers: () => fetchJSON<User[]>('/users', {}, 'users'),
+  createUser: (user: Partial<User>) => fetchJSON<{ id: number }>('/users', { method: 'POST', body: JSON.stringify(user) }),
+  getUser: (id: number) => fetchJSON<User>(`/users/${id}`, {}, `user_${id}`),
+  seedDemoUsers: () => fetchJSON<any>('/users/demo', { method: 'POST' }),
+
+  // Sessions
+  startSession: (userId: number) => fetchJSON<{ id: number }>('/sessions/start', { method: 'POST', body: JSON.stringify({ user_id: userId }) }),
+  completeSession: (sessionId: number) => fetchJSON<any>(`/sessions/${sessionId}/complete`, { method: 'POST' }),
+  getUserSessions: (userId: number) => fetchJSON<Session[]>(`/sessions/user/${userId}`, {}, `sessions_${userId}`),
+  getSessionDetails: (sessionId: number) => fetchJSON<any>(`/sessions/${sessionId}`, {}, `session_${sessionId}`),
+
+  // Game Sessions
+  startGameSession: (data: { session_id: number; user_id: number; game_type: string; difficulty: number }) =>
+    fetchJSON<{ id: number }>('/games/session/start', { method: 'POST', body: JSON.stringify(data) }),
+  completeGameSession: (id: number, metrics: any) => {
+    if (!isOnline()) {
+      saveOfflineEvent({ type: 'complete_game_session', id, data: metrics });
+      return Promise.resolve({ status: 'saved_offline' });
+    }
+    return fetchJSON<any>(`/games/session/${id}/complete`, { method: 'POST', body: JSON.stringify(metrics) });
+  },
+  getUserGameSessions: (userId: number) => fetchJSON<GameSession[]>(`/games/sessions/user/${userId}`, {}, `game_sessions_${userId}`),
+  getUserGameSessionsByType: (userId: number, gameType: string) => fetchJSON<GameSession[]>(`/games/sessions/user/${userId}/${gameType}`, {}, `game_sessions_${userId}_${gameType}`),
+
+  // Game Events
+  recordGameEvent: (event: GameEvent) => {
+    if (!isOnline()) {
+      saveOfflineEvent({ type: 'game_event', data: event });
+      return Promise.resolve({ id: Date.now() });
+    }
+    return fetchJSON<any>('/games/event', { method: 'POST', body: JSON.stringify(event) });
+  },
+
+  // Adaptive
+  getAdaptiveRecommendation: (userId: number, gameType: string, metrics: AdaptiveMetrics) =>
+    fetchJSON<AdaptiveResult>('/adaptive/recommend', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, game_type: gameType, current_metrics: metrics }),
+    }),
+  getAdaptiveHistory: (userId: number) => fetchJSON<AdaptiveDecision[]>(`/adaptive/history/${userId}`, {}, `adaptive_${userId}`),
+
+  // Familiar People (Caregiver Managed)
+  getFamiliarPeople: (userId: number) => fetchJSON<FamiliarPerson[]>(`/familiar-people/${userId}`, {}, `familiar_${userId}`),
+  addFamiliarPerson: (person: { user_id: number; name: string; relationship: string; photo_url: string; consent_confirmed: boolean }) =>
+    fetchJSON<{ id: number; status: string }>('/familiar-people', { method: 'POST', body: JSON.stringify(person) }),
+  updateFamiliarPerson: (id: number, person: { name: string; relationship: string; photo_url: string; consent_confirmed: boolean }) =>
+    fetchJSON<any>(`/familiar-people/${id}`, { method: 'PUT', body: JSON.stringify(person) }),
+  deleteFamiliarPerson: (id: number) => fetchJSON<any>(`/familiar-people/${id}`, { method: 'DELETE' }),
+
+  // Analytics
+  getBaseline: (userId: number, gameType: string) => fetchJSON<Baseline>(`/analytics/baseline/${userId}/${gameType}`, {}, `baseline_${userId}_${gameType}`),
+  getTrends: (userId: number) => fetchJSON<TrendData[]>(`/analytics/trends/${userId}`, {}, `trends_${userId}`),
+  getCognitiveDomains: (userId: number) => fetchJSON<CognitiveDomain[]>(`/analytics/cognitive-domains/${userId}`, {}, `domains_${userId}`),
+  getSessionSummary: (sessionId: number) => fetchJSON<any>(`/analytics/session-summary/${sessionId}`, {}, `summary_${sessionId}`),
+
+  // Explainability
+  explainInsight: (domain: string, status: string, evidence: string) =>
+    fetchJSON<{ explanation: string; provider?: string; tier?: number; disclaimer?: string }>('/explain/insight', {
+      method: 'POST',
+      body: JSON.stringify({ domain, status, evidence }),
+    }),
+  getAllInsights: (userId: number) => fetchJSON<Insight[]>(`/explain/insights/${userId}`, {}, `insights_${userId}`),
+
+  // Reminders
+  getReminders: (userId: number) => fetchJSON<Reminder[]>(`/reminders/${userId}`, {}, `reminders_${userId}`),
+  createReminder: (reminder: Reminder) => fetchJSON<{ id: number }>('/reminders', { method: 'POST', body: JSON.stringify(reminder) }),
+  updateReminder: (id: number, reminder: Reminder) => fetchJSON<any>(`/reminders/${id}`, { method: 'PUT', body: JSON.stringify(reminder) }),
+  deleteReminder: (id: number) => fetchJSON<any>(`/reminders/${id}`, { method: 'DELETE' }),
+
+  // Sync
+  getSyncStatus: () => {
+    if (!isOnline()) {
+      return Promise.resolve({ unsynced_items: getOfflineEvents().length, online: false });
+    }
+    return fetchJSON<any>('/sync/status').then(data => ({ ...data, online: true }));
+  },
+  simulateSync: async () => {
+    if (!isOnline()) return { status: 'offline' };
+    const events = getOfflineEvents();
+    for (const event of events) {
+      try {
+        if (event.type === 'game_event') await api.recordGameEvent(event.data);
+        if (event.type === 'complete_game_session') await api.completeGameSession(event.id, event.data);
+      } catch {}
+    }
+    clearOfflineEvents();
+    await fetchJSON<any>('/sync/simulate', { method: 'POST' });
+    return { status: 'synced', count: events.length };
+  },
+
+  // Demo
+  seedFullDemo: () => fetchJSON<any>('/demo/seed', { method: 'POST' }),
+};
+
+// Named exports for convenience (import * as api)
+export const getUsers = api.getUsers;
+export const createUser = api.createUser;
+export const getUser = api.getUser;
+export const seedDemoUsers = api.seedDemoUsers;
+export const startSession = api.startSession;
+export const completeSession = api.completeSession;
+export const getUserSessions = api.getUserSessions;
+export const getSessionDetails = api.getSessionDetails;
+export const startGameSession = api.startGameSession;
+export const completeGameSession = api.completeGameSession;
+export const getUserGameSessions = api.getUserGameSessions;
+export const getUserGameSessionsByType = api.getUserGameSessionsByType;
+export const recordGameEvent = api.recordGameEvent;
+export const getAdaptiveRecommendation = api.getAdaptiveRecommendation;
+export const getAdaptiveHistory = api.getAdaptiveHistory;
+export const getFamiliarPeople = api.getFamiliarPeople;
+export const addFamiliarPerson = api.addFamiliarPerson;
+export const updateFamiliarPerson = api.updateFamiliarPerson;
+export const deleteFamiliarPerson = api.deleteFamiliarPerson;
+export const getBaseline = api.getBaseline;
+export const getTrends = api.getTrends;
+export const getCognitiveDomains = api.getCognitiveDomains;
+export const getSessionSummary = api.getSessionSummary;
+export const explainInsight = api.explainInsight;
+export const getAllInsights = api.getAllInsights;
+export const getReminders = api.getReminders;
+export const createReminder = api.createReminder;
+export const updateReminder = api.updateReminder;
+export const deleteReminder = api.deleteReminder;
+export const getSyncStatus = api.getSyncStatus;
+export const simulateSync = api.simulateSync;
+export const seedFullDemo = api.seedFullDemo;

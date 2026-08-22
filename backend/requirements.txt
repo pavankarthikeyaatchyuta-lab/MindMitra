@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+aiohttp
+pandas
+numpy
+scikit-learn
+joblib
+pydantic
