@@ -32,7 +32,7 @@ from services.auth_service import hash_password, verify_password, create_access_
 
 load_dotenv()
 
-DB_FILE = "mindmitra.db"
+DB_FILE = os.getenv("DB_FILE", "/tmp/mindmitra.db" if os.getenv("VERCEL") else "mindmitra.db")
 
 app = FastAPI(title="MindMitra Backend - Caregiver & Multi-Profile Cognitive Platform")
 

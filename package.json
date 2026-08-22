@@ -1,0 +1,10 @@
+{
+  "name": "mindmitra",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MindMitra - AI-Powered Cognitive Gaming & Memory Assistance Platform for Elderly Users",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "vercel-build": "cd frontend && npm install && npm run build"
+  }
+}
