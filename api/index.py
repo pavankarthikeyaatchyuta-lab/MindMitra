@@ -1,5 +1,12 @@
 import os
 import sys
+import logging
+
+# MindMitra API v2.1 - Community, Connect, Memory Stories, 3-Domain Analytics
+# Build marker: 2026-08-23-v2-final-architecture
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("mindmitra.vercel")
 
 # Ensure root, backend, and ml are in python module resolution path
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,12 +17,13 @@ for p in [root_dir, backend_dir, ml_dir]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
+logger.info(f"[Vercel Init] Paths: root={root_dir}")
+
 from backend.main import app, init_db
 
 # Initialize database schema in Vercel serverless environment
 try:
     init_db()
+    logger.info("[Vercel Init] Database schema OK.")
 except Exception as e:
-    print(f"[Vercel Initialization Notice] {e}")
-# Version: 2.0.3 - Community and Connect Full API Deployment
-
+    logger.warning(f"[Vercel Initialization Notice] {e}")
