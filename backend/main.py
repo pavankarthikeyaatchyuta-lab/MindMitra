@@ -928,7 +928,11 @@ def get_trends(user_id: int, current=Depends(get_current_caregiver)):
         if current and not verify_profile_ownership(conn, current["caregiver_id"], user_id):
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to another caregiver's profile")
         c = conn.cursor()
-        c.execute("SELECT * FROM game_sessions WHERE user_id = ? ORDER BY id ASC", (user_id,))
+        c.execute("""
+            SELECT * FROM game_sessions 
+            WHERE user_id = ? OR session_id IN (SELECT id FROM sessions WHERE user_id = ?)
+            ORDER BY id ASC
+        """, (user_id, user_id))
         raw_sessions = [dict(row) for row in c.fetchall()]
 
     game_types = ["memory_match", "daily_routine", "object_recognition", "pattern_recall"]
@@ -942,22 +946,27 @@ def get_trends(user_id: int, current=Depends(get_current_caregiver)):
         domain_results.append({
             "game_type": gt,
             "domain": res["domain"],
+            "domain_name": res["domain_label"],
             "domain_label": res["domain_label"],
             "domain_icon": res["domain_icon"],
             "status": res["status"],
             "trend": res["status"],
+            "trend_label": res.get("trend_label") or res["status"].replace("_", " ").title(),
             "current_performance": curr.get("accuracy"),
             "current_latency_ms": curr.get("latency_ms"),
             "current_difficulty": curr.get("difficulty", 1),
-            "baseline": base.get("accuracy"),
-            "baseline_latency_ms": base.get("latency_ms"),
-            "deviation": changes.get("accuracy_delta"),
-            "latency_deviation_ms": changes.get("latency_percent_change"),
+            "baseline": base.get("accuracy") if isinstance(base, dict) else None,
+            "baseline_latency_ms": base.get("latency_ms") if isinstance(base, dict) else None,
+            "deviation": changes.get("accuracy_delta") if isinstance(changes, dict) else None,
+            "latency_deviation_ms": changes.get("latency_percent_change") if isinstance(changes, dict) else None,
             "sessions_used": res["sessions_used"],
+            "sessions_analyzed": res["sessions_used"],
             "total_recorded": res["total_recorded"],
             "supporting_sessions": res["supporting_sessions"],
             "reason_codes": res["reason_codes"],
+            "reasons": res.get("reasons", res["reason_codes"]),
             "observation_note": res["observation_note"],
+            "trend_description": res.get("trend_description", res["observation_note"]),
             "difficulty_context": res.get("difficulty_context"),
             "disclaimer": MEDICAL_DISCLAIMER,
         })

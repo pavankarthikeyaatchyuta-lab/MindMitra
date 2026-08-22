@@ -14,6 +14,36 @@ DOMAIN_MAPPING = {
     "pattern_recall": "pattern_attention",
 }
 
+GAME_TYPE_ALIASES = {
+    "memory_match": "memory_match",
+    "memory-match": "memory_match",
+    "memoryMatch": "memory_match",
+    "short_term_memory": "memory_match",
+
+    "daily_routine": "daily_routine",
+    "daily-routine": "daily_routine",
+    "dailyRoutine": "daily_routine",
+    "routine": "daily_routine",
+    "sequential_episodic_memory": "daily_routine",
+
+    "object_recognition": "object_recognition",
+    "object-recognition": "object_recognition",
+    "objectRecognition": "object_recognition",
+    "recognition": "object_recognition",
+    "visual_familiar_recognition": "object_recognition",
+
+    "pattern_recall": "pattern_recall",
+    "pattern-recall": "pattern_recall",
+    "patternRecall": "pattern_recall",
+    "pattern_attention": "pattern_recall",
+}
+
+def normalize_game_type(game_type: str) -> str:
+    if not game_type:
+        return ""
+    gt = str(game_type).strip()
+    return GAME_TYPE_ALIASES.get(gt, gt)
+
 DOMAIN_LABELS = {
     "short_term_memory": "Short-Term Memory",
     "sequential_episodic_memory": "Sequential / Episodic Memory",

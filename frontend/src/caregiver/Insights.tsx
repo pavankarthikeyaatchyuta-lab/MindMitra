@@ -217,7 +217,7 @@ export default function Insights() {
                           {DOMAIN_LABELS[domainKey] || domainKey}
                         </h2>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {t.sessions_analyzed || 0} sessions recorded
+                          {(t.sessions_analyzed ?? t.sessions_used ?? 0)} eligible sessions recorded
                         </p>
                       </div>
                     </div>

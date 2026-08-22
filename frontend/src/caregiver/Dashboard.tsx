@@ -214,7 +214,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-3">
               <span className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-300 font-bold">
-                {gameSessions.length} Sessions Recorded
+                {gameSessions.length} Recorded Sessions
               </span>
               <Link
                 to="/session"
@@ -278,6 +278,7 @@ export default function Dashboard() {
               const cfg = TREND_CONFIG[t.trend] || TREND_CONFIG.insufficient_history;
               const Icon = cfg.icon;
               const isExpanded = expandedDomain === t.game_type;
+              const count = t.sessions_analyzed ?? t.sessions_used ?? 0;
 
               return (
                 <div
@@ -302,12 +303,18 @@ export default function Dashboard() {
                         {t.current_performance != null ? `${Math.round(t.current_performance * 100)}%` : '—'}
                       </span>
                       <span className="text-xs font-bold text-slate-900 dark:text-slate-400">
-                        Baseline: {t.baseline != null ? `${Math.round(t.baseline * 100)}%` : 'Calibrating'}
+                        Baseline: {
+                          t.baseline != null
+                            ? `${Math.round(t.baseline * 100)}%`
+                            : count === 0
+                              ? 'Not Established'
+                              : 'Calibrating'
+                        }
                       </span>
                     </div>
 
                     <div className="mt-2 text-xs font-medium text-slate-900 dark:text-slate-300 leading-relaxed">
-                      {t.trend_description}
+                      {t.trend_description || t.observation_note}
                     </div>
 
                     {t.reasons && t.reasons.length > 0 && (
@@ -328,7 +335,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[11px] font-bold text-slate-900 dark:text-slate-400">
-                    <span>{t.sessions_analyzed || 0} sessions</span>
+                    <span>{count} eligible session{count === 1 ? '' : 's'}</span>
                     <Link
                       to="/caregiver/insights"
                       className="text-blue-700 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"

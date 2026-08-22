@@ -26,6 +26,7 @@ from .config import (
     COMPLETION_TIME_DEVIATION_THRESHOLD,
     MIN_DEVIATING_SESSIONS,
     MEDICAL_DISCLAIMER,
+    normalize_game_type,
 )
 from .data_quality_service import filter_eligible_sessions
 from .baseline_service import calculate_personal_baseline
@@ -39,25 +40,29 @@ def analyze_domain_trend(
     Enforces minimum history, data quality filters, difficulty adjustment context,
     and multi-signal repeated evidence rules.
     """
-    domain_key = DOMAIN_MAPPING.get(game_type, game_type)
-    domain_label = DOMAIN_LABELS.get(domain_key, game_type)
+    canonical_type = normalize_game_type(game_type)
+    domain_key = DOMAIN_MAPPING.get(canonical_type, canonical_type)
+    domain_label = DOMAIN_LABELS.get(domain_key, canonical_type)
     domain_icon = DOMAIN_ICONS.get(domain_key, "📊")
 
-    # 1. Filter sessions for this specific game type and validate quality
-    matching_sessions = [s for s in raw_sessions if s.get("game_type") == game_type]
+    # 1. Filter sessions for this specific game type using canonical mapping and validate quality
+    matching_sessions = [s for s in raw_sessions if normalize_game_type(s.get("game_type")) == canonical_type]
     eligible_sessions, excluded_sessions = filter_eligible_sessions(matching_sessions)
 
     total_eligible = len(eligible_sessions)
 
     # State: Insufficient History (0-2 sessions)
     if total_eligible < MIN_OBSERVATION_SESSIONS:
+        note = f"Establishing personal baseline ({total_eligible} eligible session{'s' if total_eligible != 1 else ''} recorded)." if total_eligible > 0 else "No eligible gameplay sessions recorded for this domain."
         return {
-            "game_type": game_type,
+            "game_type": canonical_type,
             "domain": domain_key,
             "domain_label": domain_label,
             "domain_icon": domain_icon,
             "status": STATUS_INSUFFICIENT_HISTORY,
+            "trend_label": "Insufficient History",
             "sessions_used": total_eligible,
+            "sessions_analyzed": total_eligible,
             "total_recorded": len(matching_sessions),
             "excluded_sessions_count": len(excluded_sessions),
             "baseline": None,
@@ -66,7 +71,9 @@ def analyze_domain_trend(
             "difficulty_context": None,
             "supporting_sessions": 0,
             "reason_codes": ["insufficient_history"],
-            "observation_note": "Establishing personal baseline. At least 5 completed sessions are recommended.",
+            "reasons": ["insufficient_history"],
+            "observation_note": note,
+            "trend_description": note,
             "disclaimer": MEDICAL_DISCLAIMER,
         }
 
@@ -77,14 +84,17 @@ def analyze_domain_trend(
         current = eligible_sessions[-1]
         current_acc = float(current.get("accuracy", 0))
         base_med = baseline["baseline_median"] if baseline else current_acc
+        note = f"Initial baseline formed ({total_eligible} eligible session{'s' if total_eligible != 1 else ''}). Additional sessions will unlock full longitudinal trend analytics."
 
         return {
-            "game_type": game_type,
+            "game_type": canonical_type,
             "domain": domain_key,
             "domain_label": domain_label,
             "domain_icon": domain_icon,
             "status": STATUS_OBSERVATION_AVAILABLE,
+            "trend_label": "Calibrating",
             "sessions_used": total_eligible,
+            "sessions_analyzed": total_eligible,
             "total_recorded": len(matching_sessions),
             "excluded_sessions_count": len(excluded_sessions),
             "baseline": {
@@ -112,7 +122,9 @@ def analyze_domain_trend(
             },
             "supporting_sessions": 0,
             "reason_codes": ["observation_available", "performance_stable"],
-            "observation_note": "Initial observation available. Additional sessions will unlock full longitudinal trend analytics.",
+            "reasons": ["observation_available", "performance_stable"],
+            "observation_note": note,
+            "trend_description": note,
             "disclaimer": MEDICAL_DISCLAIMER,
         }
 
@@ -240,13 +252,24 @@ def analyze_domain_trend(
         reason_codes.append("performance_stable")
         observation_note = "Performance is stable and aligned with the user's personal baseline."
 
+    status_labels = {
+        STATUS_STABLE: "Stable",
+        STATUS_IMPROVING: "Improving",
+        STATUS_RECENT_CHANGE: "Recent Change",
+        STATUS_VARIABLE: "Variable",
+        STATUS_OBSERVATION_AVAILABLE: "Calibrating",
+        STATUS_INSUFFICIENT_HISTORY: "Insufficient History",
+    }
+
     return {
-        "game_type": game_type,
+        "game_type": canonical_type,
         "domain": domain_key,
         "domain_label": domain_label,
         "domain_icon": domain_icon,
         "status": final_status,
+        "trend_label": status_labels.get(final_status, final_status.replace("_", " ").title()),
         "sessions_used": total_eligible,
+        "sessions_analyzed": total_eligible,
         "total_recorded": len(matching_sessions),
         "excluded_sessions_count": len(excluded_sessions),
         "baseline": {
@@ -278,7 +301,9 @@ def analyze_domain_trend(
         },
         "supporting_sessions": deviating_sessions_count,
         "reason_codes": list(set(reason_codes)),
+        "reasons": list(set(reason_codes)),
         "observation_note": observation_note,
+        "trend_description": observation_note,
         "disclaimer": MEDICAL_DISCLAIMER,
     }
 
