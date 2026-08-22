@@ -17,3 +17,5 @@ try:
     init_db()
 except Exception as e:
     print(f"[Vercel Initialization Notice] {e}")
+# Version: 2.0.0 Community & Connect Architecture
+
