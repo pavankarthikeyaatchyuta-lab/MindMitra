@@ -1239,6 +1239,13 @@ def debug_auth_health(authorization: Optional[str] = Header(None)):
     db_connected = False
     engine = "unknown"
     caregivers_table_exists = False
+    postgres_load_error = None
+    try:
+        import psycopg2
+    except Exception as e:
+        import traceback
+        postgres_load_error = f"{e}\n{traceback.format_exc()}"
+
     try:
         with get_db() as conn:
             c = conn.cursor()
@@ -1267,6 +1274,7 @@ def debug_auth_health(authorization: Optional[str] = Header(None)):
         "database_engine": engine,
         "caregivers_table_exists": bool(caregivers_table_exists),
         "auth_routes_loaded": True,
+        "postgres_load_error": postgres_load_error,
         "environment": "production" if os.getenv("VERCEL") or os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") else "development"
     }
     if caregiver_id is not None:
