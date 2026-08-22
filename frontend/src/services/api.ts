@@ -1,5 +1,5 @@
 import { saveOfflineEvent, getOfflineEvents, clearOfflineEvents, saveToCache, getFromCache, isOnline } from './storage';
-import { User, Session, GameSession, GameEvent, AdaptiveMetrics, AdaptiveResult, AdaptiveDecision, Baseline, TrendData, CognitiveDomain, Insight, Reminder, FamiliarPerson } from '../types';
+import { User, Session, GameSession, GameEvent, AdaptiveMetrics, AdaptiveResult, AdaptiveDecision, Baseline, TrendData, CognitiveDomain, Insight, Reminder, FamiliarPerson, CommunitySession, TrustedConnection, MemoryStory, ThreeDomainOverview } from '../types';
 
 const API_BASE = '/api';
 
