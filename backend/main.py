@@ -417,23 +417,29 @@ def login_caregiver(req: CaregiverLogin):
         raise HTTPException(status_code=400, detail="Email and password are required.")
 
     with get_db() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM caregivers WHERE LOWER(TRIM(email)) = ? AND (active = 1 OR active IS NULL OR active = 'true' OR active = true)", (email,))
-        caregiver = c.fetchone()
-        if not caregiver or not verify_password(password, caregiver["password_hash"]):
-            logger.warning(f"[Auth] Login failed for email={email}")
-            raise HTTPException(status_code=401, detail="Email or password is incorrect.")
+        try:
+            c = conn.cursor()
+            c.execute("SELECT * FROM caregivers WHERE LOWER(TRIM(email)) = ? AND (active = 1 OR active IS NULL OR active = 'true' OR active = true)", (email,))
+            caregiver = c.fetchone()
+            if not caregiver or not verify_password(password, caregiver["password_hash"]):
+                logger.warning(f"[Auth] Login failed for email={email}")
+                raise HTTPException(status_code=401, detail="Email or password is incorrect.")
 
-        token = create_access_token(caregiver["id"], caregiver["email"], caregiver["name"])
-        logger.info(f"[Auth] Caregiver logged in: id={caregiver['id']}, email={email}")
-        return {
-            "token": token,
-            "caregiver": {
-                "id": caregiver["id"],
-                "name": caregiver["name"],
-                "email": caregiver["email"],
+            token = create_access_token(caregiver["id"], caregiver["email"], caregiver["name"])
+            logger.info(f"[Auth] Caregiver logged in: id={caregiver['id']}, email={email}")
+            return {
+                "token": token,
+                "caregiver": {
+                    "id": caregiver["id"],
+                    "name": caregiver["name"],
+                    "email": caregiver["email"],
+                }
             }
-        }
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            raise HTTPException(status_code=500, detail=f"Login Error: {e}\n{traceback.format_exc()}")
 
 @app.get("/api/auth/me")
 def get_current_user_profile(current=Depends(get_current_caregiver)):
@@ -527,19 +533,23 @@ def create_elderly_profile(p: ProfileCreate, current=Depends(get_current_caregiv
     caregiver_id = current["caregiver_id"] if current else 1
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        c = conn.cursor()
-        c.execute("""
-            INSERT INTO elderly_profiles (caregiver_id, name, age, preferred_language, voice_enabled, created_at, updated_at, active, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'active')
-        """, (caregiver_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now, now))
-        profile_id = c.lastrowid
+        try:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO elderly_profiles (caregiver_id, name, age, preferred_language, voice_enabled, created_at, updated_at, active, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'active')
+            """, (caregiver_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now, now))
+            profile_id = c.lastrowid
 
-        # Sync to users table for backward compat
-        c.execute("""
-            INSERT INTO users (id, display_name, age, preferred_language, voice_enabled, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (profile_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now))
-        conn.commit()
+            # Sync to users table for backward compat
+            c.execute("""
+                INSERT INTO users (id, display_name, age, preferred_language, voice_enabled, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (profile_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now))
+            conn.commit()
+        except Exception as e:
+            import traceback
+            raise HTTPException(status_code=500, detail=f"Profile Create Error: {e}\n{traceback.format_exc()}")
 
         return {
             "id": profile_id,
