@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Scikit--Learn-1.4.0-F7931E.svg?logo=scikit-learn&logoColor=white" />
   <img src="https://img.shields.io/badge/Gemini_2.0_Flash-Explainable_AI-8E75B2.svg?logo=google&logoColor=white" />
   <img src="https://img.shields.io/badge/TailwindCSS-4.0-38B2AC.svg?logo=tailwind-css&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tests-30%20Passed-brightgreen.svg" />
+  <img src="https://img.shields.io/badge/Tests-33%20Passed-brightgreen.svg" />
 </p>
 
 ---
@@ -252,9 +252,9 @@ npm run dev -- --host 127.0.0.1 --port 3000
 ### 3. Run Automated Test Suite
 ```bash
 cd backend
-python -m pytest test_session_and_games_launch.py test_multi_caregiver_isolation_verification.py test_caregiver_isolation.py test_trend_engine.py test_backend.py -v
+python -m pytest -v
 ```
-*(30 automated unit, integration, and security tests — all passing)*.
+*(33 automated unit, integration, and security tests — all passing)*.
 
 ---
 
@@ -295,6 +295,14 @@ python -m pytest test_session_and_games_launch.py test_multi_caregiver_isolation
 | `POST` | `/api/familiar-people` | Add family member with consent confirmation |
 | `GET` | `/api/reminders/{user_id}` | List profile medication & daily reminders |
 | `POST` | `/api/reminders` | Create recurring reminder |
+
+### 🛠️ Diagnostics & Database Health
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/debug/ping` | Service health check |
+| `GET` | `/api/debug/auth-health` | Production DB connectivity & schema verification |
+| `GET` | `/api/debug/db-init` | Trigger DB schema initialization |
+| `GET` | `/api/debug/persistence` | Active database engine & profile persistence status |
 
 ---
 
