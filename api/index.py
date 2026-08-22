@@ -27,3 +27,8 @@ try:
     logger.info("[Vercel Init] Database schema OK.")
 except Exception as e:
     logger.warning(f"[Vercel Initialization Notice] {e}")
+
+# Canary route - if this exists, the lambda was rebuilt after 2026-08-23
+@app.get("/api/canary")
+def canary():
+    return {"status": "v2.1-rebuilt", "build": "2026-08-23", "community_api": "deployed"}
