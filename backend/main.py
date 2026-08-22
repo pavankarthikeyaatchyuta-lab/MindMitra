@@ -1340,6 +1340,7 @@ class MemoryStoryRequest(BaseModel):
     is_private: Optional[bool] = True
 
 @app.post("/api/community/sessions/start")
+@app.post("/community/sessions/start")
 def start_community_session(req: StartCommunitySessionRequest, current=Depends(get_current_caregiver)):
     caregiver_id = current["caregiver_id"] if current else 1
     now = datetime.datetime.now().isoformat()
@@ -1361,6 +1362,7 @@ def start_community_session(req: StartCommunitySessionRequest, current=Depends(g
     return {"id": session_id, "name": req.name, "activity_type": req.activity_type, "started_at": now, "profile_ids": req.profile_ids}
 
 @app.post("/api/community/sessions/{id}/complete")
+@app.post("/community/sessions/{id}/complete")
 def complete_community_session(id: int, req: CompleteCommunitySessionRequest, current=Depends(get_current_caregiver)):
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
@@ -1387,6 +1389,7 @@ def complete_community_session(id: int, req: CompleteCommunitySessionRequest, cu
     return {"status": "completed", "id": id, "completed_at": now}
 
 @app.get("/api/community/sessions/caregiver/{caregiver_id}")
+@app.get("/community/sessions/caregiver/{caregiver_id}")
 def list_caregiver_community_sessions(caregiver_id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         c = conn.cursor()
@@ -1412,6 +1415,7 @@ def list_caregiver_community_sessions(caregiver_id: int, current=Depends(get_cur
         return sessions
 
 @app.get("/api/community/sessions/profile/{profile_id}")
+@app.get("/community/sessions/profile/{profile_id}")
 def list_profile_community_sessions(profile_id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
@@ -1427,6 +1431,7 @@ def list_profile_community_sessions(profile_id: int, current=Depends(get_current
         return [dict(row) for row in c.fetchall()]
 
 @app.post("/api/community/events")
+@app.post("/community/events")
 def record_community_event(req: RecordCommunityEventRequest, current=Depends(get_current_caregiver)):
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
@@ -1444,6 +1449,7 @@ def record_community_event(req: RecordCommunityEventRequest, current=Depends(get
 # --- ENDPOINTS: CONNECT MODE & TRUSTED CONNECTIONS ---
 
 @app.get("/api/connections/profile/{profile_id}")
+@app.get("/connections/profile/{profile_id}")
 def get_profile_connections(profile_id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
@@ -1453,6 +1459,7 @@ def get_profile_connections(profile_id: int, current=Depends(get_current_caregiv
         return [dict(row) for row in c.fetchall()]
 
 @app.post("/api/connections")
+@app.post("/connections")
 def add_trusted_connection(req: TrustedConnectionRequest, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], req.profile_id):
@@ -1466,6 +1473,7 @@ def add_trusted_connection(req: TrustedConnectionRequest, current=Depends(get_cu
         return {"id": c.lastrowid, "status": "approved"}
 
 @app.delete("/api/connections/{id}")
+@app.delete("/connections/{id}")
 def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         c = conn.cursor()
@@ -1480,6 +1488,7 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
 # --- ENDPOINTS: MEMORY STORIES ---
 
 @app.get("/api/stories/profile/{profile_id}")
+@app.get("/stories/profile/{profile_id}")
 def get_profile_stories(profile_id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
@@ -1489,6 +1498,7 @@ def get_profile_stories(profile_id: int, current=Depends(get_current_caregiver))
         return [dict(row) for row in c.fetchall()]
 
 @app.post("/api/stories")
+@app.post("/stories")
 def create_memory_story(req: MemoryStoryRequest, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], req.profile_id):
@@ -1504,6 +1514,7 @@ def create_memory_story(req: MemoryStoryRequest, current=Depends(get_current_car
 # --- ENDPOINTS: 3-DOMAIN SEPARATED OVERVIEW ---
 
 @app.get("/api/analytics/domains-overview/{user_id}")
+@app.get("/analytics/domains-overview/{user_id}")
 def get_3domain_overview(user_id: int, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         if current and not verify_profile_ownership(conn, current["caregiver_id"], user_id):
