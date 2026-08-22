@@ -238,6 +238,7 @@ def init_db():
 def startup_event():
     try:
         init_db()
+        logger.info(f"Database initialization complete. Engine: {get_engine_name()}")
     except Exception as e:
         logger.error(f"[Startup Fail] Database initialization failed: {e}")
 
