@@ -47,6 +47,8 @@ export default function History() {
 
   const loadHistory = async () => {
     setLoading(true);
+    setSessions([]);
+    setGameSessions([]);
     try {
       const [sList, gList] = await Promise.all([
         api.getUserSessions(selectedUserId!),
@@ -79,34 +81,36 @@ export default function History() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-300 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/caregiver')}
-            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            className="text-slate-900 dark:text-slate-300 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
             title="Back to Overview"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Session History</h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Complete timeline of recorded cognitive sessions</p>
+            <h1 className="text-lg font-black text-black dark:text-white">Session History</h1>
+            <p className="text-[11px] text-slate-900 dark:text-slate-400 font-semibold">Complete timeline of recorded cognitive sessions</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={16} className="text-blue-600 dark:text-blue-400" />
+              <Users size={16} className="text-blue-700 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
                   const newId = Number(e.target.value);
+                  setSessions([]);
+                  setGameSessions([]);
                   setSelectedUserId(newId);
                   const u = users.find(user => user.id === newId);
                   if (u) switchProfile(u);
                 }}
-                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-black dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
                   <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
@@ -122,34 +126,34 @@ export default function History() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-300 dark:border-slate-800 pb-3 text-xs sm:text-sm font-bold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 font-bold">
             <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs font-bold">
             Session History
           </Link>
         </div>
 
         {/* Sessions List */}
         <div className="card p-6">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Recorded Sessions ({sessions.length})</h2>
+          <h2 className="text-base font-black text-black dark:text-white mb-4">Recorded Sessions ({sessions.length})</h2>
 
           {sessions.length > 0 ? (
             <div className="space-y-3">
@@ -163,37 +167,48 @@ export default function History() {
                   <div
                     key={s.id}
                     onClick={() => handleOpenDetail(s)}
-                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 bg-slate-50/50 dark:bg-slate-850 flex items-center justify-between cursor-pointer transition-all"
+                    className="p-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-blue-500 bg-slate-50 dark:bg-slate-850 flex items-center justify-between cursor-pointer transition-all"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 flex items-center justify-center font-black text-sm">
                         #{s.id}
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Session #{s.id} — {new Date(s.started_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        <h3 className="text-sm font-black text-black dark:text-white">
+                          Session #{s.id} — {new Date(s.started_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {sGames.length} activities completed • {s.status === 'completed' ? 'Completed ✓' : 'In Progress'}
+                        <p className="text-xs text-slate-900 dark:text-slate-300 mt-0.5 font-bold">
+                          {sGames.length} activities recorded • {s.status === 'completed' ? 'Completed ✓' : 'In Progress'}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                       {avgScore != null && (
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <span className="text-xs font-black px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
                           {avgScore}% Avg
                         </span>
                       )}
-                      <ChevronRight size={16} className="text-slate-400" />
+                      <ChevronRight size={16} className="text-slate-700 dark:text-slate-400" />
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
-              No sessions found for this profile.
+            <div className="py-12 text-center flex flex-col items-center justify-center">
+              <Clock size={40} className="text-slate-400 dark:text-slate-500 mb-3" />
+              <h3 className="text-base font-black text-black dark:text-white mb-1">No completed sessions yet</h3>
+              <p className="text-xs font-bold text-slate-900 dark:text-slate-300 max-w-sm mb-4">
+                This elderly profile does not have any recorded cognitive sessions yet.
+              </p>
+              <Link
+                to="/session"
+                className="elderly-btn-primary text-xs sm:text-sm py-2.5 px-6 rounded-xl inline-flex items-center gap-2"
+              >
+                <Sparkles size={16} />
+                <span>Start First Session</span>
+              </Link>
             </div>
           )}
         </div>

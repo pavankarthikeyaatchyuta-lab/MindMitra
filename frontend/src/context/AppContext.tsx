@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Caregiver, Session, GameType } from '../types';
 import { api } from '../services/api';
+import { clearAllCaches } from '../services/storage';
 
 export interface AuthResult {
   success: boolean;
@@ -104,9 +105,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cleanEmail = email.toLowerCase().trim();
       const res = await api.login({ email: cleanEmail, password });
       if (res && res.token) {
+        clearAllCaches();
         localStorage.setItem('mindmitra_token', res.token);
         localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
         setCaregiver(res.caregiver);
+        setCurrentUser(null);
         return { success: true };
       }
       return { success: false, error: 'Invalid response from backend server.' };
@@ -136,9 +139,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cleanEmail = email.toLowerCase().trim();
       const res = await api.register({ name: cleanName, email: cleanEmail, password });
       if (res && res.token) {
+        clearAllCaches();
         localStorage.setItem('mindmitra_token', res.token);
         localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
         setCaregiver(res.caregiver);
+        setCurrentUser(null);
         return { success: true };
       }
       return { success: false, error: 'Registration failed. Invalid server response.' };
@@ -169,6 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('mindmitra_current_user');
     localStorage.removeItem('mindmitra_completed_games');
     localStorage.removeItem('mindmitra_session_id');
+    clearAllCaches();
     sessionStorage.clear();
     setCaregiver(null);
     setCurrentUser(null);

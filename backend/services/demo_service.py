@@ -21,16 +21,24 @@ def seed_demo_scenarios(db_path: str = "mindmitra.db") -> Dict[str, Any]:
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # Clear existing session and profile data for clean isolation
-    c.execute("DELETE FROM game_events")
-    c.execute("DELETE FROM adaptive_decisions")
-    c.execute("DELETE FROM game_sessions")
-    c.execute("DELETE FROM sessions")
-    c.execute("DELETE FROM familiar_people")
-    c.execute("DELETE FROM reminders")
-    c.execute("DELETE FROM elderly_profiles")
-    c.execute("DELETE FROM users")
-    c.execute("DELETE FROM caregivers")
+    # Target ONLY demo caregiver (pavan@mindmitra.com / ID 1) and demo profile IDs (1, 2, 3)
+    c.execute("SELECT id FROM caregivers WHERE email = 'pavan@mindmitra.com' OR id = 1")
+    demo_cg = c.fetchone()
+    if demo_cg:
+        demo_cg_id = demo_cg[0]
+        c.execute("SELECT id FROM elderly_profiles WHERE caregiver_id = ?", (demo_cg_id,))
+        demo_prof_ids = list(set([r[0] for r in c.fetchall()] + [1, 2, 3]))
+        
+        prof_placeholders = ",".join("?" * len(demo_prof_ids))
+        c.execute(f"DELETE FROM game_events WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM adaptive_decisions WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM game_sessions WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM sessions WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM familiar_people WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM reminders WHERE user_id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute(f"DELETE FROM elderly_profiles WHERE caregiver_id = ?", (demo_cg_id,))
+        c.execute(f"DELETE FROM users WHERE id IN ({prof_placeholders})", demo_prof_ids)
+        c.execute("DELETE FROM caregivers WHERE id = ?", (demo_cg_id,))
 
     now = datetime.datetime.now()
 

@@ -697,7 +697,20 @@ def get_user_legacy(id: int):
 def start_session(s: SessionStart):
     with get_db() as conn:
         c = conn.cursor()
-        now = datetime.datetime.now().isoformat()
+        now_dt = datetime.datetime.now()
+        now = now_dt.isoformat()
+        four_hours_ago = (now_dt - datetime.timedelta(hours=4)).isoformat()
+
+        # Check for existing active/in_progress session created within last 4 hours
+        c.execute("""
+            SELECT id, started_at, status FROM sessions
+            WHERE user_id = ? AND status IN ('active', 'in_progress') AND started_at >= ?
+            ORDER BY id DESC LIMIT 1
+        """, (s.user_id, four_hours_ago))
+        existing_session = c.fetchone()
+        if existing_session:
+            return {"id": existing_session["id"], "user_id": s.user_id, "started_at": existing_session["started_at"], "status": existing_session["status"], "reused": True}
+
         c.execute(
             "INSERT INTO sessions (user_id, started_at, status) VALUES (?, ?, 'active')",
             (s.user_id, now)

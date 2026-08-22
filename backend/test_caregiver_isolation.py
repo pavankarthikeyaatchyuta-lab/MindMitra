@@ -206,7 +206,7 @@ def test_cross_caregiver_authorization_security():
     # Create Caregiver B
     reg_resp = client.post("/api/auth/register", json={
         "name": "Caregiver B",
-        "email": "caregiver_b@example.com",
+        "email": "caregiver_b_unique@example.com",
         "password": "password123"
     })
     assert reg_resp.status_code == 200

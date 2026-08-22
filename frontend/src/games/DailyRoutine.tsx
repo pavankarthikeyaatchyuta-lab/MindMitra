@@ -118,7 +118,14 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
     stats.current.lastActionTime = Date.now();
   };
 
+  const [wrongItemId, setWrongItemId] = useState<string | null>(null);
+  const [clickDebounce, setClickDebounce] = useState(false);
+
   const handleSelectPoolItem = (item: RoutineItem) => {
+    if (clickDebounce) return;
+    setClickDebounce(true);
+    setTimeout(() => setClickDebounce(false), 400);
+
     const now = Date.now();
     const rt = now - (stats.current.lastActionTime || now);
     stats.current.responseTimes.push(rt);
@@ -127,6 +134,7 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
     const nextIndex = selectedItems.length;
 
     if (item.originalIndex === nextIndex) {
+      setWrongItemId(null);
       stats.current.correctPlacements++;
       const newSelected = [...selectedItems, item];
       setSelectedItems(newSelected);
@@ -137,6 +145,8 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
       }
     } else {
       stats.current.errors++;
+      setWrongItemId(item.id);
+      setTimeout(() => setWrongItemId(null), 1200);
     }
   };
 
@@ -263,20 +273,34 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
           {/* Item Options Pool */}
           {!isComplete && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block px-1">
-                Choose Next Step:
-              </span>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-black text-black dark:text-white uppercase tracking-wider block">
+                  Choose Next Step:
+                </span>
+                {wrongItemId && (
+                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400 animate-pulse">
+                    ⚠️ Not the next step in sequence — try again!
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {poolItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectPoolItem(item)}
-                    className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 text-left flex items-center gap-3 text-slate-900 dark:text-white shadow-xs transition-all cursor-pointer"
-                  >
-                    <span className="text-2xl">{item.emoji}</span>
-                    <span className="text-xs sm:text-sm font-bold">{item.label}</span>
-                  </button>
-                ))}
+                {poolItems.map((item) => {
+                  const isWrong = wrongItemId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSelectPoolItem(item)}
+                      className={`p-3.5 rounded-xl border-2 text-left flex items-center gap-3 shadow-xs transition-all cursor-pointer ${
+                        isWrong
+                          ? 'bg-rose-100 dark:bg-rose-950 border-rose-500 text-rose-950 dark:text-rose-200 animate-bounce'
+                          : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-blue-600 text-black dark:text-white'
+                      }`}
+                    >
+                      <span className="text-2xl">{item.emoji}</span>
+                      <span className="text-xs sm:text-sm font-bold">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

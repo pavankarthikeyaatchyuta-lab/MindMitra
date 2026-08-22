@@ -26,6 +26,13 @@ export const isOnline = () => {
   return navigator.onLine;
 };
 
-export const getOfflineQueueSize = () => {
-  return getOfflineEvents().length;
+export const clearAllCaches = () => {
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('mindmitra_cache_') || key.startsWith('mindmitra_current_user') || key.startsWith('mindmitra_session_id') || key.startsWith('mindmitra_completed_games'))) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
 };
