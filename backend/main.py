@@ -1060,7 +1060,7 @@ def create_memory_story(req: MemoryStoryRequest, current=Depends(get_current_car
         c.execute("""
             INSERT INTO memory_stories (profile_id, title, audio_url, transcript_text, category, is_private, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (req.profile_id, req.title, req.audio_url or "", req.transcript_text or "", req.category or "Life Memory", 1 if req.is_private else 0, datetime.datetime.now().isoformat()))
+        """, (req.profile_id, req.title, req.audio_url or "", req.transcript_text or "", req.category or "Life Memory", bool(req.is_private), datetime.datetime.now().isoformat()))
         conn.commit()
         return {"id": c.lastrowid, "title": req.title}
 
