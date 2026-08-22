@@ -28,12 +28,11 @@ def debug_ping():
 def debug_error():
     try:
         load_backend_paths()
-        from backend.main import init_db
-        init_db()
-        return {"status": "init_db_success"}
+        import backend.main
+        return {"status": "import_success"}
     except Exception as e:
         return {
-            "status": "init_db_failed",
+            "status": "import_failed",
             "error": str(e),
             "traceback": traceback.format_exc()
         }
