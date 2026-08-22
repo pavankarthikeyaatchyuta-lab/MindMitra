@@ -8,17 +8,17 @@ Caregiver: Pavan Kumar (pavan@mindmitra.com / mindmitra123)
 
 All demonstration history is strictly isolated and labeled as 'DEMONSTRATION DATA'.
 """
-
-import sqlite3
 import datetime
 from typing import Dict, Any, List
 from .auth_service import hash_password
+from .db_adapter import get_db, sync_postgres_sequences
 
 def seed_demo_scenarios(db_path: str = "mindmitra.db") -> Dict[str, Any]:
     """
     Seeds database with authenticated caregiver and completely isolated elderly sub-profiles.
     """
-    conn = sqlite3.connect(db_path)
+    db_ctx = get_db()
+    conn = db_ctx.__enter__()
     c = conn.cursor()
 
     # Target ONLY demo caregiver (pavan@mindmitra.com / ID 1) and demo profile IDs (1, 2, 3)
@@ -216,8 +216,9 @@ def seed_demo_scenarios(db_path: str = "mindmitra.db") -> Dict[str, Any]:
         VALUES (2, 'medication', 'Night Calcium Tablet', '09:00 PM', 'Daily', 1, ?)
     """, (now.isoformat(),))
 
+    sync_postgres_sequences(conn)
     conn.commit()
-    conn.close()
+    db_ctx.__exit__(None, None, None)
 
     return {
         "status": "seeded_caregiver_hierarchy",

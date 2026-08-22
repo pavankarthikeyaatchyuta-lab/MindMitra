@@ -153,7 +153,7 @@ export default function Login() {
               className={`flex-1 pb-2 text-center text-sm font-black transition-all ${
                 !isRegister
                   ? 'text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400'
-                  : 'text-slate-800 hover:text-black dark:hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-black dark:hover:text-white'
               }`}
             >
               Sign In
@@ -168,7 +168,7 @@ export default function Login() {
               className={`flex-1 pb-2 text-center text-sm font-black transition-all ${
                 isRegister
                   ? 'text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400'
-                  : 'text-slate-800 hover:text-black dark:hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-black dark:hover:text-white'
               }`}
             >
               Register Caregiver

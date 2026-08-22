@@ -28,34 +28,18 @@ if DATABASE_URL:
     except ImportError:
         logger.warning("DATABASE_URL provided but psycopg2-binary not installed. Falling back to SQLite.")
 
-class DictRowWrapper:
-    """Wraps database rows to support both dict-like key indexing (row['name']) and tuple index (row[0])."""
-    def __init__(self, data: dict):
-        self._data = data
-        self._keys = list(data.keys())
+class DictRowWrapper(dict):
+    """A dictionary that also supports index-based lookup like a tuple."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._keys = list(self.keys())
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            return self._data[self._keys[key]]
-        return self._data[key]
-
-    def get(self, key, default=None):
-        return self._data.get(key, default)
-
-    def keys(self):
-        return self._data.keys()
-
-    def values(self):
-        return self._data.values()
-
-    def items(self):
-        return self._data.items()
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def dict(self):
-        return dict(self._data)
+            if 0 <= key < len(self._keys):
+                return super().__getitem__(self._keys[key])
+            raise IndexError("row index out of range")
+        return super().__getitem__(key)
 
 class UnifiedCursor:
     """Cursor wrapper translating parameter placeholders and row formats between SQLite and Postgres."""
@@ -98,13 +82,13 @@ class UnifiedCursor:
         if row is None:
             return None
         if isinstance(row, sqlite3.Row):
-            return dict(row)
+            return DictRowWrapper(dict(row))
         if hasattr(row, 'keys') or isinstance(row, dict):
-            return dict(row)
+            return DictRowWrapper(dict(row))
         if isinstance(row, (tuple, list)):
             if hasattr(self.cursor, 'description') and self.cursor.description:
                 cols = [desc[0] for desc in self.cursor.description]
-                return dict(zip(cols, row))
+                return DictRowWrapper(dict(zip(cols, row)))
         return row
 
     def fetchall(self):
@@ -114,13 +98,13 @@ class UnifiedCursor:
         res = []
         for r in rows:
             if isinstance(r, sqlite3.Row):
-                res.append(dict(r))
+                res.append(DictRowWrapper(dict(r)))
             elif isinstance(r, dict):
-                res.append(dict(r))
+                res.append(DictRowWrapper(dict(r)))
             elif isinstance(r, (tuple, list)):
                 if hasattr(self.cursor, 'description') and self.cursor.description:
                     cols = [desc[0] for desc in self.cursor.description]
-                    res.append(dict(zip(cols, r)))
+                    res.append(DictRowWrapper(dict(zip(cols, r))))
                 else:
                     res.append(r)
             else:
@@ -183,6 +167,53 @@ def get_db_connection():
         raw_conn.row_factory = sqlite3.Row
         return UnifiedConnection(raw_conn, is_postgres=False)
 
+def sync_postgres_sequences(conn):
+    if not getattr(conn, 'is_postgres', False):
+        return
+    tables = [
+        "caregivers",
+        "elderly_profiles",
+        "users",
+        "sessions",
+        "game_sessions",
+        "game_events",
+        "adaptive_decisions",
+        "reminders",
+        "familiar_people",
+        "sync_queue"
+    ]
+    cursor = conn.cursor()
+    for table in tables:
+        try:
+            cursor.execute(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
+            res = cursor.fetchone()
+            max_id_val = 0
+            if res:
+                if isinstance(res, dict):
+                    max_id_val = list(res.values())[0] or 0
+                elif isinstance(res, (list, tuple)):
+                    max_id_val = res[0] or 0
+                else:
+                    max_id_val = int(res)
+            
+            if max_id_val > 0:
+                cursor.execute(f"SELECT pg_get_serial_sequence('{table}', 'id')")
+                seq_res = cursor.fetchone()
+                seq_name = None
+                if seq_res:
+                    if isinstance(seq_res, dict):
+                        seq_name = list(seq_res.values())[0]
+                    elif isinstance(seq_res, (list, tuple)):
+                        seq_name = seq_res[0]
+                    else:
+                        seq_name = str(seq_res)
+                
+                if seq_name:
+                    cursor.execute(f"SELECT setval(%s, %s, true)", (seq_name, max_id_val))
+                    logger.info(f"[DB Sync] Synced sequence for {table} to {max_id_val}")
+        except Exception as e:
+            logger.warning(f"[DB Sync] Failed to sync sequence for table {table}: {e}")
+
 @contextmanager
 def get_db():
     conn = get_db_connection()
@@ -190,3 +221,4 @@ def get_db():
         yield conn
     finally:
         pass
+

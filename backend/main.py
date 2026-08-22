@@ -40,7 +40,7 @@ from services.auth_service import hash_password, verify_password, create_access_
 
 load_dotenv()
 
-from services.db_adapter import get_db, get_engine_name, HAS_POSTGRES, DATABASE_URL, DB_FILE
+from services.db_adapter import get_db, get_engine_name, HAS_POSTGRES, DATABASE_URL, DB_FILE, sync_postgres_sequences
 
 app = FastAPI(title="MindMitra Backend - Caregiver & Multi-Profile Cognitive Platform")
 
@@ -221,6 +221,7 @@ def init_db():
                 VALUES (1, 'Pavan Kumar', 'pavan@mindmitra.com', ?, ?, ?, 1)
             """, (pwd_hash, now, now))
 
+        sync_postgres_sequences(conn)
         conn.commit()
 
 @app.on_event("startup")
