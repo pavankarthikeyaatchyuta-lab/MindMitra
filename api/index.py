@@ -1,30 +1,48 @@
 import os
 import sys
 import traceback
+from fastapi import FastAPI
 
-# Ensure root, backend, and ml are in python module resolution path
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-backend_dir = os.path.join(root_dir, "backend")
-ml_dir = os.path.join(root_dir, "ml")
+app = FastAPI(title="MindMitra Router App")
 
-for p in [root_dir, backend_dir, ml_dir]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# Helper to load backend paths
+def load_backend_paths():
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    backend_dir = os.path.join(root_dir, "backend")
+    ml_dir = os.path.join(root_dir, "ml")
+    for p in [root_dir, backend_dir, ml_dir]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
-try:
-    from backend.main import app, init_db
-    init_db()
-except Exception as e:
-    from fastapi import FastAPI
-    app = FastAPI(title="MindMitra Diagnostics App")
-    tb_str = traceback.format_exc()
-    
-    @app.get("/{rest_of_path:path}")
-    def diagnostics(rest_of_path: str):
+@app.get("/api/debug/ping")
+def debug_ping():
+    return {
+        "ping": "pong",
+        "status": "ok",
+        "sys_path": sys.path,
+        "cwd": os.getcwd(),
+        "has_postgres_env": bool(os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL"))
+    }
+
+@app.get("/api/debug/error")
+def debug_error():
+    try:
+        load_backend_paths()
+        from backend.main import init_db
+        init_db()
+        return {"status": "init_db_success"}
+    except Exception as e:
         return {
-            "status": "startup_failed",
+            "status": "init_db_failed",
             "error": str(e),
-            "traceback": tb_str,
-            "sys_path": sys.path,
-            "cwd": os.getcwd()
+            "traceback": traceback.format_exc()
         }
+
+# Dynamically route requests to backend app if loaded
+try:
+    load_backend_paths()
+    from backend.main import app as backend_app
+    app = backend_app
+except Exception as e:
+    # If loading backend fails, we keep the diagnostic fallback app active
+    pass
