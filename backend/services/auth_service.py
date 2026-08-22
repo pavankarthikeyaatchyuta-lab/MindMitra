@@ -27,11 +27,30 @@ def hash_password(password: str, salt: Optional[str] = None) -> str:
     return f"{salt}${base64.b64encode(key).decode('utf-8')}"
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Verifies a plain password against the stored salt$hash"""
+    """Verifies a plain password against stored password_hash (PBKDF2 salt$hash, Bcrypt, or Legacy SHA256)"""
+    if not password or not password_hash:
+        return False
     try:
-        salt, _ = password_hash.split('$', 1)
-        expected_hash = hash_password(password, salt)
-        return hmac.compare_digest(expected_hash, password_hash)
+        # 1. Check Bcrypt ($2a$, $2b$, $2y$)
+        if password_hash.startswith(("$2a$", "$2b$", "$2y$")):
+            try:
+                import bcrypt
+                return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+            except Exception:
+                pass
+
+        # 2. Check Legacy SHA256 (64 hex characters)
+        if len(password_hash) == 64 and "$" not in password_hash:
+            return hashlib.sha256(password.encode('utf-8')).hexdigest().lower() == password_hash.lower()
+
+        # 3. Check PBKDF2 (salt$hash)
+        if "$" in password_hash:
+            salt, _ = password_hash.split('$', 1)
+            expected_hash = hash_password(password, salt)
+            return hmac.compare_digest(expected_hash, password_hash)
+
+        # 4. Fallback direct comparison
+        return hmac.compare_digest(password, password_hash)
     except Exception:
         return False
 

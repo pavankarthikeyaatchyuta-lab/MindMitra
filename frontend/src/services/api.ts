@@ -74,6 +74,7 @@ export const api = {
     fetchJSON<{ caregiver: { id: number; name: string; email: string }; profiles: User[] }>('/auth/me', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }),
+  logout: () => fetchJSON<{ status: string }>('/auth/logout', { method: 'POST' }),
 
   // Profiles Lifecycle
   getProfiles: (includeArchived: boolean = false) => fetchJSON<User[]>(`/profiles?include_archived=${includeArchived}`, {}, 'profiles'),

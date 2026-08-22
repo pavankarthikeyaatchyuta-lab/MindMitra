@@ -39,6 +39,22 @@ const LoadingScreen = () => (
   </div>
 );
 
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { caregiver } = useAppContext();
+  if (!caregiver) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const PublicOnlyRoute = ({ children }: { children: React.ReactNode }) => {
+  const { caregiver } = useAppContext();
+  if (caregiver) {
+    return <Navigate to="/profiles" replace />;
+  }
+  return <>{children}</>;
+};
+
 function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
@@ -52,38 +68,39 @@ function AppContent() {
             {/* Public Routes */}
             <Route path="/" element={<Welcome />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+            <Route path="/signup" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/methodology" element={<Methodology />} />
             <Route path="/demo" element={<Demo />} />
 
             {/* Authenticated Caregiver Hub */}
-            <Route path="/profiles" element={<ProfileSelection />} />
-            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/profiles" element={<ProtectedRoute><ProfileSelection /></ProtectedRoute>} />
+            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
             {/* Profile Workspace Routes */}
-            <Route path="/caregiver" element={<CaregiverDashboard />} />
-            <Route path="/caregiver/trends" element={<CaregiverTrends />} />
-            <Route path="/caregiver/insights" element={<CaregiverInsights />} />
-            <Route path="/caregiver/people" element={<CaregiverFamiliarPeople />} />
-            <Route path="/caregiver/reminders" element={<CaregiverReminders />} />
-            <Route path="/caregiver/history" element={<CaregiverHistory />} />
+            <Route path="/caregiver" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+            <Route path="/caregiver/trends" element={<ProtectedRoute><CaregiverTrends /></ProtectedRoute>} />
+            <Route path="/caregiver/insights" element={<ProtectedRoute><CaregiverInsights /></ProtectedRoute>} />
+            <Route path="/caregiver/people" element={<ProtectedRoute><CaregiverFamiliarPeople /></ProtectedRoute>} />
+            <Route path="/caregiver/reminders" element={<ProtectedRoute><CaregiverReminders /></ProtectedRoute>} />
+            <Route path="/caregiver/history" element={<ProtectedRoute><CaregiverHistory /></ProtectedRoute>} />
 
-            {/* Parametric Profile Workspace Routes (Persistent Refresh Support) */}
-            <Route path="/profiles/:profileId" element={<CaregiverDashboard />} />
-            <Route path="/profiles/:profileId/overview" element={<CaregiverDashboard />} />
-            <Route path="/profiles/:profileId/session" element={<Session />} />
-            <Route path="/profiles/:profileId/trends" element={<CaregiverTrends />} />
-            <Route path="/profiles/:profileId/insights" element={<CaregiverInsights />} />
-            <Route path="/profiles/:profileId/people" element={<CaregiverFamiliarPeople />} />
-            <Route path="/profiles/:profileId/reminders" element={<CaregiverReminders />} />
-            <Route path="/profiles/:profileId/history" element={<CaregiverHistory />} />
+            {/* Parametric Profile Workspace Routes */}
+            <Route path="/profiles/:profileId" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/overview" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/trends" element={<ProtectedRoute><CaregiverTrends /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/insights" element={<ProtectedRoute><CaregiverInsights /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/people" element={<ProtectedRoute><CaregiverFamiliarPeople /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/reminders" element={<ProtectedRoute><CaregiverReminders /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/history" element={<ProtectedRoute><CaregiverHistory /></ProtectedRoute>} />
 
             {/* Elderly Gameplay Interaction Routes */}
-            <Route path="/session" element={<Session />} />
-            <Route path="/games/:gameType" element={<GamePage />} />
-            <Route path="/profiles/:profileId/session/:gameType" element={<GamePage />} />
-            <Route path="/profiles/:profileId/games/:gameType" element={<GamePage />} />
-            <Route path="/session/complete" element={<SessionComplete />} />
+            <Route path="/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/games/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/session/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/games/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+            <Route path="/session/complete" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
 
             {/* Catch-all fallback to Home */}
             <Route path="*" element={<Navigate to="/" replace />} />

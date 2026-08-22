@@ -40,7 +40,8 @@ from services.auth_service import hash_password, verify_password, create_access_
 
 load_dotenv()
 
-DB_FILE = os.getenv("DB_FILE", "/tmp/mindmitra.db" if os.getenv("VERCEL") else "mindmitra.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.getenv("DB_FILE", "/tmp/mindmitra.db" if os.getenv("VERCEL") else os.path.join(BASE_DIR, "mindmitra.db"))
 
 app = FastAPI(title="MindMitra Backend - Caregiver & Multi-Profile Cognitive Platform")
 
@@ -344,42 +345,54 @@ class TTSRequest(BaseModel):
 
 @app.post("/api/auth/register")
 def register_caregiver(req: CaregiverRegister):
+    email = req.email.lower().strip()
+    name = req.name.strip()
+    if not email or not req.password or not name:
+        raise HTTPException(status_code=400, detail="Full name, email, and password are required.")
+
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT id FROM caregivers WHERE email = ?", (req.email.lower().strip(),))
+        c.execute("SELECT id FROM caregivers WHERE LOWER(TRIM(email)) = ?", (email,))
         if c.fetchone():
-            raise HTTPException(status_code=400, detail="An account with this email already exists.")
+            raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
         now = datetime.datetime.now().isoformat()
         pwd_hash = hash_password(req.password)
         c.execute("""
             INSERT INTO caregivers (name, email, password_hash, created_at, updated_at, active)
             VALUES (?, ?, ?, ?, ?, 1)
-        """, (req.name.strip(), req.email.lower().strip(), pwd_hash, now, now))
+        """, (name, email, pwd_hash, now, now))
         conn.commit()
         caregiver_id = c.lastrowid
 
-        token = create_access_token(caregiver_id, req.email.lower().strip(), req.name.strip())
+        token = create_access_token(caregiver_id, email, name)
+        logger.info(f"[Auth] Caregiver registered successfully: id={caregiver_id}, email={email}")
         return {
             "token": token,
             "caregiver": {
                 "id": caregiver_id,
-                "name": req.name.strip(),
-                "email": req.email.lower().strip(),
+                "name": name,
+                "email": email,
             }
         }
 
 @app.post("/api/auth/login")
 def login_caregiver(req: CaregiverLogin):
     email = req.email.lower().strip()
+    password = req.password
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required.")
+
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM caregivers WHERE email = ? AND active = 1", (email,))
+        c.execute("SELECT * FROM caregivers WHERE LOWER(TRIM(email)) = ? AND (active = 1 OR active IS NULL OR active = 'true' OR active = true)", (email,))
         caregiver = c.fetchone()
-        if not caregiver or not verify_password(req.password, caregiver["password_hash"]):
-            raise HTTPException(status_code=401, detail="Invalid email or password.")
+        if not caregiver or not verify_password(password, caregiver["password_hash"]):
+            logger.warning(f"[Auth] Login failed for email={email}")
+            raise HTTPException(status_code=401, detail="Email or password is incorrect.")
 
         token = create_access_token(caregiver["id"], caregiver["email"], caregiver["name"])
+        logger.info(f"[Auth] Caregiver logged in: id={caregiver['id']}, email={email}")
         return {
             "token": token,
             "caregiver": {

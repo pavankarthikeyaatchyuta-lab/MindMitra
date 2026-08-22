@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Caregiver, Session, GameType } from '../types';
-import { LanguageProvider, useTranslation } from '../i18n';
 import { api } from '../services/api';
+
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  status?: number;
+}
 
 interface AppContextType {
   caregiver: Caregiver | null;
@@ -15,8 +20,8 @@ interface AppContextType {
   isOnline: boolean;
   currentDifficulty: Record<GameType, number>;
   setGameDifficulty: (gameType: GameType, difficulty: number) => void;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string) => Promise<AuthResult>;
   logout: () => void;
 }
 
@@ -39,8 +44,8 @@ const AppContext = createContext<AppContextType>({
   isOnline: true,
   currentDifficulty: defaultDifficulty,
   setGameDifficulty: () => {},
-  login: async () => false,
-  register: async () => false,
+  login: async () => ({ success: false }),
+  register: async () => ({ success: false }),
   logout: () => {},
 });
 
@@ -59,13 +64,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [currentDifficulty, setCurrentDifficulty] = useState<Record<GameType, number>>(defaultDifficulty);
 
-  // Sync profile & language/voice preferences
+  // Validate session on mount if token exists
+  useEffect(() => {
+    async function validateAuth() {
+      const token = localStorage.getItem('mindmitra_token');
+      if (token) {
+        try {
+          const res = await api.getMe(token);
+          if (res && res.caregiver) {
+            setCaregiver(res.caregiver);
+            localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
+          }
+        } catch (err: any) {
+          if (err?.status === 401) {
+            logout();
+          }
+        }
+      }
+    }
+    validateAuth();
+  }, []);
+
   const switchProfile = (profile: User | null) => {
-    // 1. Clear previous profile session context
     setCurrentSession(null);
     setCurrentDifficulty(defaultDifficulty);
-
-    // 2. Set new profile
     setCurrentUser(profile);
     if (profile) {
       localStorage.setItem('mindmitra_current_user', JSON.stringify(profile));
@@ -77,40 +99,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const res = await api.login({ email, password });
+      const cleanEmail = email.toLowerCase().trim();
+      const res = await api.login({ email: cleanEmail, password });
       if (res && res.token) {
         localStorage.setItem('mindmitra_token', res.token);
         localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
         setCaregiver(res.caregiver);
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch {
-      return false;
+      return { success: false, error: 'Invalid response from backend server.' };
+    } catch (err: any) {
+      const status = err?.status;
+      let msg = 'Email or password is incorrect.';
+      if (status === 401) {
+        msg = 'Email or password is incorrect.';
+      } else if (status === 400) {
+        msg = err?.detail || 'Invalid login details.';
+      } else if (status === 403) {
+        msg = 'Access denied to this caregiver account.';
+      } else if (status === 500) {
+        msg = 'Something went wrong on the server. Please try again.';
+      } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || !isOnline) {
+        msg = 'Unable to connect to MindMitra. Check your connection and try again.';
+      } else if (err?.detail) {
+        msg = err.detail;
+      }
+      return { success: false, error: msg, status };
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
     try {
-      const res = await api.register({ name, email, password });
+      const cleanName = name.trim();
+      const cleanEmail = email.toLowerCase().trim();
+      const res = await api.register({ name: cleanName, email: cleanEmail, password });
       if (res && res.token) {
         localStorage.setItem('mindmitra_token', res.token);
         localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
         setCaregiver(res.caregiver);
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch {
-      return false;
+      return { success: false, error: 'Registration failed. Invalid server response.' };
+    } catch (err: any) {
+      const status = err?.status;
+      let msg = 'Registration failed. Please try again.';
+      if (status === 409) {
+        msg = 'An account with this email already exists.';
+      } else if (status === 400) {
+        msg = err?.detail || 'Invalid registration details.';
+      } else if (status === 500) {
+        msg = 'Something went wrong on the server. Please try again.';
+      } else if (err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError') || !isOnline) {
+        msg = 'Unable to connect to MindMitra. Check your connection and try again.';
+      } else if (err?.detail) {
+        msg = err.detail;
+      }
+      return { success: false, error: msg, status };
     }
   };
 
   const logout = () => {
+    try {
+      api.logout();
+    } catch {}
     localStorage.removeItem('mindmitra_token');
     localStorage.removeItem('mindmitra_caregiver');
     localStorage.removeItem('mindmitra_current_user');
+    localStorage.removeItem('mindmitra_completed_games');
+    localStorage.removeItem('mindmitra_session_id');
+    sessionStorage.clear();
     setCaregiver(null);
     setCurrentUser(null);
     setCurrentSession(null);
@@ -150,12 +209,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       register,
       logout,
     }}>
-      <LanguageProvider>
-        {children}
-      </LanguageProvider>
+      {children}
     </AppContext.Provider>
   );
 }
 
-export const useAppContext = () => useContext(AppContext);
-export const useApp = useAppContext;
+export const useApp = () => useContext(AppContext);
+export const useAppContext = useApp;
