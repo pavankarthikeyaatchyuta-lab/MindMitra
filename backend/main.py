@@ -229,6 +229,74 @@ def init_db():
             )
         """)
 
+        # 11. Community Sessions
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS community_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                caregiver_id INTEGER,
+                name TEXT,
+                activity_type TEXT,
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                status TEXT,
+                duration_minutes INTEGER,
+                notes TEXT
+            )
+        """)
+
+        # 12. Community Participants (Many-to-Many relationship)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS community_participants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                community_session_id INTEGER,
+                profile_id INTEGER,
+                attended BOOLEAN DEFAULT 1,
+                participation_level TEXT,
+                notes TEXT
+            )
+        """)
+
+        # 13. Community Events
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS community_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                community_session_id INTEGER,
+                profile_id INTEGER,
+                activity_key TEXT,
+                event_type TEXT,
+                data_json TEXT,
+                timestamp TIMESTAMP
+            )
+        """)
+
+        # 14. Trusted Connections (Profile Scoped)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS trusted_connections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id INTEGER,
+                contact_name TEXT,
+                relationship TEXT,
+                phone_or_address TEXT,
+                status TEXT DEFAULT 'approved',
+                approval_required BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP
+            )
+        """)
+
+        # 15. Memory Stories (Profile Scoped)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memory_stories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id INTEGER,
+                title TEXT,
+                audio_url TEXT,
+                transcript_text TEXT,
+                category TEXT,
+                is_private BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP
+            )
+        """)
+
         # Perform table migrations safely
         for col_def in [
             ("game_sessions", "invalid_for_trend", "BOOLEAN DEFAULT 0"),
@@ -1235,6 +1303,254 @@ def delete_reminder(id: int, current=Depends(get_current_caregiver)):
         c.execute("DELETE FROM reminders WHERE id = ?", (id,))
         conn.commit()
         return {"status": "deleted"}
+
+# --- ENDPOINTS: COMMUNITY MODE ---
+
+class StartCommunitySessionRequest(BaseModel):
+    name: str
+    activity_type: str
+    profile_ids: List[int]
+    notes: Optional[str] = None
+
+class CompleteCommunitySessionRequest(BaseModel):
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+    participant_notes: Optional[Dict[str, str]] = None
+
+class RecordCommunityEventRequest(BaseModel):
+    community_session_id: int
+    profile_id: Optional[int] = None
+    activity_key: str
+    event_type: str
+    data: Optional[Dict[str, Any]] = None
+
+class TrustedConnectionRequest(BaseModel):
+    profile_id: int
+    contact_name: str
+    relationship: str
+    phone_or_address: Optional[str] = ""
+    status: Optional[str] = "approved"
+
+class MemoryStoryRequest(BaseModel):
+    profile_id: int
+    title: str
+    audio_url: Optional[str] = ""
+    transcript_text: Optional[str] = ""
+    category: Optional[str] = "Life Memory"
+    is_private: Optional[bool] = True
+
+@app.post("/api/community/sessions/start")
+def start_community_session(req: StartCommunitySessionRequest, current=Depends(get_current_caregiver)):
+    caregiver_id = current["caregiver_id"] if current else 1
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO community_sessions (caregiver_id, name, activity_type, started_at, status, notes)
+            VALUES (?, ?, ?, ?, 'active', ?)
+        """, (caregiver_id, req.name, req.activity_type, now, req.notes or ""))
+        session_id = c.lastrowid
+
+        for pid in req.profile_ids:
+            c.execute("""
+                INSERT INTO community_participants (community_session_id, profile_id, attended)
+                VALUES (?, ?, TRUE)
+            """, (session_id, pid))
+        conn.commit()
+
+    return {"id": session_id, "name": req.name, "activity_type": req.activity_type, "started_at": now, "profile_ids": req.profile_ids}
+
+@app.post("/api/community/sessions/{id}/complete")
+def complete_community_session(id: int, req: CompleteCommunitySessionRequest, current=Depends(get_current_caregiver)):
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            UPDATE community_sessions
+            SET completed_at = ?, status = 'completed', duration_minutes = ?, notes = ?
+            WHERE id = ?
+        """, (now, req.duration_minutes or 15, req.notes or "", id))
+
+        if req.participant_notes:
+            for pid_str, pnote in req.participant_notes.items():
+                try:
+                    pid = int(pid_str)
+                    c.execute("""
+                        UPDATE community_participants
+                        SET notes = ?
+                        WHERE community_session_id = ? AND profile_id = ?
+                    """, (pnote, id, pid))
+                except ValueError:
+                    pass
+
+        conn.commit()
+    return {"status": "completed", "id": id, "completed_at": now}
+
+@app.get("/api/community/sessions/caregiver/{caregiver_id}")
+def list_caregiver_community_sessions(caregiver_id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT cs.*, COUNT(cp.id) as participant_count
+            FROM community_sessions cs
+            LEFT JOIN community_participants cp ON cs.id = cp.community_session_id
+            WHERE cs.caregiver_id = ?
+            GROUP BY cs.id
+            ORDER BY cs.id DESC
+        """, (caregiver_id,))
+        sessions = [dict(row) for row in c.fetchall()]
+        
+        for s in sessions:
+            c.execute("""
+                SELECT cp.*, ep.name as profile_name
+                FROM community_participants cp
+                JOIN elderly_profiles ep ON cp.profile_id = ep.id
+                WHERE cp.community_session_id = ?
+            """, (s["id"],))
+            s["participants"] = [dict(r) for r in c.fetchall()]
+
+        return sessions
+
+@app.get("/api/community/sessions/profile/{profile_id}")
+def list_profile_community_sessions(profile_id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+        c.execute("""
+            SELECT cs.*, cp.notes as participant_notes, cp.attended
+            FROM community_sessions cs
+            JOIN community_participants cp ON cs.id = cp.community_session_id
+            WHERE cp.profile_id = ?
+            ORDER BY cs.id DESC
+        """, (profile_id,))
+        return [dict(row) for row in c.fetchall()]
+
+@app.post("/api/community/events")
+def record_community_event(req: RecordCommunityEventRequest, current=Depends(get_current_caregiver)):
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO community_events (community_session_id, profile_id, activity_key, event_type, data_json, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            req.community_session_id, req.profile_id, req.activity_key, req.event_type,
+            json.dumps(req.data or {}), now
+        ))
+        conn.commit()
+        return {"id": c.lastrowid, "timestamp": now}
+
+# --- ENDPOINTS: CONNECT MODE & TRUSTED CONNECTIONS ---
+
+@app.get("/api/connections/profile/{profile_id}")
+def get_profile_connections(profile_id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+        c.execute("SELECT * FROM trusted_connections WHERE profile_id = ? ORDER BY id ASC", (profile_id,))
+        return [dict(row) for row in c.fetchall()]
+
+@app.post("/api/connections")
+def add_trusted_connection(req: TrustedConnectionRequest, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], req.profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO trusted_connections (profile_id, contact_name, relationship, phone_or_address, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (req.profile_id, req.contact_name, req.relationship, req.phone_or_address or "", req.status or "approved", datetime.datetime.now().isoformat()))
+        conn.commit()
+        return {"id": c.lastrowid, "status": "approved"}
+
+@app.delete("/api/connections/{id}")
+def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT profile_id FROM trusted_connections WHERE id = ?", (id,))
+        row = c.fetchone()
+        if row and current and not verify_profile_ownership(conn, current["caregiver_id"], row["profile_id"]):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c.execute("DELETE FROM trusted_connections WHERE id = ?", (id,))
+        conn.commit()
+        return {"status": "deleted", "id": id}
+
+# --- ENDPOINTS: MEMORY STORIES ---
+
+@app.get("/api/stories/profile/{profile_id}")
+def get_profile_stories(profile_id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+        c.execute("SELECT * FROM memory_stories WHERE profile_id = ? ORDER BY id DESC", (profile_id,))
+        return [dict(row) for row in c.fetchall()]
+
+@app.post("/api/stories")
+def create_memory_story(req: MemoryStoryRequest, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], req.profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO memory_stories (profile_id, title, audio_url, transcript_text, category, is_private, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (req.profile_id, req.title, req.audio_url or "", req.transcript_text or "", req.category or "Life Memory", 1 if req.is_private else 0, datetime.datetime.now().isoformat()))
+        conn.commit()
+        return {"id": c.lastrowid, "title": req.title}
+
+# --- ENDPOINTS: 3-DOMAIN SEPARATED OVERVIEW ---
+
+@app.get("/api/analytics/domains-overview/{user_id}")
+def get_3domain_overview(user_id: int, current=Depends(get_current_caregiver)):
+    with get_db() as conn:
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], user_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
+        c = conn.cursor()
+
+        # 1. Cognitive Performance
+        c.execute("""
+            SELECT COUNT(*) as completed_count
+            FROM sessions
+            WHERE user_id = ? AND (status = 'completed' OR status = 'Completed')
+        """, (user_id,))
+        cog_sessions = c.fetchone()["completed_count"] or 0
+
+        # 2. Social Engagement
+        c.execute("""
+            SELECT COUNT(*) as community_count
+            FROM community_participants
+            WHERE profile_id = ? AND attended IS TRUE
+        """, (user_id,))
+        social_sessions = c.fetchone()["community_count"] or 0
+
+        # 3. Care Support
+        c.execute("SELECT COUNT(*) as rem_count FROM reminders WHERE user_id = ?", (user_id,))
+        reminders_count = c.fetchone()["rem_count"] or 0
+
+        c.execute("SELECT COUNT(*) as fam_count FROM familiar_people WHERE user_id = ?", (user_id,))
+        familiar_count = c.fetchone()["fam_count"] or 0
+
+        c.execute("SELECT COUNT(*) as conn_count FROM trusted_connections WHERE profile_id = ?", (user_id,))
+        connections_count = c.fetchone()["conn_count"] or 0
+
+        return {
+            "cognitive": {
+                "completed_sessions": cog_sessions,
+                "domain_status": "Personalized Cognitive Loop Active"
+            },
+            "social": {
+                "community_sessions_attended": social_sessions,
+                "engagement_status": f"{social_sessions} community group activities recorded"
+            },
+            "support": {
+                "reminders_count": reminders_count,
+                "familiar_people_count": familiar_count,
+                "trusted_contacts_count": connections_count
+            }
+        }
 
 # --- ENDPOINTS: SYNC ---
 

@@ -184,5 +184,79 @@ export interface GameConfig {
   domain: string;
 }
 
+export interface CommunitySession {
+  id: number;
+  caregiver_id: number;
+  name: string;
+  activity_type: string;
+  started_at: string;
+  completed_at?: string | null;
+  status: string;
+  duration_minutes?: number;
+  notes?: string;
+  participant_count?: number;
+  participants?: CommunityParticipant[];
+  participant_notes?: string;
+  attended?: boolean;
+}
+
+export interface CommunityParticipant {
+  id?: number;
+  community_session_id?: number;
+  profile_id: number;
+  profile_name?: string;
+  attended: boolean;
+  participation_level?: string;
+  notes?: string;
+}
+
+export interface CommunityEvent {
+  id?: number;
+  community_session_id: number;
+  profile_id?: number;
+  activity_key: string;
+  event_type: string;
+  data_json?: string;
+  timestamp?: string;
+}
+
+export interface TrustedConnection {
+  id: number;
+  profile_id: number;
+  contact_name: string;
+  relationship: string;
+  phone_or_address?: string;
+  status: string;
+  approval_required?: boolean;
+  created_at?: string;
+}
+
+export interface MemoryStory {
+  id: number;
+  profile_id: number;
+  title: string;
+  audio_url?: string;
+  transcript_text?: string;
+  category?: string;
+  is_private: boolean;
+  created_at?: string;
+}
+
+export interface ThreeDomainOverview {
+  cognitive: {
+    completed_sessions: number;
+    domain_status: string;
+  };
+  social: {
+    community_sessions_attended: number;
+    engagement_status: string;
+  };
+  support: {
+    reminders_count: number;
+    familiar_people_count: number;
+    trusted_contacts_count: number;
+  };
+}
+
 export type Language = 'en' | 'hi' | 'te';
 export type GameType = 'memory_match' | 'daily_routine' | 'object_recognition' | 'pattern_recall';

@@ -18,6 +18,9 @@ const CaregiverInsights = lazy(() => import('./caregiver/Insights'));
 const CaregiverFamiliarPeople = lazy(() => import('./caregiver/FamiliarPeople'));
 const CaregiverReminders = lazy(() => import('./caregiver/Reminders'));
 const CaregiverHistory = lazy(() => import('./caregiver/History'));
+const CommunityHub = lazy(() => import('./pages/CommunityHub'));
+const CommunitySessionRun = lazy(() => import('./pages/CommunitySessionRun'));
+const ConnectHub = lazy(() => import('./pages/ConnectHub'));
 const Methodology = lazy(() => import('./pages/Methodology'));
 const Demo = lazy(() => import('./pages/Demo'));
 
@@ -79,6 +82,9 @@ function AppContent() {
 
             {/* Profile Workspace Routes */}
             <Route path="/caregiver" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+            <Route path="/community" element={<ProtectedRoute><CommunityHub /></ProtectedRoute>} />
+            <Route path="/community/run" element={<ProtectedRoute><CommunitySessionRun /></ProtectedRoute>} />
+            <Route path="/connect" element={<ProtectedRoute><ConnectHub /></ProtectedRoute>} />
             <Route path="/caregiver/trends" element={<ProtectedRoute><CaregiverTrends /></ProtectedRoute>} />
             <Route path="/caregiver/insights" element={<ProtectedRoute><CaregiverInsights /></ProtectedRoute>} />
             <Route path="/caregiver/people" element={<ProtectedRoute><CaregiverFamiliarPeople /></ProtectedRoute>} />

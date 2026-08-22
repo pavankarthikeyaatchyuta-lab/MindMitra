@@ -180,6 +180,14 @@ export default function Dashboard() {
             <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
+          <Link to="/community" className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center gap-1.5 font-bold">
+            <Users size={14} />
+            <span>Community Mode</span>
+          </Link>
+          <Link to="/connect" className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1.5 font-bold">
+            <Heart size={14} />
+            <span>Connect Mode</span>
+          </Link>
           <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Trends & Adaptive AI
           </Link>
@@ -196,6 +204,64 @@ export default function Dashboard() {
             Session History
           </Link>
         </div>
+
+        {/* Account-Level Profiles Hub: "Who are you caring for?" */}
+        {users.length > 1 && (
+          <div className="card p-5 bg-gradient-to-br from-slate-900 to-indigo-950 text-white border border-indigo-500/30">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-indigo-300">
+                  Caregiver Hub: Who are you caring for?
+                </h3>
+                <p className="text-xs text-slate-300 font-medium">
+                  {users.length} Active Elderly Profiles under {caregiver?.name || 'Caregiver'}
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/profiles')}
+                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1"
+              >
+                <span>+ Add Profile</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {users.map((u) => {
+                const isSelected = u.id === selectedUserId;
+                return (
+                  <div
+                    key={u.id}
+                    onClick={() => {
+                      setSelectedUserId(u.id);
+                      switchProfile(u);
+                    }}
+                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-indigo-600/40 border-indigo-400 text-white ring-2 ring-indigo-400'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                        {(u.display_name || u.name || 'U').charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-extrabold text-white">{u.display_name || u.name}</h4>
+                        <span className="text-[10px] text-indigo-200 font-semibold block">Age {u.age}</span>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* User Card */}
         {selectedUser && (

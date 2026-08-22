@@ -188,6 +188,42 @@ export const api = {
     return { status: 'synced', count: events.length };
   },
 
+  // Community Mode
+  startCommunitySession: (name: string, activityType: string, profileIds: number[], notes?: string) =>
+    fetchJSON<CommunitySession>('/community/sessions/start', {
+      method: 'POST',
+      body: JSON.stringify({ name, activity_type: activityType, profile_ids: profileIds, notes }),
+    }),
+  completeCommunitySession: (id: number, durationMinutes?: number, notes?: string, participantNotes?: Record<string, string>) =>
+    fetchJSON<{ status: string; id: number }>(`/community/sessions/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ duration_minutes: durationMinutes, notes, participant_notes: participantNotes }),
+    }),
+  getCaregiverCommunitySessions: (caregiverId: number) =>
+    fetchJSON<CommunitySession[]>(`/community/sessions/caregiver/${caregiverId}`, {}, `community_caregiver_${caregiverId}`),
+  getProfileCommunitySessions: (profileId: number) =>
+    fetchJSON<CommunitySession[]>(`/community/sessions/profile/${profileId}`, {}, `community_profile_${profileId}`),
+  recordCommunityEvent: (event: { community_session_id: number; profile_id?: number; activity_key: string; event_type: string; data?: any }) =>
+    fetchJSON<any>('/community/events', { method: 'POST', body: JSON.stringify(event) }),
+
+  // Connect Mode & Trusted Connections
+  getProfileConnections: (profileId: number) =>
+    fetchJSON<TrustedConnection[]>(`/connections/profile/${profileId}`, {}, `connections_${profileId}`),
+  addTrustedConnection: (conn: { profile_id: number; contact_name: string; relationship: string; phone_or_address?: string }) =>
+    fetchJSON<{ id: number; status: string }>('/connections', { method: 'POST', body: JSON.stringify(conn) }),
+  deleteTrustedConnection: (id: number) =>
+    fetchJSON<{ status: string; id: number }>(`/connections/${id}`, { method: 'DELETE' }),
+
+  // Memory Stories
+  getProfileStories: (profileId: number) =>
+    fetchJSON<MemoryStory[]>(`/stories/profile/${profileId}`, {}, `stories_${profileId}`),
+  createMemoryStory: (story: { profile_id: number; title: string; audio_url?: string; transcript_text?: string; category?: string; is_private?: boolean }) =>
+    fetchJSON<{ id: number; title: string }>('/stories', { method: 'POST', body: JSON.stringify(story) }),
+
+  // 3-Domain Overview
+  get3DomainOverview: (userId: number) =>
+    fetchJSON<ThreeDomainOverview>(`/analytics/domains-overview/${userId}`, {}, `overview_3domain_${userId}`),
+
   // Demo
   seedFullDemo: () => fetchJSON<any>('/demo/seed', { method: 'POST' }),
 };
@@ -225,3 +261,4 @@ export const deleteReminder = api.deleteReminder;
 export const getSyncStatus = api.getSyncStatus;
 export const simulateSync = api.simulateSync;
 export const seedFullDemo = api.seedFullDemo;
+
