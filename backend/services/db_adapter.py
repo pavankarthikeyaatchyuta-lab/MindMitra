@@ -29,8 +29,8 @@ if DATABASE_URL:
         import psycopg2.extras
         HAS_POSTGRES = True
         logger.info("PostgreSQL configured via DATABASE_URL")
-    except ImportError:
-        logger.warning("DATABASE_URL provided but psycopg2-binary not installed. Falling back to SQLite.")
+    except Exception as e:
+        logger.warning(f"DATABASE_URL provided but psycopg2 failed to load ({e}). Falling back to SQLite.")
 
 class DictRowWrapper(dict):
     """A dictionary that also supports index-based lookup like a tuple."""
