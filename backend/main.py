@@ -419,7 +419,7 @@ def login_caregiver(req: CaregiverLogin):
     with get_db() as conn:
         try:
             c = conn.cursor()
-            c.execute("SELECT * FROM caregivers WHERE LOWER(TRIM(email)) = ? AND (active = 1 OR active IS NULL OR active = 'true' OR active = true)", (email,))
+            c.execute("SELECT * FROM caregivers WHERE LOWER(TRIM(email)) = ? AND (active IS TRUE OR active IS NULL)", (email,))
             caregiver = c.fetchone()
             if not caregiver or not verify_password(password, caregiver["password_hash"]):
                 logger.warning(f"[Auth] Login failed for email={email}")
@@ -438,8 +438,8 @@ def login_caregiver(req: CaregiverLogin):
         except HTTPException:
             raise
         except Exception as e:
-            import traceback
-            raise HTTPException(status_code=500, detail=f"Login Error: {e}\n{traceback.format_exc()}")
+            logger.error(f"[Auth] Login crash: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Internal server error. Please try again.")
 
 @app.get("/api/auth/me")
 def get_current_user_profile(current=Depends(get_current_caregiver)):
@@ -457,7 +457,7 @@ def get_current_user_profile(current=Depends(get_current_caregiver)):
         c.execute("""
             SELECT id, name as display_name, name, age, preferred_language, voice_enabled, created_at, COALESCE(status, 'active') as status
             FROM elderly_profiles
-            WHERE caregiver_id = ? AND active = 1 AND COALESCE(status, 'active') = 'active'
+            WHERE caregiver_id = ? AND (active IS TRUE OR active IS NULL) AND COALESCE(status, 'active') = 'active'
             ORDER BY id ASC
         """, (current["caregiver_id"],))
         profiles = [dict(row) for row in c.fetchall()]
@@ -498,14 +498,14 @@ def _get_profiles_for_caregiver(caregiver_id: int, include_archived: bool = Fals
             c.execute("""
                 SELECT id, name as display_name, name, age, preferred_language, voice_enabled, created_at, COALESCE(status, 'active') as status
                 FROM elderly_profiles
-                WHERE caregiver_id = ? AND active = 1
+                WHERE caregiver_id = ? AND (active IS TRUE OR active IS NULL)
                 ORDER BY id ASC
             """, (caregiver_id,))
         else:
             c.execute("""
                 SELECT id, name as display_name, name, age, preferred_language, voice_enabled, created_at, COALESCE(status, 'active') as status
                 FROM elderly_profiles
-                WHERE caregiver_id = ? AND active = 1 AND COALESCE(status, 'active') = 'active'
+                WHERE caregiver_id = ? AND (active IS TRUE OR active IS NULL) AND COALESCE(status, 'active') = 'active'
                 ORDER BY id ASC
             """, (caregiver_id,))
         return [dict(row) for row in c.fetchall()]
@@ -523,7 +523,7 @@ def list_archived_profiles(current=Depends(get_current_caregiver)):
         c.execute("""
             SELECT id, name as display_name, name, age, preferred_language, voice_enabled, created_at, 'archived' as status
             FROM elderly_profiles
-            WHERE caregiver_id = ? AND active = 1 AND status = 'archived'
+            WHERE caregiver_id = ? AND (active IS TRUE OR active IS NULL) AND status = 'archived'
             ORDER BY id ASC
         """, (caregiver_id,))
         return [dict(row) for row in c.fetchall()]
@@ -567,7 +567,7 @@ def get_profile(id: int, current=Depends(get_current_caregiver)):
     caregiver_id = current["caregiver_id"] if current else 1
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT id, caregiver_id, name as display_name, name, age, preferred_language, voice_enabled, created_at, COALESCE(status, 'active') as status FROM elderly_profiles WHERE id = ? AND active = 1", (id,))
+        c.execute("SELECT id, caregiver_id, name as display_name, name, age, preferred_language, voice_enabled, created_at, COALESCE(status, 'active') as status FROM elderly_profiles WHERE id = ? AND (active IS TRUE OR active IS NULL)", (id,))
         row = c.fetchone()
         if not row:
             c.execute("SELECT id, 1 as caregiver_id, display_name, display_name as name, age, preferred_language, voice_enabled, created_at, 'active' as status FROM users WHERE id = ?", (id,))
@@ -587,7 +587,7 @@ def update_profile(id: int, p: ProfileUpdate, current=Depends(get_current_caregi
     caregiver_id = current["caregiver_id"] if current else 1
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND active = 1", (id,))
+        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND (active IS TRUE OR active IS NULL)", (id,))
         existing = c.fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Profile not found")
@@ -627,7 +627,7 @@ def archive_profile(id: int, current=Depends(get_current_caregiver)):
     caregiver_id = current["caregiver_id"] if current else 1
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND active = 1", (id,))
+        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND (active IS TRUE OR active IS NULL)", (id,))
         existing = c.fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Profile not found")
@@ -644,7 +644,7 @@ def restore_profile(id: int, current=Depends(get_current_caregiver)):
     caregiver_id = current["caregiver_id"] if current else 1
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND active = 1", (id,))
+        c.execute("SELECT * FROM elderly_profiles WHERE id = ? AND (active IS TRUE OR active IS NULL)", (id,))
         existing = c.fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Profile not found")
@@ -1250,11 +1250,11 @@ def debug_persistence(current=Depends(get_current_caregiver)):
     with get_db() as conn:
         c = conn.cursor()
         if caregiver_id:
-            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE caregiver_id = ? AND active = 1", (caregiver_id,))
+            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE caregiver_id = ? AND (active IS TRUE OR active IS NULL)", (caregiver_id,))
             res = c.fetchone()
             profile_count = res["count"] if res else 0
         else:
-            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE active = 1")
+            c.execute("SELECT COUNT(*) as count FROM elderly_profiles WHERE (active IS TRUE OR active IS NULL)")
             res = c.fetchone()
             profile_count = res["count"] if res else 0
 

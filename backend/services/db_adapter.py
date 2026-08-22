@@ -64,6 +64,8 @@ class UnifiedCursor:
             formatted_sql = formatted_sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
             formatted_sql = formatted_sql.replace("BOOLEAN DEFAULT 1", "BOOLEAN DEFAULT TRUE")
             formatted_sql = formatted_sql.replace("BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE")
+            formatted_sql = formatted_sql.replace("active = 1", "active IS TRUE")
+            formatted_sql = formatted_sql.replace("active = 0", "active IS FALSE")
 
             # Append RETURNING id for INSERT queries if not present
             if formatted_sql.strip().upper().startswith("INSERT INTO") and "RETURNING" not in formatted_sql.upper():
