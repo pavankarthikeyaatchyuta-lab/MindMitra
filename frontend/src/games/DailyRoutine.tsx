@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../i18n';
-import { CheckCircle2, RotateCcw, Eye, ArrowRight, Sparkles } from 'lucide-react';
+import { CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react';
 
 export interface GameMetrics {
   accuracy: number;
@@ -68,12 +67,10 @@ const ROUTINES = [
 export default function DailyRoutine({ difficulty, userId, gameSessionId, onComplete }: GameProps) {
   const { t } = useTranslation();
   
-  // Stages: 'memorize' (showing sequence first) -> 'recall' (rebuilding sequence)
   const [stage, setStage] = useState<'memorize' | 'recall'>('memorize');
   const [targetSequence, setTargetSequence] = useState<RoutineItem[]>([]);
   const [poolItems, setPoolItems] = useState<RoutineItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<RoutineItem[]>([]);
-  const [shakeId, setShakeId] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
   const stats = useRef({
@@ -85,7 +82,7 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
     lastActionTime: 0
   });
 
-  const itemCount = Math.min(6, difficulty + 2); // Diff 1: 3 items, Diff 2: 4 items, Diff 3: 5 items, Diff 4: 6 items
+  const itemCount = Math.min(6, difficulty + 2);
 
   useEffect(() => {
     initGame();
@@ -101,6 +98,7 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
     }));
 
     setTargetSequence(chosenItems);
+    setPoolItems([...chosenItems].sort(() => Math.random() - 0.5));
     setSelectedItems([]);
     setStage('memorize');
     setIsComplete(false);
@@ -116,57 +114,50 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
   };
 
   const handleStartRecall = () => {
-    // Shuffle the items for the pool
-    const shuffled = [...targetSequence].sort(() => Math.random() - 0.5);
-    setPoolItems(shuffled);
     setStage('recall');
     stats.current.lastActionTime = Date.now();
   };
 
-  const handleItemClick = (item: RoutineItem) => {
+  const handleSelectPoolItem = (item: RoutineItem) => {
     const now = Date.now();
-    const latency = now - stats.current.lastActionTime;
-    stats.current.responseTimes.push(latency);
+    const rt = now - (stats.current.lastActionTime || now);
+    stats.current.responseTimes.push(rt);
     stats.current.lastActionTime = now;
 
-    const nextExpectedIdx = selectedItems.length;
+    const nextIndex = selectedItems.length;
 
-    if (item.originalIndex === nextExpectedIdx) {
-      // Correct in sequence!
-      stats.current.correctPlacements += 1;
+    if (item.originalIndex === nextIndex) {
+      stats.current.correctPlacements++;
       const newSelected = [...selectedItems, item];
       setSelectedItems(newSelected);
-      setPoolItems(poolItems.filter(p => p.id !== item.id));
+      setPoolItems(prev => prev.filter(p => p.id !== item.id));
 
       if (newSelected.length === targetSequence.length) {
-        finishGame();
+        finishGame(newSelected);
       }
     } else {
-      // Incorrect item
-      stats.current.errors += 1;
-      setShakeId(item.id);
-      setTimeout(() => setShakeId(null), 600);
+      stats.current.errors++;
     }
   };
 
   const handleUndo = () => {
     if (selectedItems.length === 0) return;
-    stats.current.corrections += 1;
+    stats.current.corrections++;
     const lastItem = selectedItems[selectedItems.length - 1];
-    setSelectedItems(selectedItems.slice(0, -1));
-    setPoolItems([...poolItems, lastItem]);
+    setSelectedItems(prev => prev.slice(0, -1));
+    setPoolItems(prev => [...prev, lastItem]);
   };
 
-  const finishGame = () => {
+  const finishGame = (finalSequence: RoutineItem[]) => {
     setIsComplete(true);
     const now = Date.now();
     const totalTime = now - stats.current.startTime;
     const avgRt = stats.current.responseTimes.length > 0
       ? stats.current.responseTimes.reduce((a, b) => a + b, 0) / stats.current.responseTimes.length
-      : 2200;
+      : 2500;
 
-    const totalEvents = stats.current.correctPlacements + stats.current.errors;
-    const accuracy = stats.current.correctPlacements / Math.max(1, totalEvents);
+    const totalAttempts = stats.current.correctPlacements + stats.current.errors;
+    const accuracy = stats.current.correctPlacements / Math.max(1, totalAttempts);
 
     onComplete({
       accuracy: Math.min(1.0, Math.max(0.1, accuracy)),
@@ -174,127 +165,121 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
       repeat_errors: 0,
       corrections: stats.current.corrections,
       completion_time_ms: totalTime,
-      total_events: totalEvents
+      total_events: totalAttempts
     });
   };
 
   return (
-    <div className="flex flex-col items-center max-w-4xl mx-auto py-4">
+    <div className="flex flex-col items-center justify-center max-w-3xl mx-auto py-2">
       {/* Header Info */}
-      <div className="w-full cosmic-card p-6 mb-6">
-        <h2 className="text-3xl font-bold text-blue-300 flex items-center gap-3">
+      <div className="w-full card p-5 mb-6">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <span>📋</span> {t('games.routine.title', 'Daily Routine Recall')}
         </h2>
-        <p className="text-lg text-slate-300 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           {stage === 'memorize'
-            ? 'Observe and remember the sequence of events shown below.'
-            : 'Select the activities in the exact order you just memorized.'}
+            ? 'Observe the natural sequence of daily tasks below. Click continue when ready.'
+            : 'Rebuild the daily routine in the correct order from start to finish.'}
         </p>
       </div>
 
-      {/* STAGE 1: MEMORIZE SEQUENCE */}
-      {stage === 'memorize' && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full cosmic-card p-8 flex flex-col items-center"
-        >
-          <div className="flex items-center gap-2 text-indigo-300 font-semibold mb-6 text-xl">
-            <Eye size={24} /> Step 1: Memorize This Sequence
+      {stage === 'memorize' ? (
+        /* Memorize Stage */
+        <div className="w-full space-y-4">
+          <div className="card p-6 border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20">
+            <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-4">
+              Standard Daily Order
+            </h3>
+
+            <div className="space-y-2.5">
+              {targetSequence.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-3.5 shadow-xs"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center">
+                    {idx + 1}
+                  </span>
+                  <span className="text-2xl">{item.emoji}</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 w-full max-w-xl mb-8">
-            {targetSequence.map((item, idx) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-4 bg-slate-900/80 border border-indigo-500/30 rounded-2xl p-4 text-xl font-medium text-white shadow-md"
-              >
-                <span className="w-10 h-10 rounded-xl bg-indigo-600/40 text-indigo-300 flex items-center justify-center font-bold text-lg">
-                  {idx + 1}
-                </span>
-                <span className="text-3xl">{item.emoji}</span>
-                <span className="text-slate-100">{item.label}</span>
-              </div>
-            ))}
+          <div className="text-center pt-2">
+            <button
+              onClick={handleStartRecall}
+              className="elderly-btn-primary text-base py-3.5 px-8 rounded-xl inline-flex items-center gap-2 shadow-sm"
+            >
+              <span>I Remember, Start Sequence</span>
+              <ArrowRight size={18} />
+            </button>
           </div>
-
-          <button
-            onClick={handleStartRecall}
-            className="elderly-btn-primary flex items-center gap-3 text-2xl"
-          >
-            I'm Ready — Start Recall <ArrowRight size={24} />
-          </button>
-        </motion.div>
-      )}
-
-      {/* STAGE 2: RECALL AND SEQUENCE */}
-      {stage === 'recall' && (
-        <div className="w-full flex flex-col gap-6">
-          {/* Target Placement Slots */}
-          <div className="cosmic-card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-300">
-                Arranged Sequence ({selectedItems.length} / {targetSequence.length})
-              </h3>
+        </div>
+      ) : (
+        /* Recall Stage */
+        <div className="w-full space-y-6">
+          {/* Constructed Sequence Box */}
+          <div className="card p-6 min-h-[140px]">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Reconstructed Sequence ({selectedItems.length}/{targetSequence.length})
+              </span>
               {selectedItems.length > 0 && !isComplete && (
                 <button
                   onClick={handleUndo}
-                  className="flex items-center gap-2 text-amber-300 hover:text-amber-200 text-lg px-4 py-2 bg-slate-900/60 rounded-xl border border-amber-500/30"
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
                 >
-                  <RotateCcw size={20} /> Undo Last
+                  <RotateCcw size={12} />
+                  <span>Undo</span>
                 </button>
               )}
             </div>
 
-            <div className="flex flex-col gap-3 min-h-[140px]">
+            <div className="space-y-2">
               {selectedItems.map((item, idx) => (
-                <motion.div
+                <div
                   key={item.id}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center gap-4 bg-emerald-950/60 border border-emerald-500/50 rounded-2xl p-4 text-xl font-medium text-emerald-200 shadow-md"
+                  className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 flex items-center gap-3"
                 >
-                  <span className="w-10 h-10 rounded-xl bg-emerald-700/50 text-emerald-200 flex items-center justify-center font-bold">
+                  <span className="w-6 h-6 rounded-md bg-emerald-200 dark:bg-emerald-800 font-bold text-xs flex items-center justify-center">
                     {idx + 1}
                   </span>
-                  <span className="text-3xl">{item.emoji}</span>
-                  <span>{item.label}</span>
-                  <CheckCircle2 size={24} className="ml-auto text-emerald-400" />
-                </motion.div>
+                  <span className="text-xl">{item.emoji}</span>
+                  <span className="text-xs sm:text-sm font-bold">{item.label}</span>
+                  <CheckCircle2 size={16} className="ml-auto text-emerald-600 dark:text-emerald-400" />
+                </div>
               ))}
 
-              {selectedItems.length < targetSequence.length && (
-                <div className="border-2 border-dashed border-indigo-500/30 rounded-2xl p-4 text-center text-slate-400 text-lg bg-slate-900/30">
-                  Select item #{selectedItems.length + 1} from options below
+              {selectedItems.length === 0 && (
+                <div className="py-6 text-center text-xs text-slate-400 italic">
+                  Tap tasks below in order from first to last
                 </div>
               )}
             </div>
           </div>
 
-          {/* Options Pool */}
-          <div className="cosmic-card p-6">
-            <h3 className="text-xl font-semibold text-slate-300 mb-4">Available Activities</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {poolItems.map(item => (
-                <motion.button
-                  key={item.id}
-                  onClick={() => handleItemClick(item)}
-                  animate={shakeId === item.id ? { x: [-10, 10, -10, 10, 0] } : {}}
-                  transition={{ duration: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`flex items-center gap-4 p-5 rounded-2xl text-left text-xl font-medium transition-all shadow-md ${
-                    shakeId === item.id
-                      ? 'bg-rose-950/80 border-2 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
-                      : 'bg-slate-900/90 border border-indigo-500/30 hover:border-indigo-400 text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <span className="text-4xl">{item.emoji}</span>
-                  <span>{item.label}</span>
-                </motion.button>
-              ))}
+          {/* Item Options Pool */}
+          {!isComplete && (
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block px-1">
+                Choose Next Step:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {poolItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectPoolItem(item)}
+                    className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 text-left flex items-center gap-3 text-slate-900 dark:text-white shadow-xs transition-all cursor-pointer"
+                  >
+                    <span className="text-2xl">{item.emoji}</span>
+                    <span className="text-xs sm:text-sm font-bold">{item.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

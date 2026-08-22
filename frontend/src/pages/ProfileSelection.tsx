@@ -4,6 +4,7 @@ import { User, Plus, Brain, ArrowRight, ShieldCheck, MoreVertical, Edit2, Archiv
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ProfileSelection() {
   const navigate = useNavigate();
@@ -102,9 +103,8 @@ export default function ProfileSelection() {
         preferred_language: formLanguage,
         voice_enabled: formVoice,
       });
-
-      showToast(`Profile updated for ${formName}.`);
       setEditingProfile(null);
+      showToast('Profile details updated.');
       await loadAllProfiles();
     } catch {
       showToast('Failed to update profile.');
@@ -115,11 +115,8 @@ export default function ProfileSelection() {
     if (!archivingProfile) return;
     try {
       await api.archiveProfile(archivingProfile.id);
-      showToast(`${archivingProfile.name || archivingProfile.display_name} archived.`);
+      showToast(`${archivingProfile.name} archived.`);
       setArchivingProfile(null);
-      if (currentUser && currentUser.id === archivingProfile.id) {
-        switchProfile(null);
-      }
       await loadAllProfiles();
     } catch {
       showToast('Failed to archive profile.');
@@ -129,7 +126,7 @@ export default function ProfileSelection() {
   const handleRestore = async (profile: any) => {
     try {
       await api.restoreProfile(profile.id);
-      showToast(`${profile.name || profile.display_name} restored to active profiles.`);
+      showToast(`${profile.name} restored to active profiles.`);
       await loadAllProfiles();
     } catch {
       showToast('Failed to restore profile.');
@@ -138,17 +135,13 @@ export default function ProfileSelection() {
 
   const handleDeleteConfirm = async () => {
     if (!deletingProfile) return;
-    const expectedName = (deletingProfile.name || deletingProfile.display_name).trim().toLowerCase();
-    if (deleteConfirmInput.trim().toLowerCase() !== expectedName) return;
+    if (deleteConfirmInput !== deletingProfile.name) return;
 
     try {
-      await api.deleteProfilePermanently(deletingProfile.id);
-      showToast(`${deletingProfile.name || deletingProfile.display_name} permanently deleted.`);
+      await api.deleteProfile(deletingProfile.id);
+      showToast(`${deletingProfile.name} permanently deleted.`);
       setDeletingProfile(null);
       setDeleteConfirmInput('');
-      if (currentUser && currentUser.id === deletingProfile.id) {
-        switchProfile(null);
-      }
       await loadAllProfiles();
     } catch {
       showToast('Failed to delete profile.');
@@ -159,16 +152,16 @@ export default function ProfileSelection() {
     setActionMenuOpenId(null);
     try {
       const data = await api.exportProfileData(profile.id);
-      const jsonStr = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', jsonStr);
-      downloadAnchor.setAttribute('download', `mindmitra_${profile.name || 'profile'}_export.json`);
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `mindmitra_profile_${profile.id}_export.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast(`Exported data for ${profile.name || profile.display_name}.`);
+      showToast('Profile data exported successfully.');
     } catch {
-      showToast('Failed to export profile data.');
+      showToast('Export failed.');
     }
   };
 
@@ -178,60 +171,63 @@ export default function ProfileSelection() {
   });
 
   return (
-    <div className="min-h-screen relative z-10 flex flex-col justify-between p-6 max-w-6xl mx-auto">
+    <div className="min-h-screen flex flex-col justify-between p-6 max-w-6xl mx-auto bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-indigo-950 border border-indigo-400 text-white text-sm font-semibold shadow-2xl flex items-center gap-2 animate-fadeIn">
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold shadow-xl flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 size={18} className="text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Header with Account Menu */}
-      <header className="flex justify-between items-center py-4 border-b border-indigo-500/20">
+      {/* Top Header with ThemeToggle and Account Menu */}
+      <header className="flex justify-between items-center py-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow">
-            <Brain size={24} />
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+            <Brain size={22} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">MindMitra</h1>
-            <p className="text-xs text-indigo-300">Caregiver Multi-Profile Hub</p>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">MindMitra</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Caregiver Multi-Profile Hub</p>
           </div>
         </div>
 
-        <CaregiverAccountMenu />
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <CaregiverAccountMenu />
+        </div>
       </header>
 
       {/* Main Section */}
       <main className="my-8 flex flex-col items-center">
         <div className="text-center mb-8">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Who are you caring for today?
           </h2>
-          <p className="text-indigo-200 mt-2 text-base max-w-xl">
+          <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm sm:text-base max-w-xl">
             Select an elderly profile. All game sessions, baselines, and family memories remain completely isolated.
           </p>
         </div>
 
         {/* Tab Switcher & Search Bar */}
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="flex bg-slate-900/80 p-1 rounded-2xl border border-indigo-500/30">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setActiveTab('active')}
-              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'active'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Active Profiles ({activeProfiles.length})
             </button>
             <button
               onClick={() => setActiveTab('archived')}
-              className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'archived'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Archived ({archivedProfiles.length})
@@ -240,13 +236,13 @@ export default function ProfileSelection() {
 
           {(activeProfiles.length > 2 || archivedProfiles.length > 0) && (
             <div className="relative w-full sm:w-64">
-              <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+              <Search size={15} className="absolute left-3.5 top-2.5 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search profiles..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-white text-xs focus:outline-none focus:border-indigo-400"
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           )}
@@ -261,10 +257,10 @@ export default function ProfileSelection() {
             return (
               <div
                 key={p.id}
-                className={`cosmic-card p-6 border-2 transition-all relative flex flex-col justify-between group ${
+                className={`card p-6 relative flex flex-col justify-between transition-all ${
                   isSelected
-                    ? 'border-indigo-400 bg-indigo-950/40 shadow-xl shadow-indigo-500/20'
-                    : 'border-indigo-500/30 hover:border-indigo-400 hover:bg-slate-900/90'
+                    ? 'border-blue-600 dark:border-blue-500 bg-blue-50/40 dark:bg-blue-950/20'
+                    : 'hover:border-slate-300 dark:hover:border-slate-600'
                 }`}
               >
                 {/* Card Top: Avatar, Lang Badge, and [ ⋮ ] Action Menu */}
@@ -272,13 +268,13 @@ export default function ProfileSelection() {
                   <div className="flex items-center justify-between mb-4">
                     <div
                       onClick={() => activeTab === 'active' && handleSelectProfile(p)}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white shadow-md cursor-pointer"
+                      className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl font-bold text-white shadow-xs cursor-pointer"
                     >
                       {p.name ? p.name.charAt(0) : p.display_name?.charAt(0) || '👤'}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-slate-900 border border-indigo-500/30 text-indigo-300 font-mono uppercase">
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono uppercase font-bold">
                         {p.preferred_language || 'EN'}
                       </span>
 
@@ -289,7 +285,7 @@ export default function ProfileSelection() {
                             e.stopPropagation();
                             setActionMenuOpenId(isMenuOpen ? null : p.id);
                           }}
-                          className="p-1.5 rounded-lg bg-slate-900 border border-indigo-500/20 text-slate-400 hover:text-white hover:border-indigo-400"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white"
                           title="Profile Options"
                         >
                           <MoreVertical size={16} />
@@ -298,67 +294,61 @@ export default function ProfileSelection() {
                         {/* Action Dropdown Menu */}
                         {isMenuOpen && (
                           <div
+                            className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl z-50 p-1.5 text-xs animate-in fade-in"
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-slate-950/95 border border-indigo-500/40 shadow-2xl p-1.5 z-40 text-xs animate-fadeIn"
                           >
+                            <button
+                              onClick={() => handleOpenEdit(p)}
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium"
+                            >
+                              <Edit2 size={14} className="text-blue-500" />
+                              <span>Edit Profile</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleExportData(p)}
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium"
+                            >
+                              <Download size={14} className="text-emerald-500" />
+                              <span>Export Data (JSON)</span>
+                            </button>
+
                             {activeTab === 'active' ? (
-                              <>
-                                <button
-                                  onClick={() => handleSelectProfile(p)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-900 font-medium"
-                                >
-                                  <ArrowRight size={14} className="text-indigo-400" />
-                                  <span>Open Profile</span>
-                                </button>
-                                <button
-                                  onClick={() => handleOpenEdit(p)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-900 font-medium"
-                                >
-                                  <Edit2 size={14} className="text-indigo-400" />
-                                  <span>Edit Profile</span>
-                                </button>
-                                <button
-                                  onClick={() => handleExportData(p)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-900 font-medium"
-                                >
-                                  <Download size={14} className="text-indigo-400" />
-                                  <span>Export Data (JSON)</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setActionMenuOpenId(null);
-                                    setArchivingProfile(p);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-amber-400 hover:bg-amber-950/40 font-medium"
-                                >
-                                  <Archive size={14} />
-                                  <span>Archive Profile</span>
-                                </button>
-                              </>
+                              <button
+                                onClick={() => {
+                                  setActionMenuOpenId(null);
+                                  setArchivingProfile(p);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 font-medium"
+                              >
+                                <Archive size={14} />
+                                <span>Archive Profile</span>
+                              </button>
                             ) : (
                               <button
                                 onClick={() => {
                                   setActionMenuOpenId(null);
                                   handleRestore(p);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-emerald-400 hover:bg-emerald-950/40 font-medium"
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-medium"
                               >
                                 <RotateCcw size={14} />
                                 <span>Restore Profile</span>
                               </button>
                             )}
 
-                            <div className="my-1 border-t border-indigo-500/20" />
+                            <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
 
                             <button
                               onClick={() => {
                                 setActionMenuOpenId(null);
                                 setDeletingProfile(p);
+                                setDeleteConfirmInput('');
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 font-bold"
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-semibold"
                             >
                               <Trash2 size={14} />
-                              <span>Delete Permanently</span>
+                              <span>Delete Profile</span>
                             </button>
                           </div>
                         )}
@@ -366,38 +356,39 @@ export default function ProfileSelection() {
                     </div>
                   </div>
 
-                  <h3
-                    onClick={() => activeTab === 'active' && handleSelectProfile(p)}
-                    className="text-2xl font-bold text-white group-hover:text-indigo-300 transition-colors cursor-pointer"
-                  >
+                  {/* Profile Info */}
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                     {p.name || p.display_name}
                   </h3>
-                  <p className="text-sm text-slate-300 mt-1">
-                    Age {p.age} • Voice: {p.voice_enabled ? 'ON' : 'OFF'}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Age {p.age} • {p.preferred_language === 'te' ? 'Telugu' : p.preferred_language === 'hi' ? 'Hindi' : 'English'} • Voice {p.voice_enabled ? 'ON' : 'OFF'}
                   </p>
+
+                  <div className="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-xs flex justify-between items-center">
+                    <span className="text-slate-500 dark:text-slate-400">Status</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
+                      {activeTab === 'active' ? 'Active Profile' : 'Archived'}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Card Bottom CTA */}
-                <div className="mt-6 pt-4 border-t border-indigo-500/20 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">
-                    {activeTab === 'active' ? 'Elderly Profile' : 'Archived Profile'}
-                  </span>
-
+                {/* Card Action */}
+                <div className="mt-6">
                   {activeTab === 'active' ? (
                     <button
                       onClick={() => handleSelectProfile(p)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-400/40 text-xs font-bold text-indigo-200 hover:text-white transition-all"
+                      className="elderly-btn-primary w-full text-sm py-2.5 rounded-xl flex items-center justify-center gap-2"
                     >
                       <span>Open Profile</span>
-                      <ArrowRight size={14} />
+                      <ArrowRight size={16} />
                     </button>
                   ) : (
                     <button
                       onClick={() => handleRestore(p)}
-                      className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300"
+                      className="elderly-btn-secondary w-full text-sm py-2.5 rounded-xl flex items-center justify-center gap-2"
                     >
-                      <RotateCcw size={14} />
-                      <span>Restore</span>
+                      <RotateCcw size={15} />
+                      <span>Restore to Active</span>
                     </button>
                   )}
                 </div>
@@ -405,35 +396,35 @@ export default function ProfileSelection() {
             );
           })}
 
-          {/* + Add Elderly Profile Card (Only shown in Active tab) */}
+          {/* Add Profile Card */}
           {activeTab === 'active' && (
             <div
               onClick={() => {
                 setFormName('');
                 setFormAge(70);
+                setFormLanguage('en');
+                setFormVoice(true);
                 setShowAddModal(true);
               }}
-              className="cosmic-card p-6 border-2 border-dashed border-indigo-500/40 hover:border-indigo-400 bg-slate-900/40 hover:bg-slate-900/80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group min-h-[220px]"
+              className="card p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 flex flex-col items-center justify-center text-center cursor-pointer min-h-[260px] group transition-all"
             >
-              <div className="w-14 h-14 rounded-2xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center text-indigo-300 group-hover:scale-110 group-hover:text-white transition-all mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                 <Plus size={28} />
               </div>
-              <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
-                + Add Elderly Profile
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Add a family member or senior to monitor
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Elderly Profile</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[200px]">
+                Create a personalized cognitive profile for another family member.
               </p>
             </div>
           )}
         </div>
 
-        {/* Empty State Active */}
-        {displayedProfiles.length === 0 && activeTab === 'active' && (
-          <div className="p-12 text-center text-slate-400 cosmic-card w-full mt-4">
-            <User size={36} className="mx-auto text-slate-500 mb-2" />
-            <p className="text-lg font-bold text-white">No elderly profiles yet</p>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+        {/* Empty State for Active Tab */}
+        {activeTab === 'active' && activeProfiles.length === 0 && !loading && (
+          <div className="card p-8 text-center max-w-md w-full my-6">
+            <User size={36} className="text-slate-400 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No elderly profiles yet</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
               Add a profile to begin a personalized cognitive support journey.
             </p>
             <button
@@ -442,132 +433,112 @@ export default function ProfileSelection() {
                 setFormAge(70);
                 setShowAddModal(true);
               }}
-              className="mt-4 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg"
+              className="elderly-btn-primary text-sm py-2.5 px-6 rounded-xl inline-flex items-center gap-2"
             >
-              + Add Elderly Profile
+              <Plus size={16} />
+              <span>Add Elderly Profile</span>
             </button>
-          </div>
-        )}
-
-        {/* Empty State Archived */}
-        {displayedProfiles.length === 0 && activeTab === 'archived' && (
-          <div className="p-12 text-center text-slate-400 cosmic-card w-full mt-4">
-            <Archive size={36} className="mx-auto text-slate-500 mb-2" />
-            <p className="text-base font-bold text-white">No archived profiles</p>
-            <p className="text-xs text-slate-400 mt-1">Archived family profiles will appear here for easy restoration.</p>
           </div>
         )}
       </main>
 
-      {/* 1. Add / Edit Profile Modal */}
-      {(showAddModal || editingProfile) && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="cosmic-card w-full max-w-md p-6 border border-indigo-500/40 shadow-2xl animate-fadeIn relative">
+      {/* Footer */}
+      <footer className="text-center py-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+        <ShieldCheck size={16} className="text-blue-500" />
+        <span>Caregiver Isolation Active — Each profile maintains private sessions & baselines.</span>
+      </footer>
+
+      {/* --- MODAL: CREATE PROFILE --- */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="card max-w-lg w-full p-7 shadow-2xl relative">
             <button
-              onClick={() => {
-                setShowAddModal(false);
-                setEditingProfile(null);
-              }}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
 
-            <h3 className="text-2xl font-bold text-white mb-1">
-              {editingProfile ? 'Edit Elderly Profile' : 'Create Elderly Profile'}
-            </h3>
-            <p className="text-xs text-indigo-300 mb-6">
-              {editingProfile
-                ? 'Update details while preserving all historical sessions, baselines, and memories.'
-                : 'Establish a new independent longitudinal cognitive profile.'}
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Add Elderly Profile</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+              Create a new isolated cognitive profile under your caregiver account.
             </p>
 
-            <form onSubmit={editingProfile ? handleSaveEdit : handleCreateProfile} className="space-y-4">
+            <form onSubmit={handleCreateProfile} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Senior's Full Name
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Senior Full Name *
                 </label>
                 <input
                   type="text"
+                  required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="e.g. Ramesh Kumar"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-base"
-                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  value={formAge}
-                  onChange={(e) => setFormAge(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="70"
-                  min="50"
-                  max="120"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-base"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    min={40}
+                    max={120}
+                    value={formAge}
+                    onChange={(e) => setFormAge(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Preferred Spoken & UI Language
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'en', label: 'English' },
-                    { id: 'hi', label: 'हिंदी (Hindi)' },
-                    { id: 'te', label: 'తెలుగు (Telugu)' },
-                  ].map((l) => (
-                    <button
-                      key={l.id}
-                      type="button"
-                      onClick={() => setFormLanguage(l.id as any)}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
-                        formLanguage === l.id
-                          ? 'bg-indigo-600 border-indigo-400 text-white'
-                          : 'bg-slate-900 border-indigo-500/20 text-slate-300 hover:border-indigo-400'
-                      }`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Language
+                  </label>
+                  <select
+                    value={formLanguage}
+                    onChange={(e) => setFormLanguage(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="en">English (India)</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                    <option value="te">తెలుగు (Telugu)</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-900/70 border border-indigo-500/20 rounded-xl">
-                <div className="flex items-center gap-2 text-sm text-slate-200">
-                  <Volume2 size={18} className="text-indigo-400" />
-                  <span>Voice Guidance (TTS)</span>
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <Volume2 size={18} className="text-blue-500" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">Voice Guidance</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Spoken instructions during games</p>
+                  </div>
                 </div>
                 <input
                   type="checkbox"
                   checked={formVoice}
                   onChange={(e) => setFormVoice(e.target.checked)}
-                  className="w-5 h-5 accent-indigo-500 rounded cursor-pointer"
+                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="pt-2 flex justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditingProfile(null);
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-semibold hover:bg-slate-800 text-sm"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg text-sm"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                 >
-                  {editingProfile ? 'Save Changes' : 'Create & Select'}
+                  Create Profile
                 </button>
               </div>
             </form>
@@ -575,97 +546,178 @@ export default function ProfileSelection() {
         </div>
       )}
 
-      {/* 2. Archive Confirmation Modal */}
-      {archivingProfile && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="cosmic-card w-full max-w-md p-6 border border-amber-500/40 shadow-2xl animate-fadeIn">
-            <div className="flex items-center gap-3 mb-3 text-amber-400">
-              <Archive size={26} />
-              <h3 className="text-2xl font-bold text-white">Archive {archivingProfile.name || archivingProfile.display_name}?</h3>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
-              This hides the profile from active care selection. All historical session telemetry, baselines, trends, reminders, and familiar photos are <strong>fully preserved</strong> and can be restored at any time.
+      {/* --- MODAL: EDIT PROFILE --- */}
+      {editingProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="card max-w-lg w-full p-7 shadow-2xl relative">
+            <button
+              onClick={() => setEditingProfile(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Edit Profile Details</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+              Update preferences for {editingProfile.name || editingProfile.display_name}.
             </p>
 
-            <div className="flex gap-3">
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Senior Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    min={40}
+                    max={120}
+                    value={formAge}
+                    onChange={(e) => setFormAge(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Language
+                  </label>
+                  <select
+                    value={formLanguage}
+                    onChange={(e) => setFormLanguage(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="en">English (India)</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                    <option value="te">తెలుగు (Telugu)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <Volume2 size={18} className="text-blue-500" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">Voice Guidance</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Spoken instructions during games</p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formVoice}
+                  onChange={(e) => setFormVoice(e.target.checked)}
+                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: ARCHIVE PROFILE --- */}
+      {archivingProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="card max-w-md w-full p-6 shadow-2xl">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+              <Archive size={24} />
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Archive {archivingProfile.name}?</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+              Archiving hides this profile from active session lists while preserving all historical data, baseline calculations, and family photos. You can restore it anytime.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-2.5">
               <button
                 onClick={() => setArchivingProfile(null)}
-                className="flex-1 py-3 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-semibold hover:bg-slate-800 text-xs sm:text-sm"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
               >
                 Cancel
               </button>
               <button
                 onClick={handleArchiveConfirm}
-                className="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm shadow"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
-                Archive Profile
+                Confirm Archive
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. Permanent Deletion Modal with Strict Confirmation Requirement */}
-      {deletingProfile && (() => {
-        const pName = deletingProfile.name || deletingProfile.display_name;
-        const matches = deleteConfirmInput.trim().toLowerCase() === pName.trim().toLowerCase();
+      {/* --- MODAL: DELETE PROFILE (WITH TYPE CONFIRMATION) --- */}
+      {deletingProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="card max-w-md w-full p-6 shadow-2xl border-rose-200 dark:border-rose-900">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4">
+              <AlertTriangle size={24} />
+            </div>
 
-        return (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div className="cosmic-card w-full max-w-md p-6 border border-red-500/50 shadow-2xl animate-fadeIn">
-              <div className="flex items-center gap-3 mb-3 text-red-400">
-                <AlertTriangle size={26} />
-                <h3 className="text-2xl font-bold text-white">Delete Permanently?</h3>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
-                This will permanently erase <strong>{pName}</strong> and all associated sessions, gameplay metrics, baselines, trends, reminders, familiar people, and photos. <span className="text-red-400 font-semibold">This action cannot be undone.</span>
-              </p>
+            <h3 className="text-lg font-bold text-rose-600 dark:text-rose-400">Permanently Delete Profile?</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+              This will permanently delete <strong>{deletingProfile.name}</strong> and cascade-remove all historical gameplay sessions, telemetry, baselines, and family photos. This action cannot be undone.
+            </p>
 
-              <div className="mb-5 p-3.5 bg-slate-900 rounded-xl border border-red-500/30">
-                <label className="block text-[11px] text-slate-400 mb-1.5">
-                  Type <span className="text-white font-bold font-mono">"{pName}"</span> to confirm:
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmInput}
-                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                  placeholder={pName}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-red-400 font-mono"
-                />
-              </div>
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Type <span className="font-mono text-rose-600 dark:text-rose-400 font-bold">{deletingProfile.name}</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder={deletingProfile.name}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setDeletingProfile(null);
-                    setDeleteConfirmInput('');
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-semibold hover:bg-slate-800 text-xs sm:text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  disabled={!matches}
-                  className={`flex-1 py-3 rounded-xl font-bold text-xs sm:text-sm shadow transition-all ${
-                    matches
-                      ? 'bg-red-600 hover:bg-red-500 text-white cursor-pointer'
-                      : 'bg-red-950/40 text-slate-500 border border-red-950 cursor-not-allowed'
-                  }`}
-                >
-                  Delete Permanently
-                </button>
-              </div>
+            <div className="mt-6 flex justify-end gap-2.5">
+              <button
+                onClick={() => setDeletingProfile(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteConfirmInput !== deletingProfile.name}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white shadow-xs"
+              >
+                Permanently Delete
+              </button>
             </div>
           </div>
-        );
-      })()}
-
-      {/* Footer */}
-      <footer className="text-center text-xs text-slate-400 py-4 border-t border-indigo-500/20 flex items-center justify-center gap-2">
-        <ShieldCheck size={16} className="text-emerald-400" />
-        <span>One Caregiver Account • Multiple Isolated Elderly Profiles • Longitudinal Privacy Guaranteed</span>
-      </footer>
+        </div>
+      )}
     </div>
   );
 }

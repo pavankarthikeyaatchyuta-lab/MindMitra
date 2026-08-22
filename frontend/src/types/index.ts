@@ -108,7 +108,8 @@ export interface Baseline {
 
 export interface TrendData {
   game_type: string;
-  domain: string;
+  domain?: string;
+  domain_name?: string;
   domain_label?: string;
   domain_icon?: string;
   current_performance?: number;
@@ -120,6 +121,10 @@ export interface TrendData {
   latency_deviation_ms?: number;
   status?: string;
   trend: string;
+  trend_label?: string;
+  trend_description?: string;
+  reasons?: string[];
+  sessions_analyzed?: number;
   sessions_used?: number;
   total_recorded?: number;
   supporting_sessions?: number;

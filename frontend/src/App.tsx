@@ -1,10 +1,8 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
-import { useTranslation } from './i18n';
+import { ThemeProvider } from './context/ThemeContext';
 import { WifiOff } from 'lucide-react';
-import SpaceBackground from './components/SpaceBackground';
-import CustomCursor from './components/CustomCursor';
 
 const Login = lazy(() => import('./pages/Login'));
 const ProfileSelection = lazy(() => import('./pages/ProfileSelection'));
@@ -27,8 +25,8 @@ const OfflineBanner = () => {
   const { isOnline } = useAppContext();
   if (isOnline) return null;
   return (
-    <div className="bg-amber-600/90 backdrop-blur-md text-white p-3 text-center flex items-center justify-center gap-2 sticky top-0 z-50 text-base font-semibold shadow-lg">
-      <WifiOff size={20} />
+    <div className="bg-amber-600 text-white p-3 text-center flex items-center justify-center gap-2 sticky top-0 z-50 text-sm font-semibold shadow">
+      <WifiOff size={18} />
       <span>Offline Mode Active — Telemetry & gameplay saved locally</span>
     </div>
   );
@@ -36,25 +34,19 @@ const OfflineBanner = () => {
 
 const LoadingScreen = () => (
   <div className="flex-grow flex flex-col items-center justify-center p-8 gap-4 min-h-[50vh]">
-    <div className="w-12 h-12 border-4 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
-    <span className="text-base text-indigo-200 font-medium">Connecting cognitive wellness...</span>
+    <div className="w-10 h-10 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">Loading MindMitra...</span>
   </div>
 );
 
 function AppContent() {
   return (
-    <div className="min-h-screen flex flex-col relative text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Calm cognitive wellness background canvas */}
-      <SpaceBackground />
-
-      {/* Interactive custom pointer on desktop */}
-      <CustomCursor />
-
+    <div className="min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Offline Status */}
       <OfflineBanner />
 
       {/* Main Page Routing */}
-      <main className="flex-grow flex flex-col relative z-10">
+      <main className="flex-grow flex flex-col">
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             {/* Public Routes */}
@@ -105,9 +97,11 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <ThemeProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

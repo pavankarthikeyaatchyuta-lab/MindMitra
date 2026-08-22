@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Pill, Droplets, Calendar, Activity, Plus, Trash2, ShieldCheck, Users, Check, Power, Volume2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Pill, Droplets, Calendar, Activity, Plus, Trash2, Users, Volume2, Sparkles, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
-import { User, Reminder, Language } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
+import { User, Reminder } from '../types';
 import { useVoice } from '../hooks/useVoice';
 import { useTranslation } from '../i18n';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Reminders() {
   const navigate = useNavigate();
   const { profileId } = useParams<{ profileId?: string }>();
-  const { currentUser, switchProfile, logout } = useApp();
+  const { currentUser, switchProfile } = useApp();
   const { speak } = useVoice();
   const { language } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
@@ -100,289 +100,264 @@ export default function Reminders() {
   const handleSpeakReminder = async (rem: Reminder) => {
     if (!rem.id) return;
     setSpeakingId(rem.id);
-
-    const targetUser = users.find(u => u.id === selectedUserId);
-    const userLang = (targetUser?.preferred_language as Language) || language;
-
-    let phrase = rem.title;
-    if (rem.type === 'medication') {
-      phrase = userLang === 'te'
-        ? `నమస్కారం, మీ ${rem.title} తీసుకునే సమయం అయింది.`
-        : userLang === 'hi'
-        ? `नमस्ते, आपकी ${rem.title} का समय हो गया है।`
-        : `Hello, it is time for your ${rem.title}.`;
-    } else if (rem.type === 'hydration') {
-      phrase = userLang === 'te'
-        ? 'దయచేసి కొంచెం మంచి నీరు త్రాగండి.'
-        : userLang === 'hi'
-        ? 'कृपया थोड़ा ताजा पानी पिएं।'
-        : 'Please take a sip of fresh water.';
-    } else {
-      phrase = userLang === 'te'
-        ? `జ్ఞాపిక: ${rem.title}`
-        : userLang === 'hi'
-        ? `अनुस्मारक: ${rem.title}`
-        : `Reminder: ${rem.title}`;
-    }
-
-    await speak(phrase, userLang);
+    const spokenText = language === 'hi'
+      ? `याद दिलाने के लिए: ${rem.title}, समय है ${rem.time}`
+      : language === 'te'
+      ? `జ్ఞాపిక: ${rem.title}, సమయం ${rem.time}`
+      : `Reminder: ${rem.title}, scheduled for ${rem.time}`;
+    
+    await speak(spokenText, language);
     setSpeakingId(null);
   };
 
-  const handleDelete = async (id?: number) => {
-    if (!id) return;
-    if (!window.confirm('Delete this reminder?')) return;
+  const handleDelete = async (id: number) => {
     try {
       await api.deleteReminder(id);
       loadReminders();
-    } catch {}
+    } catch {
+      console.log('Error deleting reminder');
+    }
   };
 
-  const getIcon = (t: string) => {
+  const getTypeIcon = (t: string) => {
     switch (t) {
-      case 'medication': return <Pill size={24} className="text-rose-400" />;
-      case 'hydration': return <Droplets size={24} className="text-cyan-400" />;
-      case 'calendar': return <Calendar size={24} className="text-amber-400" />;
-      default: return <Activity size={24} className="text-indigo-400" />;
+      case 'medication': return <Pill size={18} className="text-blue-500" />;
+      case 'hydration': return <Droplets size={18} className="text-cyan-500" />;
+      case 'appointment': return <Calendar size={18} className="text-purple-500" />;
+      default: return <Activity size={18} className="text-emerald-500" />;
     }
   };
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-slate-950/80 backdrop-blur-md border-b border-indigo-500/20 px-6 py-4 flex justify-between items-center shadow-lg">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/caregiver')} className="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-900/60 border border-indigo-500/20">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => navigate('/caregiver')}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Overview"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Reminders & Daily Schedule</h1>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Daily & Medication Reminders</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Audio and visual daily prompts for routine support</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={18} className="text-indigo-400" />
+              <Users size={16} className="text-blue-600 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    navigate('/profiles');
-                  } else {
-                    const newId = Number(e.target.value);
-                    setSelectedUserId(newId);
-                    const user = users.find(u => u.id === newId);
-                    if (user) switchProfile(user);
-                  }
+                  const newId = Number(e.target.value);
+                  setSelectedUserId(newId);
+                  const u = users.find(user => user.id === newId);
+                  if (u) switchProfile(u);
                 }}
-                className="p-2 px-3.5 rounded-xl border border-indigo-500/40 bg-slate-900/90 text-white text-sm focus:border-indigo-400 focus:outline-none"
+                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.display_name || u.name} (Age {u.age})
-                  </option>
+                  <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
                 ))}
-                <option value="new">+ Add Elderly Profile</option>
               </select>
             </div>
           )}
 
+          <ThemeToggle />
           <CaregiverAccountMenu />
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6">
-        {/* Responsive Navigation Tabs without horizontal scrollbar */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 border-b border-indigo-500/20 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-400" />
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white shadow">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Session History
           </Link>
         </div>
 
-        {/* Action Header */}
+        {/* Header & Add CTA */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-white">Daily Routine & Health Alerts</h2>
-            <p className="text-sm text-slate-400">Gentle multilingual voice alerts scheduled for elderly assistance</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Profile Reminders</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Scheduled routine prompts for the senior</p>
           </div>
-
           <button
             onClick={() => setShowAdd(true)}
-            className="elderly-btn-primary flex items-center gap-2 text-base py-3 px-5 min-h-[48px]"
+            className="elderly-btn-primary text-xs sm:text-sm py-2 px-4 rounded-xl inline-flex items-center gap-1.5"
           >
-            <Plus size={20} /> Add Reminder
+            <Plus size={16} />
+            <span>Add Reminder</span>
           </button>
         </div>
 
         {/* Reminders List */}
-        <div className="flex flex-col gap-3">
-          {reminders.map(rem => (
-            <div
-              key={rem.id}
-              className={`cosmic-card p-5 flex items-center justify-between gap-4 border transition-all ${
-                rem.enabled ? 'border-indigo-500/30' : 'border-slate-800 opacity-60 bg-slate-950/40'
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-900/80 rounded-xl border border-indigo-500/20">
-                  {getIcon(rem.type)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {reminders.map((r) => (
+            <div key={r.id} className="card p-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  {getTypeIcon(r.type)}
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold ${rem.enabled ? 'text-white' : 'text-slate-400 line-through'}`}>
-                    {rem.title}
-                  </h3>
-                  <p className="text-sm text-indigo-300">
-                    {rem.time} • Repeat: {rem.repeat_pattern}
-                  </p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{r.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{r.time} • {r.repeat_pattern}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleSpeakReminder(rem)}
-                  disabled={speakingId === rem.id}
-                  className="p-2 rounded-xl bg-indigo-950/80 border border-indigo-500/40 text-indigo-200 hover:text-white hover:bg-indigo-900 flex items-center gap-1.5 text-xs font-semibold"
-                  title="Test spoken alert in user language"
+                  onClick={() => handleSpeakReminder(r)}
+                  disabled={speakingId === r.id}
+                  className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-750"
+                  title="Speak reminder"
                 >
-                  <Volume2 size={16} className={speakingId === rem.id ? 'animate-spin text-emerald-400' : 'text-emerald-400'} />
-                  <span className="hidden sm:inline">Play Voice Alert</span>
+                  <Volume2 size={16} className={speakingId === r.id ? 'animate-pulse' : ''} />
                 </button>
-
+                <input
+                  type="checkbox"
+                  checked={r.enabled}
+                  onChange={() => handleToggleEnabled(r)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                />
                 <button
-                  onClick={() => handleToggleEnabled(rem)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all ${
-                    rem.enabled
-                      ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-700 text-slate-400'
-                  }`}
-                  title="Click to toggle active state"
+                  onClick={() => r.id && handleDelete(r.id)}
+                  className="p-2 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  title="Delete"
                 >
-                  <Power size={13} />
-                  {rem.enabled ? 'Active' : 'Paused'}
-                </button>
-
-                <button
-                  onClick={() => handleDelete(rem.id)}
-                  className="p-2 rounded-lg bg-slate-900 border border-rose-500/30 text-rose-400 hover:border-rose-400"
-                  title="Delete Reminder"
-                >
-                  <Trash2 size={18} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
           ))}
 
           {reminders.length === 0 && (
-            <div className="cosmic-card p-12 text-center text-slate-400">
-              No reminders scheduled. Click "+ Add Reminder" to schedule daily hydration, medication, or walk alerts.
+            <div className="col-span-full card p-8 text-center">
+              <Calendar size={36} className="text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">No reminders scheduled</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+                Schedule medication, hydration, or activity reminders that speak in the senior's preferred language.
+              </p>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="elderly-btn-primary text-xs py-2 px-5 rounded-xl inline-flex items-center gap-1.5"
+              >
+                <Plus size={15} />
+                <span>Create Reminder</span>
+              </button>
             </div>
           )}
         </div>
 
-        {/* Add Reminder Modal */}
-        <AnimatePresence>
-          {showAdd && (
-            <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="cosmic-card p-8 max-w-lg w-full bg-slate-950 border border-indigo-500/40 shadow-2xl"
+        {/* Modal */}
+        {showAdd && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="card max-w-md w-full p-6 shadow-2xl relative">
+              <button
+                onClick={() => setShowAdd(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
               >
-                <h3 className="text-2xl font-bold text-white mb-4">Add Routine Reminder</h3>
-                <form onSubmit={handleAddReminder} className="flex flex-col gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Category</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-                    >
-                      <option value="medication">💊 Medication</option>
-                      <option value="hydration">💧 Hydration (Drink Water)</option>
-                      <option value="activity">🚶 Activity / Walk</option>
-                      <option value="calendar">📅 Appointment</option>
-                    </select>
-                  </div>
+                <X size={18} />
+              </button>
 
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Add Daily Reminder</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Set up a spoken routine cue for this profile.</p>
+
+              <form onSubmit={handleAddReminder} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Reminder Category</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="medication">💊 Medication</option>
+                    <option value="hydration">💧 Hydration</option>
+                    <option value="appointment">📅 Appointment</option>
+                    <option value="activity">🏃 Activity / Exercise</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Afternoon Blood Pressure Tablet"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Reminder Title</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Time</label>
                     <input
                       type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Afternoon Blood Pressure Tablet"
-                      className="w-full p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-                      required
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      placeholder="09:00 AM"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Time</label>
-                      <input
-                        type="text"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                        placeholder="09:00 AM"
-                        className="w-full p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Repeat</label>
-                      <select
-                        value={repeatPattern}
-                        onChange={(e) => setRepeatPattern(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-                      >
-                        <option value="Daily">Daily</option>
-                        <option value="Every 2 Hours">Every 2 Hours</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="Once">Once</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 justify-end mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdd(false)}
-                      className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white"
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Repeat</label>
+                    <select
+                      value={repeatPattern}
+                      onChange={(e) => setRepeatPattern(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="elderly-btn-primary py-2.5 px-6 min-h-[44px] text-base font-bold"
-                    >
-                      Save Reminder
-                    </button>
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Weekdays">Weekdays</option>
+                      <option value="Once">Once</option>
+                    </select>
                   </div>
-                </form>
-              </motion.div>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdd(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                  >
+                    Create Reminder
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

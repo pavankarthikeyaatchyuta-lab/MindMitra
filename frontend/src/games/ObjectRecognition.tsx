@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../i18n';
-import { CheckCircle2, XCircle, ShieldCheck, Heart, User, Users, Info, ChevronRight } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, Info } from 'lucide-react';
 import { api } from '../services/api';
 import { FamiliarPerson } from '../types';
 
@@ -30,12 +30,11 @@ interface QuestionItem {
   personId?: number;
   options: {
     id: string;
-    display: string; // Emoji for object, or Name text for person
+    display: string;
     isCorrect: boolean;
   }[];
 }
 
-// Level 1: Highly familiar distinct objects (3 choices)
 const LEVEL_1_QUESTIONS: QuestionItem[] = [
   {
     id: 'obj-1',
@@ -72,7 +71,6 @@ const LEVEL_1_QUESTIONS: QuestionItem[] = [
   }
 ];
 
-// Level 2: Visually similar distractors (4 choices)
 const LEVEL_2_QUESTIONS: QuestionItem[] = [
   {
     id: 'obj-4',
@@ -80,10 +78,10 @@ const LEVEL_2_QUESTIONS: QuestionItem[] = [
     question: 'Which one is the Apple?',
     targetEmojiOrPhoto: '🍎',
     options: [
-      { id: '4a', display: '🍅', isCorrect: false }, // Tomato
-      { id: '4b', display: '🍎', isCorrect: true },  // Apple
-      { id: '4c', display: '🔴', isCorrect: false }, // Red ball
-      { id: '4d', display: '🍊', isCorrect: false }  // Orange
+      { id: '4a', display: '🍅', isCorrect: false },
+      { id: '4b', display: '🍎', isCorrect: true },
+      { id: '4c', display: '🔴', isCorrect: false },
+      { id: '4d', display: '🍊', isCorrect: false }
     ]
   },
   {
@@ -104,50 +102,22 @@ const LEVEL_2_QUESTIONS: QuestionItem[] = [
     question: 'Which one is the Clock?',
     targetEmojiOrPhoto: '⏰',
     options: [
-      { id: '6a', display: '⏱️', isCorrect: false },
-      { id: '6b', display: '⌚', isCorrect: false },
+      { id: '6a', display: '⌚', isCorrect: false },
+      { id: '6b', display: '⏱️', isCorrect: false },
       { id: '6c', display: '⏰', isCorrect: true },
-      { id: '6d', display: '🧭', isCorrect: false }
+      { id: '6d', display: '🔔', isCorrect: false }
     ]
-  }
-];
-
-// Level 3: Contextual / Semantic clues (4 choices)
-const LEVEL_3_QUESTIONS: QuestionItem[] = [
+  },
   {
     id: 'obj-7',
     type: 'object',
-    question: 'Which item is commonly used to prepare tea?',
-    targetEmojiOrPhoto: '🫖',
+    question: 'Which one is the House / Home?',
+    targetEmojiOrPhoto: '🏠',
     options: [
-      { id: '7a', display: '🫖', isCorrect: true },
-      { id: '7b', display: '🥣', isCorrect: false },
-      { id: '7c', display: '🥢', isCorrect: false },
-      { id: '7d', display: '🥄', isCorrect: false }
-    ]
-  },
-  {
-    id: 'obj-8',
-    type: 'object',
-    question: 'Which item protects you when it rains?',
-    targetEmojiOrPhoto: '☂️',
-    options: [
-      { id: '8a', display: '🧥', isCorrect: false },
-      { id: '8b', display: '🕶️', isCorrect: false },
-      { id: '8c', display: '☂️', isCorrect: true },
-      { id: '8d', display: '👒', isCorrect: false }
-    ]
-  },
-  {
-    id: 'obj-9',
-    type: 'object',
-    question: 'Which item provides light in the evening?',
-    targetEmojiOrPhoto: '🕯️',
-    options: [
-      { id: '9a', display: '🕯️', isCorrect: true },
-      { id: '9b', display: '🪞', isCorrect: false },
-      { id: '9c', display: '🪴', isCorrect: false },
-      { id: '9d', display: '🖼️', isCorrect: false }
+      { id: '7a', display: '🏢', isCorrect: false },
+      { id: '7b', display: '🏠', isCorrect: true },
+      { id: '7c', display: '🛖', isCorrect: false },
+      { id: '7d', display: '⛪', isCorrect: false }
     ]
   }
 ];
@@ -164,135 +134,110 @@ export default function ObjectRecognition({ difficulty, userId, gameSessionId, o
   const stats = useRef({
     correctAnswers: 0,
     errors: 0,
-    corrections: 0,
     repeatConfusion: 0,
+    corrections: 0,
     responseTimes: [] as number[],
     startTime: 0,
-    lastActionTime: 0,
-    seenOptions: new Set<string>()
+    lastActionTime: 0
   });
 
   useEffect(() => {
-    async function loadQuestions() {
-      // Pick object questions based on difficulty (Level 1: 3 options, Level 2: 4 options, Level 3: semantic 4 options)
-      let pool = difficulty <= 1 ? LEVEL_1_QUESTIONS : difficulty === 2 ? LEVEL_2_QUESTIONS : LEVEL_3_QUESTIONS;
-      let combined: QuestionItem[] = [...pool.slice(0, 2)];
-
-      // Check for caregiver-configured familiar people
-      try {
-        const familiar = await api.getFamiliarPeople(userId);
-        if (!familiar || familiar.length === 0) {
-          setFamiliarStatus('Familiar Person Recognition is not configured for this profile.');
-        } else if (familiar.length < 3) {
-          setFamiliarStatus(`Familiar Person Recognition requires 3 or more configured family members (currently ${familiar.length} configured).`);
-          
-          // Generate round with available names + distractors
-          const person = familiar[0];
-          const distractorNames = ['Anita Kumar', 'Ramesh Kumar', 'Lakshmi Devi', 'Suresh Kumar'].filter(n => n !== person.name);
-          const optionNames = Array.from(new Set([person.name, ...distractorNames])).slice(0, 4);
-
-          const personRound: QuestionItem = {
-            id: `person-${person.id}`,
-            type: 'person',
-            question: 'Who is this?',
-            targetEmojiOrPhoto: person.photo_url,
-            isPhotoUrl: true,
-            personId: person.id,
-            options: optionNames.sort(() => Math.random() - 0.5).map((name, optIdx) => ({
-              id: `popt-${optIdx}`,
-              display: name,
-              isCorrect: name === person.name
-            }))
-          };
-          combined.push(personRound);
-        } else {
-          setFamiliarStatus(null);
-          // Pick 1-2 random familiar people
-          const shuffledFamiliar = [...familiar].sort(() => Math.random() - 0.5);
-          const selectedPeople = shuffledFamiliar.slice(0, Math.min(2, familiar.length));
-
-          selectedPeople.forEach((person, pIdx) => {
-            const otherNames = familiar.filter(f => f.id !== person.id).map(f => f.name);
-            const extraDistractors = ['Anita Kumar', 'Ramesh Kumar', 'Lakshmi Devi', 'Suresh Kumar', 'Meera Devi', 'Rajiv Kumar'];
-            const optionNames = Array.from(new Set([
-              person.name,
-              ...otherNames,
-              ...extraDistractors.filter(n => n !== person.name && !otherNames.includes(n))
-            ])).slice(0, 4);
-
-            combined.push({
-              id: `person-${person.id}-${pIdx}`,
-              type: 'person',
-              question: 'Who is this?',
-              targetEmojiOrPhoto: person.photo_url,
-              isPhotoUrl: true,
-              personId: person.id,
-              options: optionNames.sort(() => Math.random() - 0.5).map((name, optIdx) => ({
-                id: `popt-${pIdx}-${optIdx}`,
-                display: name,
-                isCorrect: name === person.name
-              }))
-            });
-          });
-        }
-      } catch (err) {
-        setFamiliarStatus('Familiar Person Recognition is not configured for this profile.');
-      }
-
-      setQuestions(combined.sort(() => Math.random() - 0.5));
-      setCurrentIndex(0);
-      setSelectedOptionId(null);
-      setFeedback(null);
-      setIsLocked(false);
-
-      stats.current = {
-        correctAnswers: 0,
-        errors: 0,
-        corrections: 0,
-        repeatConfusion: 0,
-        responseTimes: [],
-        startTime: Date.now(),
-        lastActionTime: Date.now(),
-        seenOptions: new Set<string>()
-      };
-    }
-
-    loadQuestions();
+    initQuestions();
   }, [difficulty, userId, gameSessionId]);
 
-  const handleSelectOption = (option: QuestionItem['options'][0]) => {
+  const initQuestions = async () => {
+    let familiarPeople: FamiliarPerson[] = [];
+    try {
+      familiarPeople = await api.getFamiliarPeople(userId);
+    } catch {
+      familiarPeople = [];
+    }
+
+    const consented = familiarPeople.filter(p => p.consent_confirmed && p.photo_url);
+
+    const baseQuestions: QuestionItem[] = difficulty === 1
+      ? [...LEVEL_1_QUESTIONS]
+      : [...LEVEL_2_QUESTIONS];
+
+    if (consented.length >= 1) {
+      setFamiliarStatus(null);
+      const targetPerson = consented[0];
+      const otherNames = ['Radha', 'Kiran', 'Suresh', 'Anita', 'Sunita', 'Rajesh'].filter(n => n !== targetPerson.name);
+
+      const distractor1 = otherNames[0] || 'Friend';
+      const distractor2 = otherNames[1] || 'Neighbor';
+      const distractor3 = otherNames[2] || 'Cousin';
+
+      const personQ: QuestionItem = {
+        id: `person-${targetPerson.id}`,
+        type: 'person',
+        question: 'Who is in this photo?',
+        targetEmojiOrPhoto: targetPerson.photo_url,
+        isPhotoUrl: true,
+        personId: targetPerson.id,
+        options: [
+          { id: 'p1', display: targetPerson.name, isCorrect: true },
+          { id: 'p2', display: distractor1, isCorrect: false },
+          { id: 'p3', display: distractor2, isCorrect: false },
+          { id: 'p4', display: distractor3, isCorrect: false },
+        ].sort(() => Math.random() - 0.5)
+      };
+
+      baseQuestions.splice(1, 0, personQ);
+    } else {
+      setFamiliarStatus('Standard household items active.');
+    }
+
+    setQuestions(baseQuestions);
+    setCurrentIndex(0);
+    setSelectedOptionId(null);
+    setFeedback(null);
+    setIsLocked(false);
+
+    stats.current = {
+      correctAnswers: 0,
+      errors: 0,
+      repeatConfusion: 0,
+      corrections: 0,
+      responseTimes: [],
+      startTime: Date.now(),
+      lastActionTime: Date.now()
+    };
+  };
+
+  const handleSelectOption = (option: { id: string; display: string; isCorrect: boolean }) => {
     if (isLocked) return;
 
     const now = Date.now();
-    const latency = now - stats.current.lastActionTime;
-    stats.current.responseTimes.push(latency);
+    const rt = now - (stats.current.lastActionTime || now);
+    stats.current.responseTimes.push(rt);
     stats.current.lastActionTime = now;
 
     setSelectedOptionId(option.id);
     setIsLocked(true);
 
     if (option.isCorrect) {
-      stats.current.correctAnswers += 1;
+      stats.current.correctAnswers++;
       setFeedback('correct');
+      setTimeout(() => advanceQuestion(), 1200);
     } else {
-      stats.current.errors += 1;
-      if (stats.current.seenOptions.has(option.display)) {
-        stats.current.repeatConfusion += 1;
-      }
-      stats.current.seenOptions.add(option.display);
+      stats.current.errors++;
       setFeedback('incorrect');
+      setTimeout(() => advanceQuestion(), 1600);
     }
+  };
 
-    setTimeout(() => {
-      if (currentIndex + 1 < questions.length) {
-        setCurrentIndex(prev => prev + 1);
-        setSelectedOptionId(null);
-        setFeedback(null);
-        setIsLocked(false);
-      } else {
-        finishGame();
-      }
-    }, 1200);
+  const advanceQuestion = () => {
+    setSelectedOptionId(null);
+    setFeedback(null);
+    setIsLocked(false);
+    stats.current.lastActionTime = Date.now();
+
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      finishGame();
+    }
   };
 
   const finishGame = () => {
@@ -317,8 +262,8 @@ export default function ObjectRecognition({ difficulty, userId, gameSessionId, o
 
   if (questions.length === 0) {
     return (
-      <div className="cosmic-card p-12 text-center text-slate-300">
-        <div className="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <div className="card p-12 text-center text-slate-500">
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         Preparing recognition activity...
       </div>
     );
@@ -327,116 +272,104 @@ export default function ObjectRecognition({ difficulty, userId, gameSessionId, o
   const currentQ = questions[currentIndex];
 
   return (
-    <div className="flex flex-col items-center max-w-4xl mx-auto py-4">
+    <div className="flex flex-col items-center max-w-3xl mx-auto py-2">
       {/* Header */}
-      <div className="w-full cosmic-card p-6 mb-4 flex justify-between items-center">
+      <div className="w-full card p-5 mb-4 flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-blue-300 flex items-center gap-3">
-            <span>🔍</span> Object & Familiar Person Recognition
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🔍</span> Object & Familiar Recognition
           </h2>
-          <p className="text-lg text-slate-300 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {currentQ.type === 'person'
               ? 'Observe the photograph and identify the familiar person.'
-              : 'Choose the image that answers the question. (Images only)'}
+              : 'Choose the image that answers the question.'}
           </p>
         </div>
 
-        <div className="px-4 py-2 bg-slate-900/60 rounded-xl border border-indigo-500/20 text-indigo-300 font-bold text-lg">
+        <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 font-bold text-sm">
           {currentIndex + 1} / {questions.length}
         </div>
       </div>
 
-      {/* Non-blocking Notice if Familiar People not configured */}
-      {familiarStatus && (
-        <div className="w-full mb-4 p-3 bg-slate-900/80 border border-indigo-500/30 rounded-xl flex items-center gap-2.5 text-xs text-slate-300">
-          <Info size={16} className="text-indigo-400 shrink-0" />
-          <span>{familiarStatus} Caregivers can configure family photos in the Caregiver dashboard.</span>
-        </div>
-      )}
-
       {/* Main Question Card */}
-      <div className="w-full cosmic-card p-8 flex flex-col items-center shadow-2xl">
-        {/* Question Title */}
-        <h3 className="text-3xl font-bold text-white mb-8 text-center max-w-2xl">
+      <div className="w-full card p-6 sm:p-8 flex flex-col items-center">
+        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-6 text-center max-w-xl">
           {currentQ.question}
         </h3>
 
-        {/* Part B: Familiar Person Photo (NO name displayed near photo) */}
+        {/* Familiar Person Photo */}
         {currentQ.type === 'person' && (
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-3xl overflow-hidden border-4 border-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.35)] bg-slate-900 flex items-center justify-center">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-2xl overflow-hidden border-2 border-blue-500 shadow-sm bg-slate-100 flex items-center justify-center">
               <img
                 src={currentQ.targetEmojiOrPhoto}
                 alt="Familiar Person"
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="flex items-center gap-2 text-xs text-indigo-300/80 mt-3 bg-indigo-950/60 px-3.5 py-1.5 rounded-full border border-indigo-500/20">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              Private caregiver photograph • Not shared with external AI
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-2 bg-slate-50 dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+              <ShieldCheck size={13} className="text-emerald-500" />
+              Private caregiver photograph
             </div>
           </div>
         )}
 
-        {/* Options Grid (Part A: Images Only with NO labels; Part B: 4 Name options) */}
+        {/* Options Grid */}
         <div
-          className={`w-full max-w-2xl grid gap-5 ${
-            currentQ.type === 'person' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+          className={`w-full max-w-xl grid gap-4 ${
+            currentQ.type === 'person' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'
           }`}
         >
           {currentQ.options.map(option => {
             const isSelected = selectedOptionId === option.id;
 
-            let cardStyle = 'bg-slate-900/90 border-2 border-indigo-500/30 hover:border-indigo-400 hover:bg-slate-800 text-white';
+            let cardStyle = 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-900 dark:text-white';
             if (isSelected) {
               if (feedback === 'correct') {
-                cardStyle = 'bg-emerald-950/90 border-2 border-emerald-400 text-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.4)]';
+                cardStyle = 'bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-300';
               } else if (feedback === 'incorrect') {
-                cardStyle = 'bg-rose-950/90 border-2 border-rose-500 text-rose-100 shadow-[0_0_25px_rgba(244,63,94,0.4)]';
+                cardStyle = 'bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 text-rose-700 dark:text-rose-300';
               }
             }
 
             return (
-              <motion.button
+              <button
                 key={option.id}
                 onClick={() => handleSelectOption(option)}
                 disabled={isLocked}
-                whileHover={!isLocked ? { scale: 1.04 } : {}}
-                whileTap={!isLocked ? { scale: 0.96 } : {}}
-                className={`p-6 rounded-2xl flex flex-col items-center justify-center transition-all min-h-[130px] cursor-pointer shadow-lg ${cardStyle}`}
+                className={`p-5 rounded-2xl flex flex-col items-center justify-center transition-all min-h-[110px] cursor-pointer shadow-xs ${cardStyle}`}
               >
                 {currentQ.type === 'person' ? (
-                  <span className="text-2xl font-bold tracking-wide">{option.display}</span>
+                  <span className="text-lg font-bold">{option.display}</span>
                 ) : (
-                  // Part A: Image/Emoji Only — NO visible text name!
-                  <span className="text-6xl sm:text-7xl">{option.display}</span>
+                  <span className="text-5xl sm:text-6xl">{option.display}</span>
                 )}
-              </motion.button>
+              </button>
             );
           })}
         </div>
 
-        {/* Immediate Feedback */}
-        <div className="h-10 mt-6 flex items-center justify-center">
+        {/* Feedback Bar */}
+        <div className="h-8 mt-5 flex items-center justify-center">
           <AnimatePresence>
             {feedback === 'correct' && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-emerald-400 font-bold text-2xl"
+                className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg"
               >
-                <CheckCircle2 size={28} /> Excellent!
+                <CheckCircle2 size={20} /> Correct!
               </motion.div>
             )}
             {feedback === 'incorrect' && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-rose-400 font-bold text-2xl"
+                className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-lg"
               >
-                <XCircle size={28} /> Let's keep exploring!
+                <XCircle size={20} /> Good try!
               </motion.div>
             )}
           </AnimatePresence>

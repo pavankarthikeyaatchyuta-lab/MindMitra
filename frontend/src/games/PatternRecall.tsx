@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../i18n';
-import { Sparkles, CheckCircle2, Eye, HelpCircle, ArrowRight } from 'lucide-react';
+import { Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export interface GameMetrics {
   accuracy: number;
@@ -49,7 +48,7 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
     lastActionTime: 0
   });
 
-  const patternLength = Math.min(6, difficulty + 2); // Level 1: 3, Level 2: 4, Level 3: 5, Level 4: 6
+  const patternLength = Math.min(6, difficulty + 2);
   const totalRounds = 3;
 
   useEffect(() => {
@@ -80,7 +79,6 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
         pattern.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
       }
 
-      // Generate 3 candidate distractor patterns
       const distractors: string[][] = [];
       while (distractors.length < 3) {
         const altered = [...pattern];
@@ -105,8 +103,8 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
   };
 
   const initGame = () => {
-    const newRounds = generateRounds();
-    setRounds(newRounds);
+    const genRounds = generateRounds();
+    setRounds(genRounds);
     setCurrentRoundIdx(0);
     setStage('memorize');
     setCountdown(4);
@@ -129,37 +127,41 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
     stats.current.lastActionTime = Date.now();
   };
 
-  const handleSelectOption = (option: RoundData['options'][0]) => {
+  const handleSelectOption = (option: { id: string; pattern: string[]; isCorrect: boolean }) => {
     if (isLocked) return;
 
     const now = Date.now();
-    const latency = now - stats.current.lastActionTime;
-    stats.current.responseTimes.push(latency);
+    const rt = now - (stats.current.lastActionTime || now);
+    stats.current.responseTimes.push(rt);
     stats.current.lastActionTime = now;
 
     setSelectedOptionId(option.id);
     setIsLocked(true);
 
     if (option.isCorrect) {
-      stats.current.correctRounds += 1;
+      stats.current.correctRounds++;
       setFeedback('correct');
+      setTimeout(() => advanceRound(), 1200);
     } else {
-      stats.current.errors += 1;
+      stats.current.errors++;
       setFeedback('incorrect');
+      setTimeout(() => advanceRound(), 1600);
     }
+  };
 
-    setTimeout(() => {
-      if (currentRoundIdx + 1 < rounds.length) {
-        setCurrentRoundIdx(prev => prev + 1);
-        setStage('memorize');
-        setCountdown(4);
-        setSelectedOptionId(null);
-        setFeedback(null);
-        setIsLocked(false);
-      } else {
-        finishGame();
-      }
-    }, 1400);
+  const advanceRound = () => {
+    setSelectedOptionId(null);
+    setFeedback(null);
+    setIsLocked(false);
+
+    if (currentRoundIdx + 1 < rounds.length) {
+      setCurrentRoundIdx(prev => prev + 1);
+      setStage('memorize');
+      setCountdown(4);
+      stats.current.lastActionTime = Date.now();
+    } else {
+      finishGame();
+    }
   };
 
   const finishGame = () => {
@@ -167,7 +169,7 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
     const totalTime = now - stats.current.startTime;
     const avgRt = stats.current.responseTimes.length > 0
       ? stats.current.responseTimes.reduce((a, b) => a + b, 0) / stats.current.responseTimes.length
-      : 2400;
+      : 2300;
 
     const totalEvents = stats.current.correctRounds + stats.current.errors;
     const accuracy = stats.current.correctRounds / Math.max(1, totalEvents);
@@ -187,104 +189,105 @@ export default function PatternRecall({ difficulty, userId, gameSessionId, onCom
   const currentRound = rounds[currentRoundIdx];
 
   return (
-    <div className="flex flex-col items-center max-w-4xl mx-auto py-4">
+    <div className="flex flex-col items-center max-w-3xl mx-auto py-2">
       {/* Header Info */}
-      <div className="w-full cosmic-card p-6 mb-6 flex justify-between items-center">
+      <div className="w-full card p-5 mb-4 flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-blue-300 flex items-center gap-3">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>✨</span> Pattern Recall
           </h2>
-          <p className="text-lg text-slate-300 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {stage === 'memorize'
-              ? 'Observe the constellation pattern before it disappears.'
-              : 'Choose the matching pattern that you just observed.'}
+              ? `Memorize the symbol pattern. Disappears in ${countdown}s`
+              : 'Which sequence was displayed during the observation phase?'}
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="px-4 py-2 bg-slate-900/60 rounded-xl border border-indigo-500/20 text-indigo-300 font-bold text-lg">
-            Round {currentRoundIdx + 1} / {rounds.length}
-          </div>
+        <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 font-bold text-sm">
+          Round {currentRoundIdx + 1} / {rounds.length}
         </div>
       </div>
 
-      {/* Main Pattern Stage Card */}
-      <div className="w-full cosmic-card p-8 flex flex-col items-center min-h-[380px] justify-center">
+      {/* Main Game Box */}
+      <div className="w-full card p-6 sm:p-8 flex flex-col items-center">
         {stage === 'memorize' ? (
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center"
-          >
-            <div className="flex items-center gap-2 text-indigo-300 text-lg font-medium mb-6">
-              <Eye size={22} /> Memorize this pattern ({countdown}s)
-            </div>
+          /* Observation Phase */
+          <div className="w-full flex flex-col items-center py-6">
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-6">
+              Observe Pattern ({countdown}s remaining)
+            </span>
 
-            {/* Pattern Display */}
-            <div className="flex items-center gap-4 bg-slate-900/90 border-2 border-indigo-400 p-6 sm:p-8 rounded-3xl shadow-[0_0_30px_rgba(99,102,241,0.3)] mb-8">
-              {currentRound.pattern.map((sym, sIdx) => (
-                <span
-                  key={sIdx}
-                  className="text-5xl sm:text-6xl text-indigo-200 font-bold drop-shadow-[0_0_10px_rgba(129,140,248,0.8)]"
+            <div className="flex flex-wrap items-center justify-center gap-3 p-6 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              {currentRound.pattern.map((sym, idx) => (
+                <div
+                  key={idx}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white dark:bg-slate-800 border-2 border-blue-500 flex items-center justify-center text-3xl sm:text-4xl text-slate-900 dark:text-white shadow-xs"
                 >
                   {sym}
-                </span>
+                </div>
               ))}
             </div>
 
-            <button
-              onClick={startRecall}
-              className="elderly-btn-primary flex items-center gap-2 text-xl"
-            >
-              I've Got It — Ready <ArrowRight size={22} />
-            </button>
-          </motion.div>
+            <div className="mt-8">
+              <button
+                onClick={startRecall}
+                className="elderly-btn-primary text-sm py-2.5 px-6 rounded-xl inline-flex items-center gap-2"
+              >
+                <span>Ready to Recall</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-full flex flex-col items-center"
-          >
-            <h3 className="text-2xl font-bold text-slate-100 mb-6 text-center">
-              Which pattern did you see?
+          /* Recall Phase */
+          <div className="w-full flex flex-col items-center">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center">
+              Which pattern was displayed?
             </h3>
 
-            {/* Multiple Choice Pattern Candidates */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-              {currentRound.options.map((opt, optIdx) => {
+            <div className="w-full max-w-xl flex flex-col gap-3">
+              {currentRound.options.map(opt => {
                 const isSelected = selectedOptionId === opt.id;
-                let btnStyle = 'bg-slate-900/90 border-2 border-indigo-500/30 hover:border-indigo-400 hover:bg-slate-800 text-white';
 
+                let cardStyle = 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-900 dark:text-white';
                 if (isSelected) {
                   if (feedback === 'correct') {
-                    btnStyle = 'bg-emerald-950/90 border-2 border-emerald-400 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+                    cardStyle = 'bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-300';
                   } else if (feedback === 'incorrect') {
-                    btnStyle = 'bg-rose-950/90 border-2 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,0.4)]';
+                    cardStyle = 'bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-500 text-rose-700 dark:text-rose-300';
                   }
                 }
 
                 return (
-                  <motion.button
+                  <button
                     key={opt.id}
                     onClick={() => handleSelectOption(opt)}
                     disabled={isLocked}
-                    whileHover={!isLocked ? { scale: 1.03 } : {}}
-                    whileTap={!isLocked ? { scale: 0.97 } : {}}
-                    className={`p-5 rounded-2xl flex items-center justify-center gap-3 transition-all min-h-[90px] shadow-md cursor-pointer ${btnStyle}`}
+                    className={`p-4 rounded-xl flex items-center justify-center gap-3 transition-all cursor-pointer shadow-xs ${cardStyle}`}
                   >
-                    <span className="w-8 h-8 rounded-lg bg-indigo-900/60 text-indigo-300 flex items-center justify-center font-bold text-sm">
-                      {String.fromCharCode(65 + optIdx)}
-                    </span>
-                    <div className="flex items-center gap-3 text-3xl sm:text-4xl text-indigo-100">
-                      {opt.pattern.map((s, sI) => (
-                        <span key={sI}>{s}</span>
-                      ))}
-                    </div>
-                  </motion.button>
+                    {opt.pattern.map((sym, si) => (
+                      <span key={si} className="text-2xl sm:text-3xl font-bold">
+                        {sym}
+                      </span>
+                    ))}
+                  </button>
                 );
               })}
             </div>
-          </motion.div>
+
+            <div className="h-8 mt-5 flex items-center justify-center">
+              {feedback === 'correct' && (
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-base">
+                  <CheckCircle2 size={18} /> Pattern matched!
+                </div>
+              )}
+              {feedback === 'incorrect' && (
+                <div className="text-rose-600 dark:text-rose-400 font-bold text-base">
+                  Good observation try!
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

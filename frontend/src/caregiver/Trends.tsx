@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { ArrowLeft, Sparkles, TrendingUp, TrendingDown, Clock, ShieldCheck, Users, HelpCircle } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, Sparkles, TrendingUp, TrendingDown, Clock, ShieldCheck, Users, Activity } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 import { User, TrendData, AdaptiveDecision, GameSession } from '../types';
 
 export default function Trends() {
   const navigate = useNavigate();
   const { profileId } = useParams<{ profileId?: string }>();
-  const { currentUser, switchProfile, logout } = useApp();
+  const { currentUser, switchProfile } = useApp();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [adaptiveHistory, setAdaptiveHistory] = useState<AdaptiveDecision[]>([]);
@@ -57,7 +58,6 @@ export default function Trends() {
     loadData();
   }, [selectedUserId]);
 
-  // Aggregate multi-game longitudinal timeline
   const sessionsByNumber: Record<number, any> = {};
   gameSessions.forEach((gs, idx) => {
     const sNum = Math.floor(idx / 4) + 1;
@@ -82,191 +82,164 @@ export default function Trends() {
   const timelineData = Object.values(sessionsByNumber);
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-slate-950/80 backdrop-blur-md border-b border-indigo-500/20 px-6 py-4 flex justify-between items-center shadow-lg">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/caregiver')} className="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-900/60 border border-indigo-500/20">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => navigate('/caregiver')}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Overview"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Longitudinal Trends & Adaptive ML</h1>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs">
+              <TrendingUp size={18} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Longitudinal Trends & Adaptive ML</h1>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Multi-session baseline variance and telemetry</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={18} className="text-indigo-400" />
+              <Users size={16} className="text-blue-600 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    navigate('/profiles');
-                  } else {
-                    const newId = Number(e.target.value);
-                    setSelectedUserId(newId);
-                    const user = users.find(u => u.id === newId);
-                    if (user) switchProfile(user);
-                  }
+                  const newId = Number(e.target.value);
+                  setSelectedUserId(newId);
+                  const u = users.find(user => user.id === newId);
+                  if (u) switchProfile(u);
                 }}
-                className="p-2 px-3.5 rounded-xl border border-indigo-500/40 bg-slate-900/90 text-white text-sm focus:border-indigo-400 focus:outline-none"
+                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.display_name || u.name} (Age {u.age})
-                  </option>
+                  <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
                 ))}
-                <option value="new">+ Add Elderly Profile</option>
               </select>
             </div>
           )}
 
+          <ThemeToggle />
           <CaregiverAccountMenu />
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto p-6 flex flex-col gap-6">
-        {/* Responsive Navigation Tabs without horizontal scrollbar */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 border-b border-indigo-500/20 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-400" />
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white shadow">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Session History
           </Link>
         </div>
 
-        {/* 1. Multi-Domain Performance Trends Chart */}
-        <div className="cosmic-card p-6">
-          <h2 className="text-xl font-bold text-white mb-2">Cognitive Domain Performance Over Time</h2>
-          <p className="text-sm text-slate-400 mb-6">4 domains tracked simultaneously across demo historical sessions</p>
+        {/* Multi-Domain Accuracy Chart */}
+        <div className="card p-6">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Longitudinal Performance Across 4 Games</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Tracking individual accuracy across consecutive cognitive sessions</p>
 
-          <div className="h-[340px] w-full">
-            {timelineData.length > 0 ? (
+          {timelineData.length > 0 ? (
+            <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={timelineData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <XAxis dataKey="session" stroke="#94a3b8" />
-                  <YAxis domain={[0, 100]} stroke="#94a3b8" unit="%" />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#f8fafc' }} />
-                  <Legend />
-                  <Line type="monotone" dataKey="memory_acc" stroke="#60a5fa" name="Short-Term Memory" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="routine_acc" stroke="#34d399" name="Sequential Memory" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="recognition_acc" stroke="#fbbf24" name="Visual Recognition" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="pattern_acc" stroke="#c084fc" name="Pattern Recall" strokeWidth={3} dot={{ r: 4 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="session" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fontSize: 11 }} unit="%" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderColor: 'var(--border-card)',
+                      borderRadius: '0.75rem',
+                      color: 'var(--text-primary)',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <Line type="monotone" name="Memory Match" dataKey="memory_acc" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Line type="monotone" name="Daily Routine" dataKey="routine_acc" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Line type="monotone" name="Object Recognition" dataKey="recognition_acc" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Line type="monotone" name="Pattern Recall" dataKey="pattern_acc" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-500">
-                No longitudinal session data available.
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
+              No historical sessions recorded yet. Play today's session to begin tracking longitudinal trends.
+            </div>
+          )}
         </div>
 
-        {/* 2. Difficulty Trajectory Chart */}
-        <div className="cosmic-card p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={22} className="text-amber-400" />
-            <h2 className="text-xl font-bold text-white">Adaptive Difficulty Trajectory</h2>
-          </div>
-          <p className="text-sm text-slate-400 mb-6">
-            Observes how the adaptive machine learning model calibrated difficulty levels (Level 1 to 4) over time
+        {/* Adaptive AI Decision History */}
+        <div className="card p-6">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Adaptive Machine Learning Adjustments</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            Evaluations performed by the trained RandomForest model on gameplay latency and errors
           </p>
 
-          <div className="h-[280px] w-full">
-            {timelineData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={timelineData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <XAxis dataKey="session" stroke="#94a3b8" />
-                  <YAxis domain={[1, 4]} stroke="#94a3b8" ticks={[1, 2, 3, 4]} unit=" Level" />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#f8fafc' }} />
-                  <Legend />
-                  <Line type="stepAfter" dataKey="memory_diff" stroke="#60a5fa" name="Memory Level" strokeWidth={2.5} />
-                  <Line type="stepAfter" dataKey="routine_diff" stroke="#34d399" name="Routine Level" strokeWidth={2.5} />
-                  <Line type="stepAfter" dataKey="recognition_diff" stroke="#fbbf24" name="Recognition Level" strokeWidth={2.5} />
-                  <Line type="stepAfter" dataKey="pattern_diff" stroke="#c084fc" name="Pattern Level" strokeWidth={2.5} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-500">
-                No difficulty trajectory data recorded.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. "Why Did Difficulty Change?" Caregiver Explanation Section */}
-        <div className="cosmic-card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <HelpCircle size={22} className="text-indigo-400" />
-            <h2 className="text-xl font-bold text-white">Why Did Difficulty Change? (AI Decision Log)</h2>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {adaptiveHistory.slice(0, 6).map(dec => {
-              const isInc = dec.recommendation === 'increase';
-              const isDec = dec.recommendation === 'decrease';
-
-              return (
-                <div
-                  key={dec.id}
-                  className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    isInc
-                      ? 'bg-emerald-950/40 border-emerald-500/40'
-                      : isDec
-                      ? 'bg-amber-950/40 border-amber-500/40'
-                      : 'bg-slate-900/60 border-indigo-500/20'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-base font-bold text-white capitalize">
-                        {dec.game_type.replace('_', ' ')}
-                      </span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300">
-                        Level {dec.previous_difficulty} → Level {dec.recommended_difficulty}
-                      </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
-                        isInc ? 'bg-emerald-900 text-emerald-300' : isDec ? 'bg-amber-900 text-amber-300' : 'bg-slate-800 text-slate-300'
-                      }`}>
-                        {dec.recommendation}
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-slate-300 mt-1">
-                      <strong>AI Decision:</strong> {dec.reason || 'Difficulty calibrated based on response latency and accuracy patterns.'}
-                    </p>
-                  </div>
-
-                  <div className="text-xs text-slate-400 shrink-0 text-right">
-                    <p>Model: {dec.model_used.toUpperCase()} (Confidence: {(dec.confidence * 100).toFixed(0)}%)</p>
-                    <p className="text-slate-500">{new Date(dec.timestamp).toLocaleTimeString()}</p>
-                  </div>
-                </div>
-              );
-            })}
-
-            {adaptiveHistory.length === 0 && (
-              <p className="text-slate-400 text-center py-4">No adaptive decisions logged yet.</p>
-            )}
-          </div>
+          {adaptiveHistory.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    <th className="py-2.5 font-bold">Game</th>
+                    <th className="py-2.5 font-bold">Previous Level</th>
+                    <th className="py-2.5 font-bold">ML Recommendation</th>
+                    <th className="py-2.5 font-bold">New Level</th>
+                    <th className="py-2.5 font-bold">Model Confidence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                  {adaptiveHistory.slice(-10).reverse().map((ad, i) => (
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="py-2.5 font-semibold capitalize">{ad.game_type.replace('_', ' ')}</td>
+                      <td className="py-2.5">Level {ad.previous_difficulty}</td>
+                      <td className="py-2.5">
+                        <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                          ad.recommendation === 'INCREASE'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                            : ad.recommendation === 'DECREASE'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                            : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        }`}>
+                          {ad.recommendation}
+                        </span>
+                      </td>
+                      <td className="py-2.5 font-bold text-blue-600 dark:text-blue-400">Level {ad.recommended_difficulty}</td>
+                      <td className="py-2.5 font-mono text-slate-500 dark:text-slate-400">{Math.round((ad.confidence || 0.85) * 100)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              No adaptive decisions recorded yet. Complete activities to train the dynamic personalization engine.
+            </div>
+          )}
         </div>
       </div>
     </div>

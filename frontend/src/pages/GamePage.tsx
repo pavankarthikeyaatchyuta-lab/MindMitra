@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { useTranslation } from '../i18n';
@@ -10,7 +9,8 @@ import MemoryMatch from '../games/MemoryMatch';
 import DailyRoutine from '../games/DailyRoutine';
 import ObjectRecognition from '../games/ObjectRecognition';
 import PatternRecall from '../games/PatternRecall';
-import { ArrowLeft, Star, ChevronRight, Volume2, VolumeX, Sparkles, Brain, CheckCircle2, RotateCcw } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
+import { ArrowLeft, Star, ChevronRight, Volume2, VolumeX, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
 
 const GAME_TYPES: Record<string, GameType> = {
   memory: 'memory_match',
@@ -43,12 +43,10 @@ export default function GamePage() {
   const gt = gameType ? GAME_TYPES[gameType] || 'memory_match' : 'memory_match';
   const difficulty = currentDifficulty[gt] || 1;
 
-  // Initialize and ensure valid user & session
   useEffect(() => {
     async function initGameSession() {
       let uid = currentUser ? currentUser.id : null;
 
-      // Recover user from localStorage if React state was refreshed
       if (!uid) {
         const savedUser = localStorage.getItem('mindmitra_current_user');
         if (savedUser) {
@@ -73,7 +71,6 @@ export default function GamePage() {
       const finalUid = uid || 1;
       setActiveUserId(finalUid);
 
-      // Recover or create session ID
       let sid = currentSession ? currentSession.id : null;
       if (!sid) {
         const savedSid = sessionStorage.getItem('mindmitra_session_id');
@@ -99,127 +96,79 @@ export default function GamePage() {
         });
       }
 
-      // Start specific game session
       try {
-        const gRes = await api.startGameSession({
-          session_id: sid,
-          user_id: finalUid,
-          game_type: gt,
-          difficulty,
-        });
-        setGameSessionId(gRes.id);
-      } catch {
+        const gs = await api.startGameSession(sid!, finalUid, gt, difficulty);
+        setGameSessionId(gs.id);
+      } catch (err) {
         setGameSessionId(Date.now());
       }
-
       setLoading(false);
     }
 
     setFinished(false);
+    setLastMetrics(null);
     setAdaptiveResult(null);
-    setLoading(true);
     initGameSession();
-  }, [gameType]);
-
-  const getLocalizedInstruction = useCallback(() => {
-    if (gameType === 'memory') {
-      if (language === 'te') return 'రెండు సరిపోలే కార్డులను జత చేయండి. నెమ్మదిగా ఆడండి.';
-      if (language === 'hi') return 'आइए मिलकर कार्डों का मिलान करें। आराम से खेलें।';
-      return 'Let us match the cards together. Take your time.';
-    } else if (gameType === 'routine') {
-      if (language === 'te') return 'రోజువారీ పనుల క్రమాన్ని జాగ్రత్తగా గుర్తుంచుకోండి.';
-      if (language === 'hi') return 'दैनिक गतिविधियों के इस क्रम को याद रखें।';
-      return 'Remember this sequence of daily activities.';
-    } else if (gameType === 'recognition') {
-      if (language === 'te') return 'ప్రశ్నకు సరిపోయే సరైన చిత్రాన్ని ఎంచుకోండి.';
-      if (language === 'hi') return 'प्रश्न का उत्तर देने वाली सही छवि चुनें।';
-      return 'Choose the image that matches the question.';
-    } else if (gameType === 'pattern') {
-      if (language === 'te') return 'నక్షత్రాల ప్యాటర్న్‌ను గమనించి సరైన దానిని ఎంచుకోండి.';
-      if (language === 'hi') return 'नक्षत्र पैटर्न को देखें और सही मिलान खोजें।';
-      return 'Observe the pattern and find the matching one.';
-    }
-    return 'Let us begin the cognitive activity.';
-  }, [gameType, language]);
-
-  const speakPrompt = useCallback((text?: string) => {
-    const speechText = text || getLocalizedInstruction();
-    speak(speechText, language);
-  }, [speak, language, getLocalizedInstruction]);
-
-  useEffect(() => {
-    if (!loading && !finished) {
-      speakPrompt();
-    }
-  }, [loading, finished, speakPrompt]);
+  }, [gameType, currentUser]);
 
   const handleGameComplete = useCallback(async (metrics: any) => {
     setLastMetrics(metrics);
     setFinished(true);
 
-    // Save completion flag in sessionStorage
     if (gameType) {
       sessionStorage.setItem(`mindmitra_game_done_${gameType}`, 'true');
-      const savedCompleted = sessionStorage.getItem('mindmitra_completed_games');
-      const list = savedCompleted ? JSON.parse(savedCompleted) : [];
+      const saved = sessionStorage.getItem('mindmitra_completed_games');
+      const list: string[] = saved ? JSON.parse(saved) : [];
       if (!list.includes(gameType)) {
         list.push(gameType);
         sessionStorage.setItem('mindmitra_completed_games', JSON.stringify(list));
       }
     }
 
-    // Record game completion metrics asynchronously
     if (gameSessionId) {
       try {
-        await api.completeGameSession(gameSessionId, {
-          accuracy: metrics.accuracy,
-          avg_response_time_ms: metrics.avg_response_time_ms,
-          repeat_errors: metrics.repeat_errors,
-          corrections: metrics.corrections,
-          completion_time_ms: metrics.completion_time_ms,
-          total_events: metrics.total_events,
-        });
+        await api.completeGameSession(gameSessionId, metrics);
       } catch (e) {
-        console.log('Telemetry saved locally');
+        console.log('Telemetry complete note:', e);
       }
-
-      // Request adaptive difficulty asynchronously (Cold-start safe)
-      try {
-        const adaptRes = await api.getAdaptiveRecommendation(
-          activeUserId,
-          gt,
-          {
-            accuracy: metrics.accuracy,
-            mean_response_time_ms: metrics.avg_response_time_ms,
-            response_time_variance: 0.1,
-            repeat_error_rate: metrics.total_events > 0 ? metrics.repeat_errors / metrics.total_events : 0,
-            correction_rate: metrics.total_events > 0 ? metrics.corrections / metrics.total_events : 0,
-            completion_time_ms: metrics.completion_time_ms,
-            current_difficulty: difficulty,
-          }
-        );
-        setAdaptiveResult(adaptRes);
-        if (adaptRes && adaptRes.recommended_difficulty) {
-          setGameDifficulty(gt, adaptRes.recommended_difficulty);
-        }
-      } catch {}
     }
 
-    // Voice encouragement
-    const encourage = language === 'te'
-      ? 'చాలా చక్కగా పూర్తి చేసారు! అభినందనలు.'
-      : language === 'hi'
-      ? 'बहुत अच्छा प्रयास! आपने इसे पूरा कर लिया।'
-      : 'Wonderful effort! Activity completed.';
-    speak(encourage, language);
-  }, [gameSessionId, activeUserId, gt, difficulty, gameType, language, speak, setGameDifficulty]);
+    try {
+      const rec = await api.getAdaptiveRecommendation(activeUserId, gt, {
+        accuracy: metrics.accuracy,
+        mean_response_time_ms: metrics.avg_response_time_ms,
+        response_time_variance: 0.15,
+        repeat_error_rate: metrics.repeat_errors / Math.max(1, metrics.total_events),
+        correction_rate: metrics.corrections / Math.max(1, metrics.total_events),
+        completion_time_ms: metrics.completion_time_ms,
+        current_difficulty: difficulty,
+      });
+
+      setAdaptiveResult(rec);
+      if (rec && rec.recommended_difficulty) {
+        setGameDifficulty(gt, rec.recommended_difficulty);
+      }
+    } catch {
+      setAdaptiveResult({
+        recommendation: 'MAINTAIN',
+        recommended_difficulty: difficulty,
+        confidence: 0.85,
+        model_used: 'fallback',
+      });
+    }
+  }, [gameSessionId, activeUserId, gt, difficulty, gameType, setGameDifficulty]);
+
+  const nextInfo = gameType ? NEXT_GAME[gameType] : null;
 
   const handleProceedNext = () => {
-    const next = gameType ? NEXT_GAME[gameType] : null;
-    if (next && next.id !== 'complete') {
-      navigate(`/games/${next.id}`);
-    } else {
+    if (!nextInfo) {
       navigate('/session');
+      return;
+    }
+    if (nextInfo.id === 'complete') {
+      navigate('/session');
+    } else {
+      navigate(`/games/${nextInfo.id}`);
     }
   };
 
@@ -227,148 +176,130 @@ export default function GamePage() {
     switch (gameType) {
       case 'memory': return 'Memory Match';
       case 'routine': return 'Daily Routine Recall';
-      case 'recognition': return 'Object & Familiar Recognition';
+      case 'recognition': return 'Object & Face Recognition';
       case 'pattern': return 'Pattern Recall';
       default: return 'Cognitive Activity';
     }
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-8 flex flex-col justify-between relative z-10">
-      {/* Top Bar for Elderly Player (Clean, large targets, voice controls) */}
-      <header className="flex justify-between items-center max-w-4xl mx-auto w-full py-2 border-b border-indigo-500/20">
-        <button
-          onClick={() => navigate('/session')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/80 border border-indigo-500/30 text-slate-200 hover:text-white text-sm font-semibold transition-all shadow"
-        >
-          <ArrowLeft size={18} />
-          <span>Exit Session</span>
-        </button>
-
-        <div className="text-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{getGameTitle()}</h1>
-          <span className="text-xs text-indigo-300 font-mono">Difficulty Level {difficulty}</span>
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150 flex flex-col">
+      {/* Top Navbar */}
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/session"
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Session Menu"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white">{getGameTitle()}</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Level {difficulty} • Standard Difficulty</p>
+          </div>
         </div>
 
-        <button
-          onClick={() => setVoiceEnabled(!voiceEnabled)}
-          className={`p-3 rounded-xl border transition-all ${
-            voiceEnabled
-              ? 'bg-indigo-600/30 border-indigo-400 text-indigo-200 shadow'
-              : 'bg-slate-900/80 border-slate-700 text-slate-400'
-          }`}
-          title={voiceEnabled ? 'Voice Guidance Active' : 'Voice Guidance Muted'}
-        >
-          {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-        </button>
-      </header>
-
-      {/* Main Game Screen */}
-      <main className="max-w-4xl mx-auto w-full my-auto py-6 flex flex-col items-center justify-center">
-        {loading ? (
-          <div className="p-12 text-center text-indigo-200 flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
-            <p className="text-lg font-semibold">Preparing your activity...</p>
-          </div>
-        ) : !finished ? (
-          <div className="w-full flex flex-col items-center">
-            {gameType === 'memory' && (
-              <MemoryMatch
-                difficulty={difficulty}
-                userId={activeUserId}
-                gameSessionId={gameSessionId || 1}
-                onComplete={handleGameComplete}
-              />
-            )}
-            {gameType === 'routine' && (
-              <DailyRoutine
-                difficulty={difficulty}
-                userId={activeUserId}
-                gameSessionId={gameSessionId || 1}
-                onComplete={handleGameComplete}
-              />
-            )}
-            {gameType === 'recognition' && (
-              <ObjectRecognition
-                difficulty={difficulty}
-                userId={activeUserId}
-                gameSessionId={gameSessionId || 1}
-                onComplete={handleGameComplete}
-              />
-            )}
-            {gameType === 'pattern' && (
-              <PatternRecall
-                difficulty={difficulty}
-                userId={activeUserId}
-                gameSessionId={gameSessionId || 1}
-                onComplete={handleGameComplete}
-              />
-            )}
-          </div>
-        ) : (
-          /* Activity Completion Celebration Card */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="cosmic-card p-8 sm:p-12 max-w-xl w-full text-center border border-emerald-500/40 shadow-2xl bg-gradient-to-b from-slate-900 to-slate-950"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`p-2 rounded-xl border transition-all ${
+              voiceEnabled
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+            }`}
+            title={voiceEnabled ? 'Voice Guidance Active' : 'Voice Guidance Muted'}
           >
-            <div className="w-20 h-20 rounded-full bg-emerald-950/80 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 mx-auto mb-6 shadow-xl">
-              <CheckCircle2 size={44} />
+            {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+
+          <ThemeToggle />
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-grow flex items-center justify-center p-4 sm:p-8">
+        <div className="w-full max-w-4xl">
+          {loading ? (
+            <div className="card p-12 text-center max-w-md mx-auto">
+              <div className="w-10 h-10 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Preparing Cognitive Activity...</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Calibrating difficulty and baseline telemetry</p>
             </div>
-
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Wonderful Effort!
-            </h2>
-            <p className="text-indigo-200 text-base sm:text-lg mt-2">
-              {getGameTitle()} completed successfully.
-            </p>
-
-            {/* Non-clinical supportive metrics */}
-            {lastMetrics && (
-              <div className="grid grid-cols-2 gap-3 my-6 p-4 rounded-2xl bg-slate-900/80 border border-indigo-500/20 text-xs">
-                <div>
-                  <span className="text-slate-400 block">Accuracy</span>
-                  <span className="text-xl font-bold text-emerald-400">
-                    {Math.round((lastMetrics.accuracy || 1) * 100)}%
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Response Speed</span>
-                  <span className="text-xl font-bold text-indigo-300">
-                    {Math.round((lastMetrics.avg_response_time_ms || 0) / 1000 * 10) / 10}s
-                  </span>
-                </div>
+          ) : finished ? (
+            /* Encouraging Completion Screen */
+            <div className="card p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xl border-emerald-200 dark:border-emerald-800 animate-in fade-in">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto mb-4">
+                <CheckCircle2 size={36} />
               </div>
-            )}
 
-            {/* Next Action Button */}
-            <div className="flex flex-col gap-3 mt-6">
-              <button
-                onClick={handleProceedNext}
-                className="elderly-btn-primary bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-lg font-bold py-4 px-8 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
-              >
-                <span>
-                  {gameType && NEXT_GAME[gameType] && NEXT_GAME[gameType].id !== 'complete'
-                    ? `Next: ${NEXT_GAME[gameType].title}`
-                    : 'View Session Summary'}
-                </span>
-                <ChevronRight size={20} />
-              </button>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Wonderful work!</h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 mb-6">
+                You successfully completed this cognitive activity. Your responses help personalize your routine.
+              </p>
 
-              <button
-                onClick={() => navigate('/session')}
-                className="py-3 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-              >
-                Return to Today's Session Hub
-              </button>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs flex justify-between items-center mb-6">
+                <span className="text-slate-500 dark:text-slate-400">Activity Level</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">Level {difficulty}</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => setFinished(false)}
+                  className="elderly-btn-secondary text-sm py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2"
+                >
+                  <RotateCcw size={16} />
+                  <span>Practice Again</span>
+                </button>
+
+                <button
+                  onClick={handleProceedNext}
+                  className="elderly-btn-primary text-sm py-3 px-8 rounded-xl inline-flex items-center justify-center gap-2"
+                >
+                  <span>{nextInfo?.id === 'complete' ? 'Back to Session' : `Next: ${nextInfo?.title}`}</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-          </motion.div>
-        )}
+          ) : (
+            /* Active Game Screen */
+            <div>
+              {gameType === 'memory' && (
+                <MemoryMatch
+                  difficulty={difficulty}
+                  userId={activeUserId}
+                  gameSessionId={gameSessionId || 1}
+                  onComplete={handleGameComplete}
+                />
+              )}
+              {gameType === 'routine' && (
+                <DailyRoutine
+                  difficulty={difficulty}
+                  userId={activeUserId}
+                  gameSessionId={gameSessionId || 1}
+                  onComplete={handleGameComplete}
+                />
+              )}
+              {gameType === 'recognition' && (
+                <ObjectRecognition
+                  difficulty={difficulty}
+                  userId={activeUserId}
+                  gameSessionId={gameSessionId || 1}
+                  onComplete={handleGameComplete}
+                />
+              )}
+              {gameType === 'pattern' && (
+                <PatternRecall
+                  difficulty={difficulty}
+                  userId={activeUserId}
+                  gameSessionId={gameSessionId || 1}
+                  onComplete={handleGameComplete}
+                />
+              )}
+            </div>
+          )}
+        </div>
       </main>
-
-      <footer className="text-center py-2 text-xs text-slate-500">
-        MindMitra Dignified Cognitive Exploration • Adaptive Assistance
-      </footer>
     </div>
   );
 }

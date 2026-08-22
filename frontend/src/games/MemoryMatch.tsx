@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTranslation } from '../i18n';
-import { Sparkles, CheckCircle2, RotateCcw, Volume2 } from 'lucide-react';
 
 export interface GameMetrics {
   accuracy: number;
@@ -19,18 +18,17 @@ export interface GameProps {
   onComplete: (metrics: GameMetrics) => void;
 }
 
-// Constellation and celestial/everyday symbols for memory
 const CELESTIAL_EMOJIS = [
-  '⭐', '🌙', '🪐', '☀️', '🌺', '🍎', '🏠', '🕊️', '🔔', '🦋',
-  '🎨', '💧', '🎵', '🌿', '🍇', '⛵', '🌈', '🌻', '🏮', '💎'
+  '⭐', '🌙', '☀️', '🌺', '🍎', '🏠', '🕊️', '🔔', '🦋', '🎨',
+  '💧', '🎵', '🌿', '🍇', '⛵', '🌈', '🌻', '🏮', '💎', '🍵'
 ];
 
 const getPairCount = (difficulty: number) => {
   switch (difficulty) {
     case 1: return 3; // 6 cards (3x2)
     case 2: return 5; // 10 cards (5x2)
-    case 3: return 7; // 14 cards (7x2 or 4x4-2)
-    case 4: return 9; // 18 cards (6x3)
+    case 3: return 6; // 12 cards
+    case 4: return 8; // 16 cards
     default: return 5;
   }
 };
@@ -108,64 +106,53 @@ export default function MemoryMatch({ difficulty, userId, gameSessionId, onCompl
     };
   };
 
-  const handleCardClick = (index: number) => {
-    if (isLocked) return;
-    const card = cards[index];
-    if (card.isFlipped || card.isMatched) return;
+  const handleCardClick = (idx: number) => {
+    if (isLocked || cards[idx].isFlipped || cards[idx].isMatched) return;
 
     const now = Date.now();
-    const latency = now - stats.current.lastActionTime;
-    stats.current.responseTimes.push(latency);
+    const rt = now - (stats.current.lastActionTime || now);
+    stats.current.responseTimes.push(rt);
     stats.current.lastActionTime = now;
-    stats.current.flips += 1;
+    stats.current.flips++;
 
     const newCards = [...cards];
-    newCards[index].isFlipped = true;
+    newCards[idx].isFlipped = true;
     setCards(newCards);
 
-    const newFlipped = [...flippedIndices, index];
+    const newFlipped = [...flippedIndices, idx];
     setFlippedIndices(newFlipped);
 
     if (newFlipped.length === 2) {
       setIsLocked(true);
-      const [idx1, idx2] = newFlipped;
-      const card1 = newCards[idx1];
-      const card2 = newCards[idx2];
+      const [firstIdx, secondIdx] = newFlipped;
+      const firstCard = newCards[firstIdx];
+      const secondCard = newCards[secondIdx];
 
-      const key1 = `${idx1}-${card1.emoji}`;
-      const key2 = `${idx2}-${card2.emoji}`;
-
-      if (card1.emoji === card2.emoji) {
-        // MATCH!
-        stats.current.matches += 1;
+      if (firstCard.emoji === secondCard.emoji) {
+        stats.current.matches++;
         setTimeout(() => {
-          newCards[idx1].isMatched = true;
-          newCards[idx2].isMatched = true;
-          setCards([...newCards]);
+          setCards(prev => prev.map((c, i) => (i === firstIdx || i === secondIdx ? { ...c, isMatched: true } : c)));
           setFlippedIndices([]);
           setIsLocked(false);
 
-          // Check win condition
-          if (newCards.every(c => c.isMatched)) {
+          if (stats.current.matches === pairCount) {
             finishGame();
           }
         }, 500);
       } else {
-        // MISMATCH
-        stats.current.errors += 1;
-        if (stats.current.seenCards.has(key1) || stats.current.seenCards.has(key2)) {
-          stats.current.repeatErrors += 1;
+        stats.current.errors++;
+        const cardKey = [firstCard.emoji, secondCard.emoji].sort().join('-');
+        if (stats.current.seenCards.has(cardKey)) {
+          stats.current.repeatErrors++;
+        } else {
+          stats.current.seenCards.add(cardKey);
         }
-        stats.current.seenCards.add(key1);
-        stats.current.seenCards.add(key2);
 
         setTimeout(() => {
-          newCards[idx1].isFlipped = false;
-          newCards[idx2].isFlipped = false;
-          setCards([...newCards]);
+          setCards(prev => prev.map((c, i) => (i === firstIdx || i === secondIdx ? { ...c, isFlipped: false } : c)));
           setFlippedIndices([]);
           setIsLocked(false);
-        }, 1200);
+        }, 1000);
       }
     }
   };
@@ -193,68 +180,60 @@ export default function MemoryMatch({ difficulty, userId, gameSessionId, onCompl
   const matchesFound = cards.filter(c => c.isMatched).length / 2;
 
   return (
-    <div className="flex flex-col items-center justify-center max-w-4xl mx-auto py-4">
+    <div className="flex flex-col items-center justify-center max-w-3xl mx-auto py-2">
       {/* Header Info */}
-      <div className="w-full cosmic-card p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="w-full card p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-blue-300 flex items-center gap-3">
-            <span>✨</span> {t('games.memory.title', 'Memory Match')}
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🧠</span> {t('games.memory.title', 'Memory Match')}
           </h2>
-          <p className="text-lg text-slate-300 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {t('games.memory.instructions', 'Flip the cards to match pairs of symbols.')}
           </p>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="text-center px-4 py-2 bg-slate-900/60 rounded-xl border border-indigo-500/20">
-            <span className="text-xs text-slate-400 uppercase tracking-wider block">Pairs Found</span>
-            <span className="text-2xl font-bold text-emerald-400">{matchesFound} / {pairCount}</span>
+        <div className="flex items-center gap-4">
+          <div className="text-center px-3.5 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-bold">Pairs Found</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{matchesFound} / {pairCount}</span>
           </div>
 
-          <div className="text-center px-4 py-2 bg-slate-900/60 rounded-xl border border-indigo-500/20">
-            <span className="text-xs text-slate-400 uppercase tracking-wider block">Time</span>
-            <span className="text-2xl font-bold text-indigo-300">{elapsedTime}s</span>
+          <div className="text-center px-3.5 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-bold">Time</span>
+            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{elapsedTime}s</span>
           </div>
         </div>
       </div>
 
       {/* Card Grid */}
       <div
-        className={`grid gap-4 w-full max-w-3xl justify-center ${
+        className={`grid gap-3.5 w-full justify-center ${
           pairCount <= 4
             ? 'grid-cols-3 sm:grid-cols-3'
             : pairCount <= 6
-            ? 'grid-cols-4 sm:grid-cols-4'
-            : 'grid-cols-4 sm:grid-cols-6'
+            ? 'grid-cols-3 sm:grid-cols-4'
+            : 'grid-cols-4 sm:grid-cols-4'
         }`}
       >
         {cards.map((card, idx) => (
-          <motion.button
+          <button
             key={card.id}
             onClick={() => handleCardClick(idx)}
             disabled={card.isFlipped || card.isMatched || isLocked}
-            whileHover={!card.isFlipped && !card.isMatched ? { scale: 1.04 } : {}}
-            whileTap={!card.isFlipped && !card.isMatched ? { scale: 0.96 } : {}}
-            className={`h-28 sm:h-32 w-full rounded-2xl flex items-center justify-center text-4xl sm:text-5xl transition-all duration-300 shadow-lg ${
+            className={`h-24 sm:h-28 w-full rounded-2xl flex items-center justify-center text-4xl sm:text-5xl transition-all duration-200 shadow-xs ${
               card.isMatched
-                ? 'bg-emerald-950/80 border-2 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-300'
                 : card.isFlipped
-                ? 'bg-indigo-950/90 border-2 border-indigo-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]'
-                : 'bg-slate-900/90 border-2 border-indigo-500/30 hover:border-indigo-400/80 text-transparent cursor-pointer'
+                ? 'bg-blue-50 dark:bg-blue-950/60 border-2 border-blue-500 text-blue-700 dark:text-blue-300'
+                : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer text-slate-300 dark:text-slate-600'
             }`}
           >
             {card.isFlipped || card.isMatched ? (
-              <motion.span
-                initial={{ scale: 0, rotate: -20 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              >
-                {card.emoji}
-              </motion.span>
+              <span>{card.emoji}</span>
             ) : (
-              <span className="text-2xl text-indigo-400/50">✦</span>
+              <span className="text-xl">?</span>
             )}
-          </motion.button>
+          </button>
         ))}
       </div>
     </div>

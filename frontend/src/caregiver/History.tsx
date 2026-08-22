@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, Calendar, CheckCircle2, ChevronRight, Activity, Users, Brain, ListOrdered, Eye, Sparkles, X, Filter } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, CheckCircle2, ChevronRight, Activity, Users, Brain, ListOrdered, Eye, Sparkles, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 import { User, Session, GameSession } from '../types';
 
 export default function History() {
@@ -51,7 +52,6 @@ export default function History() {
         api.getUserSessions(selectedUserId!),
         api.getUserGameSessions(selectedUserId!),
       ]);
-      // Sort sessions descending by started_at
       const sorted = (sList || []).sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
       setSessions(sorted);
       setGameSessions(gList || []);
@@ -76,285 +76,174 @@ export default function History() {
     }
   };
 
-  const getGameIcon = (type: string) => {
-    switch (type) {
-      case 'memory_match': return <Brain size={18} className="text-blue-400" />;
-      case 'daily_routine': return <ListOrdered size={18} className="text-emerald-400" />;
-      case 'object_recognition': return <Eye size={18} className="text-purple-400" />;
-      default: return <Sparkles size={18} className="text-amber-400" />;
-    }
-  };
-
-  // Group sessions by friendly date label
-  const groupSessionsByDate = () => {
-    const groups: Record<string, Session[]> = {
-      Today: [],
-      Yesterday: [],
-      'Earlier This Week': [],
-      'Historical Sessions': [],
-    };
-
-    const now = new Date();
-    const todayStr = now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
-
-    sessions.forEach(s => {
-      const sDate = new Date(s.started_at);
-      const sDateStr = sDate.toDateString();
-      const diffDays = Math.floor((now.getTime() - sDate.getTime()) / (1000 * 3600 * 24));
-
-      if (sDateStr === todayStr) {
-        groups.Today.push(s);
-      } else if (sDateStr === yesterdayStr) {
-        groups.Yesterday.push(s);
-      } else if (diffDays <= 7) {
-        groups['Earlier This Week'].push(s);
-      } else {
-        groups['Historical Sessions'].push(s);
-      }
-    });
-
-    return groups;
-  };
-
-  const grouped = groupSessionsByDate();
-
   return (
-    <div className="min-h-screen relative z-10 flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-slate-950/80 backdrop-blur-md border-b border-indigo-500/20 px-6 py-4 flex justify-between items-center shadow-lg">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/caregiver')} className="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-900/60 border border-indigo-500/20">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => navigate('/caregiver')}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Overview"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center text-indigo-200">
-              <Calendar size={22} />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">Session History</h1>
-              <p className="text-xs text-indigo-300">Chronological Cognitive Activity Log</p>
-            </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Session History</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Complete timeline of recorded cognitive sessions</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={18} className="text-indigo-400" />
+              <Users size={16} className="text-blue-600 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    navigate('/profiles');
-                  } else {
-                    const newId = Number(e.target.value);
-                    setSelectedUserId(newId);
-                    const user = users.find(u => u.id === newId);
-                    if (user) switchProfile(user);
-                  }
+                  const newId = Number(e.target.value);
+                  setSelectedUserId(newId);
+                  const u = users.find(user => user.id === newId);
+                  if (u) switchProfile(u);
                 }}
-                className="p-2 px-3.5 rounded-xl border border-indigo-500/40 bg-slate-900/90 text-white text-sm focus:border-indigo-400 focus:outline-none"
+                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.display_name || u.name} (Age {u.age})
-                  </option>
+                  <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
                 ))}
-                <option value="new">+ Add Elderly Profile</option>
               </select>
             </div>
           )}
 
+          <ThemeToggle />
           <CaregiverAccountMenu />
         </div>
       </nav>
 
-      {/* Main Container */}
-      <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6 w-full flex-grow">
-        {/* Responsive Navigation Tabs without horizontal scrollbar */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 border-b border-indigo-500/20 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-400" />
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white shadow">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Session History
           </Link>
         </div>
 
-        {/* Sessions Grouped List */}
-        {loading ? (
-          <div className="p-12 text-center text-slate-400">Loading session history...</div>
-        ) : sessions.length === 0 ? (
-          <div className="cosmic-card p-12 text-center">
-            <Calendar size={36} className="mx-auto text-slate-500 mb-2" />
-            <p className="text-base font-bold text-white">No sessions recorded yet</p>
-            <p className="text-xs text-slate-400 mt-1">Start today's cognitive session to begin tracking longitudinal history.</p>
-            <button
-              onClick={() => navigate('/session')}
-              className="mt-5 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
-            >
-              Start First Session
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {Object.entries(grouped).map(([groupTitle, sessionList]) => {
-              if (sessionList.length === 0) return null;
+        {/* Sessions List */}
+        <div className="card p-6">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Recorded Sessions ({sessions.length})</h2>
 
-              return (
-                <div key={groupTitle} className="space-y-3">
-                  <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider pl-1">
-                    {groupTitle} ({sessionList.length})
-                  </h3>
+          {sessions.length > 0 ? (
+            <div className="space-y-3">
+              {sessions.map((s) => {
+                const sGames = gameSessions.filter(g => g.session_id === s.id);
+                const avgScore = sGames.length > 0
+                  ? Math.round((sGames.reduce((acc, g) => acc + (g.accuracy || 0), 0) / sGames.length) * 100)
+                  : null;
 
-                  <div className="space-y-2.5">
-                    {sessionList.map(s => {
-                      const matchingGames = gameSessions.filter(g => g.session_id === s.id);
-                      const avgAcc = matchingGames.length > 0
-                        ? Math.round((matchingGames.reduce((acc, g) => acc + (g.accuracy || 0), 0) / matchingGames.length) * 100)
-                        : 0;
-                      const sTime = new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const sDate = new Date(s.started_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => handleOpenDetail(s)}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 bg-slate-50/50 dark:bg-slate-850 flex items-center justify-between cursor-pointer transition-all"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
+                        #{s.id}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                          Session #{s.id} — {new Date(s.started_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {sGames.length} activities completed • {s.status === 'completed' ? 'Completed ✓' : 'In Progress'}
+                        </p>
+                      </div>
+                    </div>
 
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => handleOpenDetail(s)}
-                          className="cosmic-card p-4 sm:p-5 border border-indigo-500/20 hover:border-indigo-400/60 bg-slate-900/70 hover:bg-slate-900 transition-all cursor-pointer flex items-center justify-between group"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-950 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
-                              <CheckCircle2 size={20} className="text-emerald-400" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm sm:text-base font-bold text-white">{sDate} at {sTime}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-indigo-300 font-mono">
-                                  ID #{s.id}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                {matchingGames.length}/4 cognitive activities completed
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-4">
-                            {matchingGames.length > 0 && (
-                              <div className="text-right">
-                                <span className="text-xs sm:text-sm font-bold text-emerald-400">{avgAcc}%</span>
-                                <span className="block text-[10px] text-slate-400">Mean Accuracy</span>
-                              </div>
-                            )}
-                            <ChevronRight size={18} className="text-slate-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div className="flex items-center gap-3">
+                      {avgScore != null && (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {avgScore}% Avg
+                        </span>
+                      )}
+                      <ChevronRight size={16} className="text-slate-400" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
+              No sessions found for this profile.
+            </div>
+          )}
+        </div>
+
+        {/* Session Detail Modal */}
+        {selectedSessionDetail && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="card max-w-lg w-full p-6 shadow-2xl relative">
+              <button
+                onClick={() => setSelectedSessionDetail(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                Session #{selectedSessionDetail.session.id} Breakdown
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Recorded on {new Date(selectedSessionDetail.session.started_at).toLocaleString()}
+              </p>
+
+              <div className="space-y-3">
+                {selectedSessionDetail.games.map((g, gi) => (
+                  <div key={gi} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{getGameLabel(g.game_type)}</p>
+                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                        Level {g.difficulty || 1} • {Math.round((g.avg_response_time_ms || 0) / 1000)}s latency
+                      </p>
+                    </div>
+                    <span className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400">
+                      {Math.round((g.accuracy || 0) * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setSelectedSessionDetail(null)}
+                  className="elderly-btn-primary text-xs py-2 px-5 rounded-xl"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Session Drilldown Detail Modal */}
-      {selectedSessionDetail && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="cosmic-card w-full max-w-2xl p-6 sm:p-8 border border-indigo-500/40 shadow-2xl animate-fadeIn relative">
-            <button
-              onClick={() => setSelectedSessionDetail(null)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
-                <Calendar size={20} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">
-                  Session Breakdown — #{selectedSessionDetail.session.id}
-                </h3>
-                <p className="text-xs text-indigo-300">
-                  Recorded on {new Date(selectedSessionDetail.session.started_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              {selectedSessionDetail.games.length === 0 ? (
-                <p className="text-xs text-slate-400 p-4 bg-slate-900 rounded-xl text-center">
-                  Individual activity breakdown not available for this legacy record.
-                </p>
-              ) : (
-                selectedSessionDetail.games.map((g, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-900 border border-indigo-500/20 text-xs">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 font-bold text-white">
-                        {getGameIcon(g.game_type)}
-                        <span>{getGameLabel(g.game_type)}</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 font-mono text-[10px]">
-                        Level {g.difficulty}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2 pt-2 border-t border-indigo-500/10 text-center">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Accuracy</span>
-                        <strong className="text-emerald-400 text-xs">{Math.round((g.accuracy || 0) * 100)}%</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Avg Latency</span>
-                        <strong className="text-slate-200 text-xs">{Math.round(g.avg_response_time_ms || 0)} ms</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Repeat Errors</span>
-                        <strong className="text-amber-400 text-xs">{g.repeat_errors || 0}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Corrections</span>
-                        <strong className="text-blue-400 text-xs">{g.corrections || 0}</strong>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-indigo-500/20 flex justify-end">
-              <button
-                onClick={() => setSelectedSessionDetail(null)}
-                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow"
-              >
-                Close Summary
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

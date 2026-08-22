@@ -1,17 +1,37 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-space-950: #030612;
-  --color-space-900: #060c20;
-  --color-space-800: #0c1638;
-  --color-space-700: #15224e;
-  --color-space-600: #21356e;
-  --color-primary: #3b82f6;
-  --color-primary-glow: #60a5fa;
-  --color-secondary: #10b981;
-  --color-accent: #f59e0b;
-  --color-cosmic: #8b5cf6;
-  --color-surface: #0a0f24;
+@layer base {
+  :root {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-elevated: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --border-subtle: #e2e8f0;
+    --border-card: #e2e8f0;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-light: #eff6ff;
+    --ring-focus: rgba(37, 99, 235, 0.35);
+  }
+
+  .dark {
+    --bg-page: #0b0f19;
+    --bg-card: #131b2e;
+    --bg-card-hover: #1c263f;
+    --bg-elevated: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border-subtle: #1e293b;
+    --border-card: #23304d;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --primary-light: #1e293b;
+    --ring-focus: rgba(59, 130, 246, 0.4);
+  }
 }
 
 html {
@@ -20,75 +40,81 @@ html {
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-  background-color: #050816;
-  color: #f1f5f9;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Glassmorphism Space Cards */
-.cosmic-card {
-  background: rgba(13, 22, 50, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1.5rem;
-}
-
-.cosmic-card-hover {
-  transition: all 0.25s ease-out;
-}
-
-.cosmic-card-hover:hover {
-  border-color: rgba(129, 140, 248, 0.45);
-  box-shadow: 0 12px 36px 0 rgba(79, 70, 229, 0.22);
-  transform: translateY(-2px);
-}
-
-/* Elderly-friendly large buttons */
-.elderly-btn-primary {
-  min-height: 56px;
-  min-width: 180px;
-  font-size: 1.25rem;
-  font-weight: 600;
+/* Static clean card surface */
+.card, .cosmic-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   border-radius: 1rem;
-  padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.card:hover, .cosmic-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Elderly-friendly large accessible buttons */
+.elderly-btn-primary {
+  min-height: 54px;
+  min-width: 170px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.75rem;
+  background-color: #2563eb;
   color: #ffffff;
-  border: 1px solid rgba(147, 197, 253, 0.3);
-  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
-  transition: all 0.2s ease;
+  border: 1px solid #1d4ed8;
+  box-shadow: 0 2px 6px 0 rgba(37, 99, 235, 0.25);
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .elderly-btn-primary:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.55);
-  transform: scale(1.02);
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 12px 0 rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.elderly-btn-primary:active {
+  transform: translateY(0);
 }
 
 .elderly-btn-secondary {
-  min-height: 56px;
-  min-width: 180px;
-  font-size: 1.25rem;
+  min-height: 54px;
+  min-width: 170px;
+  font-size: 1.15rem;
   font-weight: 600;
-  border-radius: 1rem;
-  padding: 0.875rem 2rem;
-  background: rgba(30, 41, 79, 0.6);
-  backdrop-filter: blur(8px);
-  color: #93c5fd;
-  border: 1.5px solid rgba(96, 165, 250, 0.4);
-  transition: all 0.2s ease;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.75rem;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-subtle);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .elderly-btn-secondary:hover {
-  background: rgba(37, 99, 235, 0.2);
-  border-color: #60a5fa;
-  color: #ffffff;
+  background-color: var(--bg-card-hover);
+  border-color: #3b82f6;
 }
 
-/* Constellation orbit line */
-.constellation-glow {
-  filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.6));
+/* Focus outline for accessibility */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

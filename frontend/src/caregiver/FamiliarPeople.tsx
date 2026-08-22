@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, UserPlus, Trash2, Edit2, ShieldCheck, Upload, AlertCircle, CheckCircle, Users, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit2, ShieldCheck, Upload, AlertCircle, CheckCircle, Users, Sparkles, Image as ImageIcon, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 import { User, FamiliarPerson } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FamiliarPeople() {
   const navigate = useNavigate();
   const { profileId } = useParams<{ profileId?: string }>();
-  const { currentUser, switchProfile, logout } = useApp();
+  const { currentUser, switchProfile } = useApp();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [people, setPeople] = useState<FamiliarPerson[]>([]);
@@ -100,18 +100,20 @@ export default function FamiliarPeople() {
     e.preventDefault();
     setValidationError(null);
 
-    if (!name.trim() || !relationship.trim()) {
-      setValidationError('Name and relationship are required.');
+    if (!name.trim()) {
+      setValidationError('Please enter person name');
       return;
     }
-
+    if (!relationship.trim()) {
+      setValidationError('Please enter relationship');
+      return;
+    }
     if (!photoUrl) {
-      setValidationError('Please upload a clear photograph of the family member.');
+      setValidationError('Please upload a clear face photo');
       return;
     }
-
     if (!consentConfirmed) {
-      setValidationError('Please confirm consent permission before saving.');
+      setValidationError('Caregiver consent confirmation is required to include family photos in exercises.');
       return;
     }
 
@@ -133,133 +135,114 @@ export default function FamiliarPeople() {
         });
       }
 
+      setShowAddModal(false);
       setName('');
       setRelationship('');
       setPhotoUrl('');
       setConsentConfirmed(false);
       setEditingId(null);
-      setShowAddModal(false);
-      loadPeople();
-    } catch (err) {
-      setValidationError('Failed to save familiar person. Try again.');
+      await loadPeople();
+    } catch {
+      setValidationError('Failed to save familiar person.');
     }
-  };
-
-  const handleEdit = (person: FamiliarPerson) => {
-    setEditingId(person.id);
-    setName(person.name);
-    setRelationship(person.relationship);
-    setPhotoUrl(person.photo_url);
-    setConsentConfirmed(person.consent_confirmed);
-    setShowAddModal(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this familiar person profile?')) return;
+    if (!confirm('Are you sure you want to remove this family member from recognition activities?')) return;
     try {
       await api.deleteFamiliarPerson(id);
-      loadPeople();
-    } catch (err) {
-      console.log('Error deleting person');
+      await loadPeople();
+    } catch {
+      alert('Failed to delete person');
     }
   };
 
-  const selectedUser = users.find(u => u.id === selectedUserId);
+  const openEdit = (p: FamiliarPerson) => {
+    setEditingId(p.id || null);
+    setName(p.name);
+    setRelationship(p.relationship);
+    setPhotoUrl(p.photo_url);
+    setConsentConfirmed(p.consent_confirmed);
+    setShowAddModal(true);
+  };
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-slate-950/80 backdrop-blur-md border-b border-indigo-500/20 px-6 py-4 flex justify-between items-center shadow-lg">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/caregiver')} className="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-900/60 border border-indigo-500/20">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => navigate('/caregiver')}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Overview"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center text-indigo-200">
-              <Users size={22} />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">Familiar People</h1>
-              <p className="text-xs text-indigo-300">Caregiver Recognition Setup</p>
-            </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Familiar People & Photos</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Caregiver-managed family cues for personal recognition</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={18} className="text-indigo-400" />
+              <Users size={16} className="text-blue-600 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    navigate('/profiles');
-                  } else {
-                    const newId = Number(e.target.value);
-                    setSelectedUserId(newId);
-                    const user = users.find(u => u.id === newId);
-                    if (user) switchProfile(user);
-                  }
+                  const newId = Number(e.target.value);
+                  setSelectedUserId(newId);
+                  const u = users.find(user => user.id === newId);
+                  if (u) switchProfile(u);
                 }}
-                className="p-2 px-3.5 rounded-xl border border-indigo-500/40 bg-slate-900/90 text-white text-sm focus:border-indigo-400 focus:outline-none"
+                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.display_name || u.name} (Age {u.age})
-                  </option>
+                  <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
                 ))}
-                <option value="new">+ Add Elderly Profile</option>
               </select>
             </div>
           )}
 
+          <ThemeToggle />
           <CaregiverAccountMenu />
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6">
-        {/* Responsive Navigation Tabs without horizontal scrollbar */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 border-b border-indigo-500/20 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-400" />
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white shadow">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Session History
           </Link>
         </div>
 
-        {/* Privacy Banner */}
-        <div className="cosmic-card p-4 border border-indigo-500/30 bg-indigo-950/40 flex items-center gap-3">
-          <ShieldCheck size={28} className="text-emerald-400 shrink-0" />
-          <div className="text-xs sm:text-sm text-slate-200">
-            <strong>Strict Privacy Guarantee:</strong> Uploaded family photographs are private session data stored locally. They are <strong>never sent to Gemini or external LLMs</strong>, never used for training AI models, and never exposed publicly.
-          </div>
-        </div>
-
-        {/* Action Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {/* Section Header & Add CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">
-              Family & Familiar Faces for {selectedUser?.display_name || 'User'}
-            </h2>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Configured profiles used in Test 3 (Object & Familiar Person Recognition). Minimum 3 people recommended for 4-choice recognition.
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Family Recognition Photos</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Caregiver-uploaded photos are integrated into Object & Familiar Recognition exercises.
             </p>
           </div>
 
@@ -270,174 +253,167 @@ export default function FamiliarPeople() {
               setRelationship('');
               setPhotoUrl('');
               setConsentConfirmed(false);
-              setValidationError(null);
               setShowAddModal(true);
             }}
-            className="elderly-btn-primary flex items-center gap-2 text-base py-3 px-6 min-h-[48px] shrink-0"
+            className="elderly-btn-primary text-xs sm:text-sm py-2.5 px-4 rounded-xl inline-flex items-center gap-2"
           >
-            <UserPlus size={20} /> Add Familiar Person
+            <UserPlus size={16} />
+            <span>Add Family Member</span>
           </button>
-        </div>
-
-        {/* Status indicator badge */}
-        <div className="flex items-center gap-2">
-          {people.length >= 3 ? (
-            <span className="text-xs px-3 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-semibold flex items-center gap-1.5">
-              🟢 {people.length} people configured — Familiar Person Recognition active in Test 3
-            </span>
-          ) : people.length > 0 ? (
-            <span className="text-xs px-3 py-1.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 font-semibold flex items-center gap-1.5">
-              🟡 {people.length} configured — Add {3 - people.length} more for full 4-choice recognition
-            </span>
-          ) : (
-            <span className="text-xs px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-semibold flex items-center gap-1.5">
-              ⚪ Not configured — Object recognition will run standalone until family members are added
-            </span>
-          )}
         </div>
 
         {/* People Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {people.map(person => (
-            <div key={person.id} className="cosmic-card p-6 flex flex-col items-center text-center relative border border-indigo-500/30 hover:border-indigo-400 transition-all shadow-lg">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden mb-4 border-2 border-indigo-400/60 bg-slate-900 shadow-md">
-                <img src={person.photo_url} alt={person.name} className="w-full h-full object-cover" />
+          {people.map((p) => (
+            <div key={p.id} className="card p-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <img
+                  src={p.photo_url}
+                  alt={p.name}
+                  className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+                />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</h3>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{p.relationship}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Consent: Verified ✓</p>
+                </div>
               </div>
 
-              <h3 className="text-2xl font-bold text-white">{person.name}</h3>
-              <p className="text-base text-indigo-300 font-semibold mt-0.5">{person.relationship}</p>
-
-              <div className="flex items-center gap-3 mt-5">
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => handleEdit(person)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-indigo-500/30 hover:border-indigo-400 text-slate-300 hover:text-white text-sm"
+                  onClick={() => openEdit(p)}
+                  className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-750"
+                  title="Edit"
                 >
-                  <Edit2 size={16} /> Edit
+                  <Edit2 size={15} />
                 </button>
                 <button
-                  onClick={() => handleDelete(person.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-rose-500/30 hover:border-rose-400 text-rose-400 text-sm"
+                  onClick={() => handleDelete(p.id!)}
+                  className="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  title="Delete"
                 >
-                  <Trash2 size={16} /> Delete
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
           ))}
 
           {people.length === 0 && !loading && (
-            <div className="col-span-full cosmic-card p-12 text-center text-slate-400">
-              No familiar people configured for {selectedUser?.display_name}. Click "+ Add Familiar Person" above to upload photos.
+            <div className="col-span-full card p-8 text-center">
+              <ImageIcon size={36} className="text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">No familiar people added</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+                Add family photos to allow the senior to practice facial and relationship recall in a familiar context.
+              </p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="elderly-btn-primary text-xs py-2 px-5 rounded-xl inline-flex items-center gap-1.5"
+              >
+                <UserPlus size={15} />
+                <span>Add Family Photo</span>
+              </button>
             </div>
           )}
         </div>
 
-        {/* Add / Edit Modal */}
-        <AnimatePresence>
-          {showAddModal && (
-            <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="cosmic-card p-8 max-w-lg w-full bg-slate-950 border border-indigo-500/40 shadow-2xl"
+        {/* Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="card max-w-md w-full p-6 shadow-2xl relative">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
               >
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  {editingId ? 'Edit Familiar Person' : 'Add Familiar Person'}
-                </h3>
-                <p className="text-sm text-slate-400 mb-5">
-                  Provide name, relationship, and a clear face photo.
-                </p>
+                <X size={18} />
+              </button>
 
-                {validationError && (
-                  <div className="mb-4 p-3.5 bg-rose-950/80 border border-rose-500/40 rounded-xl text-rose-200 text-sm flex items-center gap-2">
-                    <AlertCircle size={20} className="shrink-0 text-rose-400" />
-                    <span>{validationError}</span>
-                  </div>
-                )}
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                {editingId ? 'Edit Family Member' : 'Add Family Member'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Used in Object & Familiar Recognition cognitive activities.
+              </p>
 
-                <form onSubmit={handleSavePerson} className="flex flex-col gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Anita Kumar"
-                      className="w-full p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none text-lg"
-                      required
-                    />
-                  </div>
+              {validationError && (
+                <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Relationship</label>
-                    <input
-                      type="text"
-                      value={relationship}
-                      onChange={(e) => setRelationship(e.target.value)}
-                      placeholder="e.g. Daughter, Son, Wife, Brother, Friend"
-                      className="w-full p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none text-lg"
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleSavePerson} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Priya"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Upload Face Photograph
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
-                    />
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+                  <input
+                    type="text"
+                    required
+                    value={relationship}
+                    onChange={(e) => setRelationship(e.target.value)}
+                    placeholder="e.g. Granddaughter"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-                    {photoUrl && (
-                      <div className="mt-3 flex items-center gap-3 p-3 bg-slate-900/80 rounded-xl border border-indigo-500/20">
-                        <img src={photoUrl} alt="Preview" className="w-16 h-16 rounded-xl object-cover border border-indigo-400" />
-                        <div>
-                          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                            <CheckCircle size={14} /> Photo verified
-                          </span>
-                          <span className="text-xs text-slate-400">Click upload to replace</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Photo Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {photoUrl && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <img src={photoUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-slate-200" />
+                      <span className="text-[11px] text-emerald-600 font-semibold">Photo ready ✓</span>
+                    </div>
+                  )}
+                </div>
 
-                  {/* Required Exact Consent Checkbox */}
-                  <div className="flex items-start gap-3 p-3.5 bg-slate-900/90 rounded-xl border border-indigo-500/30">
-                    <input
-                      type="checkbox"
-                      id="consentCheck"
-                      checked={consentConfirmed}
-                      onChange={(e) => setConsentConfirmed(e.target.checked)}
-                      className="mt-1 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                    />
-                    <label htmlFor="consentCheck" className="text-xs text-slate-200 leading-snug cursor-pointer">
-                      I confirm that I have permission to use this person's photo for this private recognition activity.
-                    </label>
-                  </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="consent"
+                    checked={consentConfirmed}
+                    onChange={(e) => setConsentConfirmed(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="consent" className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug cursor-pointer">
+                    I confirm that I have consent to use this photo for memory exercises under this profile.
+                  </label>
+                </div>
 
-                  <div className="flex gap-3 justify-end mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddModal(false)}
-                      className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white font-medium"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="elderly-btn-primary py-2.5 px-6 min-h-[44px] text-base font-bold"
-                    >
-                      Save Person
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
+                <div className="pt-2 flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                  >
+                    Save Photo
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Brain, ListOrdered, Eye, Sparkles, AlertCircle, Loader2, Users, ShieldCheck, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader2, Users, ShieldCheck, Info } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 import { User, TrendData } from '../types';
-import { motion } from 'framer-motion';
 
 const DOMAIN_ICONS: Record<string, string> = {
   short_term_memory: '🧠',
@@ -30,18 +30,18 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGES: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  stable: { color: 'text-indigo-300', bg: 'bg-indigo-950/60', border: 'border-indigo-500/30', label: 'Stable' },
-  improving: { color: 'text-emerald-300', bg: 'bg-emerald-950/60', border: 'border-emerald-500/40', label: 'Improving' },
-  recent_change: { color: 'text-amber-300', bg: 'bg-amber-950/60', border: 'border-amber-500/40', label: 'Recent Change' },
-  variable: { color: 'text-purple-300', bg: 'bg-purple-950/60', border: 'border-purple-500/40', label: 'Variable' },
-  observation_available: { color: 'text-blue-300', bg: 'bg-blue-950/60', border: 'border-blue-500/30', label: 'Observation Available' },
-  insufficient_history: { color: 'text-slate-400', bg: 'bg-slate-900/60', border: 'border-slate-700', label: 'Insufficient History' },
+  stable: { color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', label: 'Stable' },
+  improving: { color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800', label: 'Improving' },
+  recent_change: { color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', label: 'Recent Change' },
+  variable: { color: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200 dark:border-purple-800', label: 'Variable' },
+  observation_available: { color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800', label: 'Observation Available' },
+  insufficient_history: { color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700', label: 'Insufficient History' },
 };
 
 export default function Insights() {
   const navigate = useNavigate();
   const { profileId } = useParams<{ profileId?: string }>();
-  const { currentUser, switchProfile, logout } = useApp();
+  const { currentUser, switchProfile } = useApp();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [trends, setTrends] = useState<TrendData[]>([]);
@@ -98,22 +98,24 @@ export default function Insights() {
   }, [selectedUserId]);
 
   const generateExplanation = async (t: TrendData) => {
-    setLoadingExplanation(t.domain);
+    const domainKey = t.domain || t.game_type;
+    setLoadingExplanation(domainKey);
     try {
-      const result = await api.explainInsight(t.domain, t.trend, t.observation_note || '');
+      const res = await api.explainInsight(
+        DOMAIN_LABELS[domainKey] || domainKey,
+        t.trend,
+        `Current: ${Math.round((t.current_performance || 0) * 100)}%, Baseline: ${Math.round((t.baseline || 0) * 100)}%, Deviation: ${Math.round((t.deviation || 0) * 100)}%`
+      );
       setExplanations(prev => ({
         ...prev,
-        [t.domain]: {
-          text: result.explanation,
-          provider: result.provider || 'gemini-2.0-flash',
-        },
+        [domainKey]: { text: res.explanation, provider: res.provider || 'gemini-2.0-flash' },
       }));
     } catch {
       setExplanations(prev => ({
         ...prev,
-        [t.domain]: {
-          text: `Recent performance in ${t.domain_label || t.domain} differs from the user's established baseline. Prototype behavioral insight — not a medical diagnosis.`,
-          provider: 'deterministic_template',
+        [domainKey]: {
+          text: `Performance for ${DOMAIN_LABELS[domainKey] || domainKey} is currently ${t.trend}. This is a behavioral observation for caregiver support.`,
+          provider: 'template',
         },
       }));
     }
@@ -121,202 +123,146 @@ export default function Insights() {
   };
 
   return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-slate-950/80 backdrop-blur-md border-b border-indigo-500/20 px-6 py-4 flex justify-between items-center shadow-lg">
+      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/caregiver')} className="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-900/60 border border-indigo-500/20">
-            <ArrowLeft size={22} />
+          <button
+            onClick={() => navigate('/caregiver')}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+            title="Back to Overview"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Explainable AI Insights</h1>
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">Explainable AI Insights</h1>
         </div>
 
         <div className="flex items-center gap-3">
           {users.length > 0 && (
             <div className="flex items-center gap-2">
-              <Users size={18} className="text-indigo-400" />
+              <Users size={16} className="text-blue-600 dark:text-blue-400" />
               <select
                 value={selectedUserId ?? ''}
                 onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    navigate('/profiles');
-                  } else {
-                    const newId = Number(e.target.value);
-                    setSelectedUserId(newId);
-                    const user = users.find(u => u.id === newId);
-                    if (user) switchProfile(user);
-                  }
+                  const newId = Number(e.target.value);
+                  setSelectedUserId(newId);
+                  const u = users.find(user => user.id === newId);
+                  if (u) switchProfile(u);
                 }}
-                className="p-2 px-3.5 rounded-xl border border-indigo-500/40 bg-slate-900/90 text-white text-sm focus:border-indigo-400 focus:outline-none"
+                className="p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.display_name || u.name} (Age {u.age})
-                  </option>
+                  <option key={u.id} value={u.id}>{u.display_name || u.name}</option>
                 ))}
-                <option value="new">+ Add Elderly Profile</option>
               </select>
             </div>
           )}
 
+          <ThemeToggle />
           <CaregiverAccountMenu />
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6">
-        {/* Responsive Navigation Tabs without horizontal scrollbar */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 border-b border-indigo-500/20 pb-3 text-xs sm:text-sm font-semibold">
-          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-semibold">
+          <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-400" />
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5">
+            <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white shadow">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-indigo-500/20 transition-all">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all">
             Session History
           </Link>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={32} className="animate-spin text-indigo-400" />
-            <span className="ml-3 text-xl text-slate-300">Analyzing structured observations...</span>
-          </div>
-        ) : trends.length === 0 ? (
-          <div className="cosmic-card p-12 text-center text-slate-400 text-xl">
-            No cognitive domain data available yet. Complete daily sessions to see insights.
-          </div>
-        ) : (
-          trends.map((t, idx) => {
+        {/* Informational Banner */}
+        <div className="card p-4 border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center gap-3">
+          <Info size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
+          <span className="text-slate-700 dark:text-slate-300">
+            Insights are plain-language behavioral summaries synthesized by Google Gemini 2.0 Flash to assist caregivers in understanding routine game engagement.
+          </span>
+        </div>
+
+        {/* Insight Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {trends.map((t) => {
+            const domainKey = t.domain || t.game_type;
             const badge = STATUS_BADGES[t.trend] || STATUS_BADGES.insufficient_history;
-            const expObj = explanations[t.domain] || explanations[t.game_type];
-            const isRecentChange = t.trend === 'recent_change';
+            const explanation = explanations[domainKey];
+            const isLoading = loadingExplanation === domainKey;
 
             return (
-              <motion.div
-                key={t.domain || t.game_type}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                className={`cosmic-card overflow-hidden border-2 ${
-                  isRecentChange ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)]' : 'border-indigo-500/30'
-                }`}
-              >
-                {/* Header */}
-                <div className={`p-5 flex items-center justify-between border-b ${
-                  isRecentChange ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-900/40 border-indigo-500/20'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{t.domain_icon || DOMAIN_ICONS[t.domain] || '📊'}</span>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{t.domain_label || DOMAIN_LABELS[t.domain] || t.game_type}</h3>
-                      <p className="text-xs text-slate-400">Cognitive domain behavioral telemetry</p>
-                    </div>
-                  </div>
-
-                  <span className={`px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${badge.border} ${badge.bg} ${badge.color}`}>
-                    {badge.label}
-                  </span>
-                </div>
-
-                {/* Evidence Body */}
-                <div className="p-6">
-                  {t.trend !== 'insufficient_history' ? (
-                    <>
-                      {/* Stat Metrics Grid */}
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="bg-slate-900/70 border border-indigo-500/20 rounded-xl p-3 text-center">
-                          <p className="text-xs text-slate-400 uppercase">Current Performance</p>
-                          <p className="text-2xl font-bold text-white">
-                            {t.current_performance != null ? `${Math.round(t.current_performance * 100)}%` : '—'}
-                          </p>
-                        </div>
-                        <div className="bg-slate-900/70 border border-indigo-500/20 rounded-xl p-3 text-center">
-                          <p className="text-xs text-slate-400 uppercase">Personal Baseline</p>
-                          <p className="text-2xl font-bold text-indigo-300">
-                            {t.baseline != null ? `${Math.round(t.baseline * 100)}%` : '—'}
-                          </p>
-                        </div>
-                        <div className="bg-slate-900/70 border border-indigo-500/20 rounded-xl p-3 text-center">
-                          <p className="text-xs text-slate-400 uppercase">Baseline Deviation</p>
-                          <p className={`text-2xl font-bold ${t.deviation && t.deviation < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                            {t.deviation != null ? `${t.deviation > 0 ? '+' : ''}${Math.round(t.deviation * 100)}%` : '—'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Structured Observation Note */}
-                      <div className="mb-6 p-4 bg-slate-900/80 rounded-2xl border border-indigo-500/30">
-                        <h4 className="font-bold text-indigo-300 mb-2 flex items-center gap-2 text-sm">
-                          <Info size={16} /> Structured Observation:
-                        </h4>
-                        <p className="text-sm text-slate-200 leading-relaxed">
-                          {t.observation_note || 'Performance is consistent with the established personal baseline.'}
+              <div key={domainKey} className="card p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{DOMAIN_ICONS[domainKey] || '🧠'}</span>
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                          {DOMAIN_LABELS[domainKey] || domainKey}
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t.sessions_analyzed || 0} sessions recorded
                         </p>
                       </div>
+                    </div>
 
-                      {/* AI Caregiver Explanation (3-tier cascade) */}
-                      <div className="bg-indigo-950/40 rounded-2xl p-5 border border-indigo-500/30">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Sparkles size={18} className="text-indigo-300" />
-                            <h4 className="font-bold text-indigo-200 text-sm">Caregiver Natural Language Explanation</h4>
-                          </div>
-                          {expObj && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-indigo-500/30 text-indigo-300 font-mono">
-                              Model: {expObj.provider}
-                            </span>
-                          )}
-                        </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badge.bg} ${badge.color} ${badge.border}`}>
+                      {badge.label}
+                    </span>
+                  </div>
 
-                        {expObj ? (
-                          <p className="text-slate-200 text-base leading-relaxed">{expObj.text}</p>
-                        ) : loadingExplanation === t.domain ? (
-                          <div className="flex items-center gap-2 text-indigo-300 py-2">
-                            <Loader2 size={18} className="animate-spin" />
-                            Synthesizing caregiver explanation...
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => generateExplanation(t)}
-                            className="text-indigo-300 hover:text-indigo-100 font-semibold text-sm underline flex items-center gap-1.5 py-1"
-                          >
-                            <span>✨</span> Generate AI Explanation →
-                          </button>
-                        )}
+                  {/* Summary Explanation */}
+                  <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed min-h-[80px] flex items-center">
+                    {isLoading ? (
+                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold py-2">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Synthesizing caregiver explanation...</span>
                       </div>
-                    </>
-                  ) : (
-                    <p className="text-slate-400 text-center py-4">
-                      Collecting sessions to establish a reliable personal baseline.
-                    </p>
-                  )}
+                    ) : explanation ? (
+                      <p>{explanation.text}</p>
+                    ) : (
+                      <p className="text-slate-500 dark:text-slate-400 italic">
+                        {t.trend === 'insufficient_history'
+                          ? 'Baseline calibration in progress. Additional sessions will unlock detailed natural language explanations.'
+                          : 'Click below to synthesize a tailored caregiver summary for this cognitive domain.'}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Disclaimer */}
-                <div className="px-6 pb-4">
-                  <p className="text-xs text-slate-400/80 italic flex items-center gap-1.5">
-                    <ShieldCheck size={13} className="text-indigo-400" />
-                    Prototype behavioral insight — not a medical diagnosis.
-                  </p>
+                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t.current_performance != null ? `Score: ${Math.round(t.current_performance * 100)}%` : 'No score'}
+                  </span>
+                  <button
+                    onClick={() => generateExplanation(t)}
+                    disabled={isLoading}
+                    className="px-3.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800 transition-colors flex items-center gap-1.5"
+                  >
+                    <Sparkles size={13} className="text-amber-500" />
+                    <span>{explanation ? 'Regenerate AI Summary' : 'Generate AI Summary'}</span>
+                  </button>
                 </div>
-              </motion.div>
+              </div>
             );
-          })
-        )}
+          })}
+        </div>
       </div>
     </div>
   );

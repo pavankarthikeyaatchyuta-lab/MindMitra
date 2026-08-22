@@ -73,6 +73,7 @@ export const api = {
     fetchJSON<User>(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify(profile) }),
   archiveProfile: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}/archive`, { method: 'POST' }),
   restoreProfile: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}/restore`, { method: 'POST' }),
+  deleteProfile: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}`, { method: 'DELETE' }),
   deleteProfilePermanently: (id: number) => fetchJSON<{ status: string; id: number }>(`/profiles/${id}`, { method: 'DELETE' }),
   exportProfileData: (id: number) => fetchJSON<any>(`/profiles/${id}/export`),
   changePassword: (data: { current_password: string; new_password: string }) =>
@@ -91,8 +92,12 @@ export const api = {
   getSessionDetails: (sessionId: number) => fetchJSON<any>(`/sessions/${sessionId}`, {}, `session_${sessionId}`),
 
   // Game Sessions
-  startGameSession: (data: { session_id: number; user_id: number; game_type: string; difficulty: number }) =>
-    fetchJSON<{ id: number }>('/games/session/start', { method: 'POST', body: JSON.stringify(data) }),
+  startGameSession: (dataOrSessionId: any, userId?: number, gameType?: string, difficulty?: number) => {
+    const payload = typeof dataOrSessionId === 'object'
+      ? dataOrSessionId
+      : { session_id: dataOrSessionId, user_id: userId, game_type: gameType, difficulty: difficulty };
+    return fetchJSON<{ id: number }>('/games/session/start', { method: 'POST', body: JSON.stringify(payload) });
+  },
   completeGameSession: (id: number, metrics: any) => {
     if (!isOnline()) {
       saveOfflineEvent({ type: 'complete_game_session', id, data: metrics });
@@ -131,6 +136,7 @@ export const api = {
   // Analytics
   getBaseline: (userId: number, gameType: string) => fetchJSON<Baseline>(`/analytics/baseline/${userId}/${gameType}`, {}, `baseline_${userId}_${gameType}`),
   getTrends: (userId: number) => fetchJSON<TrendData[]>(`/analytics/trends/${userId}`, {}, `trends_${userId}`),
+  getOverallTrend: (userId: number) => fetchJSON<any>(`/analytics/overall-trend/${userId}`, {}, `overall_trend_${userId}`),
   getCognitiveDomains: (userId: number) => fetchJSON<CognitiveDomain[]>(`/analytics/cognitive-domains/${userId}`, {}, `domains_${userId}`),
   getSessionSummary: (sessionId: number) => fetchJSON<any>(`/analytics/session-summary/${sessionId}`, {}, `summary_${sessionId}`),
 

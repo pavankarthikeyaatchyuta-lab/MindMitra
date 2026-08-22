@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Brain, Heart, ShieldCheck, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, AlertCircle, LogIn } from 'lucide-react';
+import { Brain, ShieldCheck, Mail, Lock, User, ArrowRight, Sparkles, AlertCircle, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function Login() {
       if (success) {
         navigate('/profiles');
       } else {
-        setError('Invalid email or password. Try demo credentials below.');
+        setError('Invalid email or password.');
       }
     }
     setLoading(false);
@@ -49,43 +50,51 @@ export default function Login() {
     if (success) {
       navigate('/profiles');
     } else {
-      setError('Could not connect to backend server. Make sure FastAPI is running.');
+      setError('Could not connect to backend server. Please verify backend is running.');
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen relative z-10 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150 relative">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-xl shadow-indigo-500/20 mb-4 border border-indigo-400/30">
-            <Brain size={42} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">MINDMITRA</h1>
-          <p className="text-indigo-200 mt-1 text-base">Caregiver Portal & Cognitive Monitoring</p>
+          <Link to="/" className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-sm mb-3 text-white hover:bg-blue-700 transition-colors">
+            <Brain size={32} />
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">MindMitra</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Caregiver Portal & Cognitive Support</p>
         </div>
 
         {/* Login Card */}
-        <div className="cosmic-card p-8 border border-indigo-500/30 shadow-2xl">
-          <div className="flex border-b border-indigo-500/20 pb-4 mb-6">
+        <div className="card p-7 shadow-sm">
+          <div className="flex border-b border-slate-200 dark:border-slate-700 pb-3 mb-6">
             <button
               onClick={() => { setIsRegister(false); setError(null); }}
-              className={`flex-1 pb-2 text-center text-lg font-bold transition-colors ${!isRegister ? 'text-indigo-300 border-b-2 border-indigo-400' : 'text-slate-400 hover:text-white'}`}
+              className={`flex-1 pb-2 text-center text-sm font-bold transition-colors ${
+                !isRegister ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
             >
-              Caregiver Login
+              Sign In
             </button>
             <button
               onClick={() => { setIsRegister(true); setError(null); }}
-              className={`flex-1 pb-2 text-center text-lg font-bold transition-colors ${isRegister ? 'text-indigo-300 border-b-2 border-indigo-400' : 'text-slate-400 hover:text-white'}`}
+              className={`flex-1 pb-2 text-center text-sm font-bold transition-colors ${
+                isRegister ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
             >
-              Create Account
+              Register Caregiver
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-950/60 border border-red-500/50 rounded-xl text-red-300 text-xs sm:text-sm flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0" />
+            <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle size={15} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -93,53 +102,53 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Caregiver Full Name
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Caregiver Name
                 </label>
                 <div className="relative">
-                  <User size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
+                  <User size={16} className="absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
+                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Pavan Kumar"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/80 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-base"
-                    required={isRegister}
+                    placeholder="e.g. Sunita Sharma"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <Mail size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
+                <Mail size={16} className="absolute left-3.5 top-3 text-slate-400" />
                 <input
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="caregiver@example.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/80 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-base"
-                  required
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Password
               </label>
               <div className="relative">
-                <Lock size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
+                <Lock size={16} className="absolute left-3.5 top-3 text-slate-400" />
                 <input
                   type="password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/80 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 text-base"
-                  required
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -147,41 +156,31 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center justify-center gap-2 text-base mt-2"
+              className="elderly-btn-primary w-full text-base py-3 rounded-xl mt-2 flex items-center justify-center gap-2"
             >
-              {loading ? (
-                'Authenticating...'
-              ) : isRegister ? (
-                <>
-                  <span>Create Account</span>
-                  <ArrowRight size={18} />
-                </>
-              ) : (
-                <>
-                  <LogIn size={18} />
-                  <span>Sign In</span>
-                </>
-              )}
+              <span>{loading ? 'Authenticating...' : isRegister ? 'Create Caregiver Account' : 'Sign In'}</span>
+              <ArrowRight size={16} />
             </button>
           </form>
 
-          {/* Quick Demo Access */}
-          <div className="mt-6 pt-6 border-t border-indigo-500/20 text-center">
-            <p className="text-xs text-slate-400 mb-2">Hackathon / Demo Quick Access</p>
+          {/* Demonstration Quick Access */}
+          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 text-center">
             <button
+              type="button"
               onClick={handleQuickDemo}
-              className="w-full py-2.5 px-4 rounded-xl border border-purple-500/40 bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 transition-all text-xs font-bold font-mono flex items-center justify-center gap-2"
+              className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-1.5"
             >
-              <Sparkles size={14} className="text-amber-400" />
-              <span>Sign In as Demo Caregiver (Pavan Kumar)</span>
+              <Sparkles size={14} className="text-amber-500" />
+              <span>Fill Demo Caregiver Account (1-Click)</span>
             </button>
           </div>
         </div>
 
-        {/* Security / Privacy Footnote */}
-        <div className="mt-6 text-center flex items-center justify-center gap-2 text-xs text-slate-400">
-          <ShieldCheck size={16} className="text-emerald-400" />
-          <span>Encrypted passwords • Strict elderly profile data isolation</span>
+        {/* Back Link */}
+        <div className="text-center mt-6">
+          <Link to="/" className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium">
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>

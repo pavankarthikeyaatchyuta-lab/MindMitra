@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Play, Check, ChevronRight, ArrowLeft, Activity, Sparkles, Database, ShieldCheck } from 'lucide-react';
+import { Play, Check, ChevronRight, ArrowLeft, Activity, Sparkles, Database, ShieldCheck, RotateCcw } from 'lucide-react';
 import * as api from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Demo() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function Demo() {
     setRunning(true);
     setStatusMsg("Executing demo action...");
 
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 600));
 
     if (activeStep === 0) {
       try {
@@ -59,34 +59,35 @@ export default function Demo() {
   };
 
   return (
-    <div className="min-h-screen p-6 md:p-12 pb-24 relative z-10">
+    <div className="min-h-screen p-6 md:p-10 bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150 relative">
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <button
-              onClick={() => navigate('/')}
-              className="mb-3 inline-flex items-center gap-2 text-slate-300 hover:text-white px-3.5 py-1.5 bg-slate-900/60 rounded-xl border border-indigo-500/20 text-sm"
-            >
-              <ArrowLeft size={16} /> Home
-            </button>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-purple-950/80 border border-purple-500/40 text-purple-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            <div className="flex items-center gap-3 mb-2">
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3 py-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+              >
+                <ArrowLeft size={14} /> Home
+              </button>
+              <span className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                 Evaluation Scenario Runner
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white">MindMitra Judge Walkthrough</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">MindMitra Walkthrough</h1>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button
               onClick={() => navigate('/caregiver')}
-              className="elderly-btn-secondary py-2.5 px-4 min-h-[44px] text-sm font-semibold flex items-center gap-2"
+              className="elderly-btn-secondary py-2 px-4 text-xs font-semibold flex items-center gap-1.5"
             >
-              <Activity size={18} /> Caregiver View
+              <Activity size={15} /> Caregiver View
             </button>
             <button
               onClick={() => navigate('/session')}
-              className="elderly-btn-primary py-2.5 px-4 min-h-[44px] text-sm font-bold flex items-center gap-2"
+              className="elderly-btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5"
             >
               <span>🎮</span> Play Games
             </button>
@@ -95,92 +96,73 @@ export default function Demo() {
 
         {/* Status Notification */}
         {statusMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 cosmic-card border border-emerald-500/40 bg-emerald-950/40 text-emerald-200 text-sm flex items-center gap-3"
-          >
-            <Sparkles size={20} className="text-emerald-400 shrink-0" />
+          <div className="mb-6 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 text-xs font-semibold flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-500 shrink-0" />
             <span>{statusMsg}</span>
-          </motion.div>
+          </div>
         )}
 
-        {/* Demo Progress Card */}
-        <div className="cosmic-card overflow-hidden shadow-2xl">
-          <div className="p-6 border-b border-indigo-500/20 flex flex-wrap justify-between items-center gap-4 bg-slate-900/40">
+        {/* Step Runner Card */}
+        <div className="card p-6 sm:p-8 mb-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Interactive Scenario Steps</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Honest demonstration data clearly marked across all views</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Step-by-Step Scenario Runner</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Step {activeStep} of {steps.length} completed</p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex gap-2">
               <button
                 onClick={handleResetDemo}
-                className="px-4 py-2 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 rounded-xl text-sm font-medium"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1"
               >
-                Reset Demo
+                <RotateCcw size={13} /> Reset
               </button>
 
               <button
                 onClick={handleRunStep}
                 disabled={running || activeStep >= steps.length}
-                className="elderly-btn-primary py-2.5 px-6 min-h-[44px] text-base font-bold flex items-center gap-2 disabled:opacity-50"
+                className="elderly-btn-primary py-2 px-5 text-xs font-bold flex items-center gap-1.5"
               >
-                {running ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Play size={18} />
-                )}
-                {activeStep === 0 ? "Start Scenario" : activeStep >= steps.length ? "All Steps Completed" : "Run Next Step"}
+                <Play size={14} fill="currentColor" />
+                <span>{running ? 'Executing...' : activeStep >= steps.length ? 'Scenario Complete ✓' : 'Execute Next Step'}</span>
               </button>
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-3">
-              {steps.map((step, index) => {
-                const isPast = index < activeStep;
-                const isCurrent = index === activeStep;
+          <div className="space-y-3">
+            {steps.map((step, idx) => {
+              const isPast = idx < activeStep;
+              const isCurrent = idx === activeStep;
 
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-start gap-4 p-4 rounded-2xl border transition-all ${
-                      isCurrent
-                        ? 'bg-purple-950/40 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-                        : isPast
-                        ? 'bg-slate-900/30 border-emerald-500/20 opacity-75'
-                        : 'bg-slate-900/20 border-indigo-500/10 opacity-40'
-                    }`}
-                  >
-                    <div
-                      className={`mt-1 rounded-xl p-2 shrink-0 ${
-                        isPast
-                          ? 'bg-emerald-950 border border-emerald-500/40 text-emerald-300'
-                          : isCurrent
-                          ? 'bg-purple-900 border border-purple-400 text-purple-200 animate-pulse'
-                          : 'bg-slate-800 text-slate-500'
-                      }`}
-                    >
-                      {isPast ? <Check size={18} /> : <ChevronRight size={18} />}
+              return (
+                <div
+                  key={idx}
+                  className={`p-3.5 rounded-xl border text-xs transition-all ${
+                    isPast
+                      ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200'
+                      : isCurrent
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 text-slate-900 dark:text-white font-semibold'
+                      : 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      isPast
+                        ? 'bg-emerald-500 text-white'
+                        : isCurrent
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                    }`}>
+                      {isPast ? '✓' : idx + 1}
                     </div>
-
-                    <div className="flex-grow">
-                      <h3 className={`font-bold text-base ${isCurrent ? 'text-purple-200' : isPast ? 'text-white' : 'text-slate-400'}`}>
-                        {step.title}
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">{step.desc}</p>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{step.title}</p>
+                      <p className="text-slate-600 dark:text-slate-400 mt-0.5">{step.desc}</p>
                     </div>
-
-                    {isCurrent && running && (
-                      <div className="text-purple-300 text-xs font-semibold animate-pulse shrink-0">
-                        Executing...
-                      </div>
-                    )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

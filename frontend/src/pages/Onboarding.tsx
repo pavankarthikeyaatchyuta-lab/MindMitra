@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../i18n';
 import { useAppContext } from '../context/AppContext';
 import { api } from '../services/api';
-import { motion } from 'framer-motion';
 import { User, Language } from '../types';
 import { UserPlus, ChevronRight, ArrowLeft } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Onboarding() {
   const { t, setLanguage } = useTranslation();
@@ -77,145 +77,102 @@ export default function Onboarding() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="min-h-screen flex items-center justify-center p-6 relative z-10"
-    >
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150 relative">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-lg">
         <button
           onClick={() => navigate('/')}
-          className="mb-4 inline-flex items-center gap-2 text-slate-300 hover:text-white px-4 py-2 bg-slate-900/60 rounded-xl border border-indigo-500/20"
+          className="mb-4 inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3.5 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold"
         >
-          <ArrowLeft size={20} /> Back to Welcome
+          <ArrowLeft size={16} /> Back to Welcome
         </button>
 
-        <h1 className="text-4xl font-bold text-white mb-2 text-center">User Profile</h1>
-        <p className="text-lg text-indigo-200 mb-8 text-center">
-          Create or choose your profile to begin cognitive activities
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-1 text-center">User Profile</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
+          Create or choose a profile to begin cognitive activities
         </p>
 
         {/* Existing Users Selection */}
         {existingUsers.length > 0 && (
-          <div className="mb-8 cosmic-card p-6">
-            <h2 className="text-xl font-semibold text-slate-200 mb-3">Select Existing Profile</h2>
-            <div className="flex flex-col gap-3">
-              {existingUsers.map(user => (
+          <div className="mb-6 card p-5">
+            <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">
+              Continue as Existing Profile
+            </h2>
+            <div className="space-y-2">
+              {existingUsers.map((u) => (
                 <button
-                  key={user.id}
-                  onClick={() => handleSelectUser(user)}
-                  className="flex items-center justify-between p-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-indigo-500/30 hover:border-indigo-400 transition-all text-left group"
+                  key={u.id}
+                  onClick={() => handleSelectUser(u)}
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-left flex items-center justify-between text-slate-900 dark:text-white transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center text-white font-bold">
-                      {user.display_name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white text-lg group-hover:text-indigo-300 transition-colors">
-                        {user.display_name}
-                      </h3>
-                      <p className="text-sm text-slate-400">
-                        Age: {user.age} • Language: {user.preferred_language.toUpperCase()}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                  <span className="font-bold text-sm">{u.display_name || u.name}</span>
+                  <ChevronRight size={16} className="text-slate-400" />
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Create Profile Form */}
-        <form onSubmit={handleSubmit} className="cosmic-card p-6 flex flex-col gap-5">
-          <h2 className="text-xl font-semibold text-slate-200 flex items-center gap-2">
-            <UserPlus size={20} className="text-indigo-400" /> Create New Profile
+        {/* Create Profile Card */}
+        <div className="card p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <UserPlus size={18} className="text-blue-600 dark:text-blue-400" />
+            <span>Create New Profile</span>
           </h2>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Display Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Ramesh Kumar"
-              className="w-full text-lg p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Age</label>
-            <input
-              type="number"
-              value={age}
-              onChange={e => setAge(e.target.value)}
-              placeholder="e.g. 72"
-              className="w-full text-lg p-3 rounded-xl bg-slate-900 border border-indigo-500/30 text-white focus:border-indigo-400 focus:outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Preferred Language</label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setPreferredLanguage('en')}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold border transition-all ${
-                  preferredLanguage === 'en'
-                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
-                    : 'bg-slate-900 border-indigo-500/20 text-slate-300 hover:border-indigo-400'
-                }`}
-              >
-                English
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreferredLanguage('hi')}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold border transition-all ${
-                  preferredLanguage === 'hi'
-                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
-                    : 'bg-slate-900 border-indigo-500/20 text-slate-300 hover:border-indigo-400'
-                }`}
-              >
-                हिन्दी (Hindi)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreferredLanguage('te')}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold border transition-all ${
-                  preferredLanguage === 'te'
-                    ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
-                    : 'bg-slate-900 border-indigo-500/20 text-slate-300 hover:border-indigo-400'
-                }`}
-              >
-                తెలుగు (Telugu)
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-indigo-500/20">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <span className="text-sm font-medium text-slate-200">Voice Assistant</span>
-              <p className="text-xs text-slate-400">Speak questions and feedback</p>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Senior Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Ramesh"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            <input
-              type="checkbox"
-              checked={voiceEnabled}
-              onChange={e => setVoiceEnabled(e.target.checked)}
-              className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-          </div>
 
-          <button
-            type="submit"
-            className="elderly-btn-primary w-full text-xl font-bold py-4 mt-2"
-          >
-            Create Profile & Start
-          </button>
-        </form>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Age</label>
+              <input
+                type="number"
+                required
+                min={40}
+                max={120}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="70"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Language</label>
+              <select
+                value={preferredLanguage}
+                onChange={(e) => setPreferredLanguage(e.target.value as Language)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="en">English (India)</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="elderly-btn-primary w-full text-base py-3 rounded-xl mt-2 flex items-center justify-center gap-2"
+            >
+              <span>Begin Cognitive Session</span>
+              <ChevronRight size={18} />
+            </button>
+          </form>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

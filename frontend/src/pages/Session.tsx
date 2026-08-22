@@ -4,7 +4,7 @@ import { Brain, ListOrdered, Search, Sparkles, CheckCircle, ChevronRight, ArrowL
 import { useTranslation } from '../i18n';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
-import { motion } from 'framer-motion';
+import ThemeToggle from '../components/ThemeToggle';
 
 const ACTIVITIES = [
   {
@@ -12,7 +12,7 @@ const ACTIVITIES = [
     type: 'memory_match',
     title: 'Memory Match',
     domain: 'Short-Term Memory',
-    desc: 'Match familiar celestial and daily symbols to stimulate working memory.',
+    desc: 'Match familiar symbols to stimulate working memory and recall.',
     icon: Brain,
     emoji: '🧠',
   },
@@ -48,7 +48,7 @@ const ACTIVITIES = [
 export default function Session() {
   const { t } = useTranslation();
   const { profileId } = useParams<{ profileId?: string }>();
-  const { currentUser, setCurrentUser, switchProfile, currentSession, setCurrentSession, currentDifficulty } = useApp();
+  const { currentUser, switchProfile, setCurrentSession, currentDifficulty } = useApp();
   const navigate = useNavigate();
 
   const [completedGames, setCompletedGames] = useState<string[]>(() => {
@@ -61,7 +61,6 @@ export default function Session() {
   });
   const [starting, setStarting] = useState(false);
 
-  // Initialize or recover active profile
   useEffect(() => {
     async function recoverProfile() {
       if (profileId) {
@@ -81,7 +80,6 @@ export default function Session() {
     recoverProfile();
   }, [profileId]);
 
-  // Ensure active session exists in backend/sessionStorage
   useEffect(() => {
     async function initSession() {
       if (!sessionId && currentUser) {
@@ -100,23 +98,16 @@ export default function Session() {
           const fallbackId = Date.now();
           setSessionId(fallbackId);
           sessionStorage.setItem('mindmitra_session_id', String(fallbackId));
-          setCurrentSession({
-            id: fallbackId,
-            user_id: currentUser.id,
-            started_at: new Date().toISOString(),
-            completed_at: null,
-            status: 'active',
-          });
         }
       }
     }
     initSession();
   }, [currentUser]);
 
-  // Check if any game was completed in previous step
   useEffect(() => {
     ACTIVITIES.forEach(a => {
-      if (sessionStorage.getItem(`mindmitra_game_done_${a.id}`) === 'true') {
+      const isDone = sessionStorage.getItem(`mindmitra_game_done_${a.id}`);
+      if (isDone === 'true') {
         setCompletedGames(prev => {
           if (!prev.includes(a.id)) {
             const next = [...prev, a.id];
@@ -133,7 +124,6 @@ export default function Session() {
     setStarting(true);
     let activeSid = sessionId;
 
-    // Ensure session ID is valid before launching
     if (!activeSid) {
       const uid = currentUser ? currentUser.id : 1;
       try {
@@ -181,33 +171,32 @@ export default function Session() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen p-6 md:p-12 relative z-10"
-    >
+    <div className="min-h-screen p-6 md:p-10 bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-8 text-center">
           <div className="flex justify-between items-center mb-6">
             <Link
               to="/caregiver"
-              className="inline-flex items-center gap-2 text-slate-300 hover:text-white px-4 py-2 bg-slate-900/80 rounded-xl border border-indigo-500/30 text-xs sm:text-sm font-semibold transition-all shadow"
+              className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3.5 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold transition-all shadow-xs"
             >
               <ArrowLeft size={16} /> Back to Overview
             </Link>
 
-            {currentUser && (
-              <span className="px-3.5 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-                👤 {currentUser.display_name || currentUser.name} (Age {currentUser.age})
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {currentUser && (
+                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold">
+                  👤 {currentUser.display_name || currentUser.name} (Age {currentUser.age})
+                </span>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight mb-2">
-            Today's Cognitive Exploration
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">
+            Today's Cognitive Session
           </h1>
-          <p className="text-sm sm:text-base text-slate-300">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
 
@@ -216,97 +205,94 @@ export default function Session() {
             <div className="mt-6">
               <button
                 onClick={handleStartFirstUnfinished}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white text-lg sm:text-xl font-bold shadow-xl shadow-indigo-600/30 inline-flex items-center gap-3 transition-all transform hover:scale-105"
+                className="elderly-btn-primary text-base sm:text-lg px-8 py-3.5 rounded-xl inline-flex items-center gap-2.5 shadow-md"
               >
-                <Play size={24} fill="currentColor" />
+                <Play size={20} fill="currentColor" />
                 <span>
                   {completedGames.length === 0 ? "Start Today's Session" : `Continue Session (${completedGames.length}/4 Completed)`}
                 </span>
-                <ChevronRight size={20} />
+                <ChevronRight size={18} />
               </button>
             </div>
           )}
         </header>
 
         {/* 4 Activities List */}
-        <div className="flex flex-col gap-4 sm:gap-5">
-          {ACTIVITIES.map((activity, index) => {
+        <div className="flex flex-col gap-4">
+          {ACTIVITIES.map((activity) => {
             const isCompleted = completedGames.includes(activity.id);
             const diff = currentDifficulty[activity.type as keyof typeof currentDifficulty] || 1;
 
             return (
-              <motion.div
+              <div
                 key={activity.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.08 }}
-                className={`cosmic-card p-5 sm:p-7 border-2 transition-all ${
+                className={`card p-5 sm:p-6 transition-all ${
                   isCompleted
-                    ? 'border-emerald-500/40 bg-emerald-950/20'
-                    : 'border-indigo-500/30 hover:border-indigo-400 bg-slate-900/70'
+                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20'
+                    : 'hover:border-blue-400 dark:hover:border-blue-600'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 sm:gap-5">
-                    <div className={`w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl text-3xl shrink-0 ${
-                      isCompleted
-                        ? 'bg-emerald-900/60 border border-emerald-400/40 text-emerald-300'
-                        : 'bg-indigo-900/40 border border-indigo-400/30 text-indigo-200'
-                    }`}>
-                      {isCompleted ? '✓' : activity.emoji}
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900 flex items-center justify-center text-2xl shrink-0">
+                      {activity.emoji}
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl sm:text-2xl font-bold text-white">{activity.title}</h2>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-950 border border-indigo-500/30 text-indigo-300 font-semibold font-mono">
-                          Level {diff}
-                        </span>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">{activity.title}</h2>
+                        {isCompleted && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                            <CheckCircle size={11} /> Completed
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs font-semibold text-indigo-300/90 mt-0.5">{activity.domain}</p>
-                      <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">{activity.desc}</p>
+                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">{activity.domain}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-md">{activity.desc}</p>
                     </div>
                   </div>
 
-                  <div className="flex sm:justify-end shrink-0">
-                    {!isCompleted ? (
-                      <button
-                        onClick={() => handleLaunchGame(activity.id)}
-                        className="elderly-btn-primary flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base py-3 px-6 rounded-xl"
-                      >
-                        <span>Play Activity</span>
-                        <ChevronRight size={18} />
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm sm:text-base font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-5 py-2.5 rounded-xl w-full sm:w-auto justify-center">
-                        <CheckCircle size={18} /> Completed
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                      Level {diff}
+                    </span>
+
+                    <button
+                      onClick={() => handleLaunchGame(activity.id)}
+                      className={`text-xs sm:text-sm font-bold py-2.5 px-5 rounded-xl inline-flex items-center gap-1.5 transition-all ${
+                        isCompleted
+                          ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
+                          : 'elderly-btn-primary'
+                      }`}
+                    >
+                      <span>{isCompleted ? 'Replay' : 'Play'}</span>
+                      <Play size={14} fill="currentColor" />
+                    </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
-        {/* Completion Action */}
-        <div className="mt-10 text-center">
-          {allCompleted ? (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+        {/* Complete Session Action */}
+        {allCompleted && (
+          <div className="mt-8 card p-6 text-center border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20">
+            <CheckCircle size={36} className="text-emerald-500 mx-auto mb-2" />
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">All 4 activities completed!</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 mb-4">
+              Session metrics and baseline calculations are ready for caregiver review.
+            </p>
+            <button
               onClick={handleCompleteSession}
-              className="elderly-btn-primary bg-gradient-to-r from-emerald-600 to-teal-600 text-xl sm:text-2xl font-bold py-5 px-10 rounded-2xl shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-3 mx-auto"
+              className="elderly-btn-primary text-sm py-3 px-8 rounded-xl inline-flex items-center gap-2"
             >
-              <span>✨ Complete Session & View Insights</span>
-            </motion.button>
-          ) : (
-            <div className="text-slate-400 text-xs sm:text-sm">
-              {completedGames.length} of {ACTIVITIES.length} activities completed today
-            </div>
-          )}
-        </div>
+              <span>Finish & View Report</span>
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }

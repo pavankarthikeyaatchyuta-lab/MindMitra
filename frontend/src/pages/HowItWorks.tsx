@@ -7,8 +7,6 @@ import {
   Cpu, 
   TrendingUp, 
   HeartHandshake, 
-  ListOrdered, 
-  Eye, 
   Sparkles, 
   ShieldCheck, 
   Lock, 
@@ -19,6 +17,7 @@ import {
   Clock 
 } from 'lucide-react';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
+import ThemeToggle from '../components/ThemeToggle';
 import { useApp } from '../context/AppContext';
 
 export default function HowItWorks() {
@@ -26,29 +25,34 @@ export default function HowItWorks() {
   const { caregiver } = useApp();
 
   return (
-    <div className="min-h-screen relative z-10 flex flex-col text-slate-100 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-xl border-b border-indigo-500/20 px-6 py-4">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 transition-colors">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="p-2 rounded-xl bg-slate-900 border border-indigo-500/20 text-slate-300 hover:text-white">
-              <ArrowLeft size={20} />
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              title="Back to Home"
+            >
+              <ArrowLeft size={18} />
             </button>
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow">
-                <Brain size={20} />
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs">
+                <Brain size={18} />
               </div>
-              <span className="text-lg font-bold text-white">MindMitra</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">MindMitra</span>
             </Link>
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {caregiver ? (
               <CaregiverAccountMenu />
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold shadow transition-all"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition-all"
               >
                 Caregiver Sign In
               </Link>
@@ -58,161 +62,130 @@ export default function HowItWorks() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-6 py-12 flex-grow">
+      <main className="max-w-4xl mx-auto px-6 py-10 flex-grow">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-4">
-            <Layers size={14} className="text-indigo-400" />
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider mb-3">
+            <Layers size={13} className="text-blue-600 dark:text-blue-400" />
             <span>Product Architecture & Cognitive Science</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             How MindMitra Works
           </h1>
-          <p className="text-slate-300 text-base sm:text-lg mt-4 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base mt-3 max-w-xl mx-auto leading-relaxed">
             A comprehensive overview of MindMitra's cognitive activities, machine-learning adaptive engine, longitudinal trend math, and explainable AI insights.
           </p>
         </div>
 
         {/* Step 1: Cognitive Exercises */}
-        <section className="mb-16 cosmic-card p-8 border border-indigo-500/30">
+        <section className="mb-8 card p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 font-bold">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
               01
             </div>
-            <h2 className="text-2xl font-bold text-white">Engaging, Dignified Cognitive Exercises</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Engaging, Dignified Cognitive Exercises</h2>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed mb-6">
-            Four activities target specific cognitive domains without causing clinical anxiety or feeling like medical tests:
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
+            Four activities target specific cognitive domains without causing anxiety:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-              <strong className="text-white text-sm block mb-1">1. Memory Match</strong>
-              <span className="text-indigo-300 font-semibold block mb-1.5">Short-Term Memory</span>
-              <p className="text-slate-400">Card-matching exercise assessing working memory latency, card flip frequency, and repeat error counts.</p>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <strong className="text-slate-900 dark:text-white text-sm block mb-1">1. Memory Match</strong>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold block mb-1.5">Short-Term Memory</span>
+              <p className="text-slate-600 dark:text-slate-400">Card-matching exercise assessing working memory latency, card flip frequency, and repeat error counts.</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-              <strong className="text-white text-sm block mb-1">2. Daily Routine Recall</strong>
-              <span className="text-indigo-300 font-semibold block mb-1.5">Sequential & Episodic Memory</span>
-              <p className="text-slate-400">Chronological re-ordering of everyday tasks (morning tea, medication, walking, dinner) evaluating logical procedural memory.</p>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <strong className="text-slate-900 dark:text-white text-sm block mb-1">2. Daily Routine Recall</strong>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold block mb-1.5">Sequential & Episodic Memory</span>
+              <p className="text-slate-600 dark:text-slate-400">Chronological re-ordering of everyday tasks (morning tea, medication, walking, dinner) evaluating logical procedural memory.</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-              <strong className="text-white text-sm block mb-1">3. Object & Face Recognition</strong>
-              <span className="text-indigo-300 font-semibold block mb-1.5">Visual & Familiar-Person Recognition</span>
-              <p className="text-slate-400">Household item recognition combined with private, caregiver-uploaded photographs of family members and loved ones.</p>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <strong className="text-slate-900 dark:text-white text-sm block mb-1">3. Object & Face Recognition</strong>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold block mb-1.5">Visual & Semantic Recognition</span>
+              <p className="text-slate-600 dark:text-slate-400">Distinguishing household objects and recognizing caregiver-uploaded family member photos with verified consent.</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-              <strong className="text-white text-sm block mb-1">4. Pattern Recall</strong>
-              <span className="text-indigo-300 font-semibold block mb-1.5">Pattern Recognition & Attention</span>
-              <p className="text-slate-400">Pattern progression and symbol recognition measuring sustained attention and cognitive flexibility.</p>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <strong className="text-slate-900 dark:text-white text-sm block mb-1">4. Pattern Recall</strong>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold block mb-1.5">Pattern Attention & Recall</span>
+              <p className="text-slate-600 dark:text-slate-400">Memorizing and identifying geometric symbol sequences to measure sustained focus and spatial working memory.</p>
             </div>
           </div>
         </section>
 
-        {/* Step 2: Telemetry & Adaptive RandomForest Model */}
-        <section className="mb-16 cosmic-card p-8 border border-indigo-500/30">
+        {/* Step 2: Machine Learning Adaptive Engine */}
+        <section className="mb-8 card p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-300 font-bold">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
               02
             </div>
-            <h2 className="text-2xl font-bold text-white">Real-Time Telemetry & Adaptive ML</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Real-Time Machine Learning Difficulty Engine</h2>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed mb-6">
-            During each activity, MindMitra silently records 7 granular behavioral telemetry signals:
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            MindMitra uses a trained supervised <strong>Random Forest Classifier</strong> (`ml/model.pkl`) to adapt task difficulty (Level 1–5) based on gameplay telemetry.
           </p>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center mb-6">
-            {[
-              { label: 'Accuracy', value: 'Correct %' },
-              { label: 'Response Latency', value: 'Mean Time (ms)' },
-              { label: 'Latency Variance', value: 'Consistency' },
-              { label: 'Repeat Errors', value: 'Error Frequency' },
-              { label: 'Correction Rate', value: 'Self-Adjustment' },
-              { label: 'Completion Time', value: 'Overall Duration' },
-              { label: 'Current Level', value: 'Difficulty 1-5' },
-              { label: 'Recent Trend', value: 'Slope Δ' },
-            ].map((f, i) => (
-              <div key={i} className="p-3 bg-slate-900 rounded-xl border border-indigo-500/20">
-                <div className="text-xs font-bold text-white">{f.label}</div>
-                <div className="text-[10px] text-indigo-300 mt-0.5">{f.value}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-slate-300 leading-relaxed">
-            <strong className="text-white block mb-1">RandomForest Classifier Engine:</strong>
-            Trained on 5,000+ gameplay simulations, the model outputs adaptive recommendations (<span className="text-emerald-400 font-bold">INCREASE</span>, <span className="text-blue-400 font-bold">MAINTAIN</span>, or <span className="text-amber-400 font-bold">DECREASE</span>) along with transparent feature importances and confidence scores.
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+            Features Analyzed: Accuracy • Response Latency (ms) • Response Time Variance • Repeat Error Rate • Self-Correction Rate • Completion Duration
           </div>
         </section>
 
-        {/* Step 3: Personal Baselines & Longitudinal Trends */}
-        <section className="mb-16 cosmic-card p-8 border border-indigo-500/30">
+        {/* Step 3: Longitudinal Baseline Engine */}
+        <section className="mb-8 card p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300 font-bold">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
               03
             </div>
-            <h2 className="text-2xl font-bold text-white">Personal Baselines & Trend Analysis</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Personal Baseline & Longitudinal Trend Engine</h2>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed mb-6">
-            Instead of comparing elderly users against generic population standards, MindMitra establishes a <strong>personalized baseline</strong> using the median and interquartile range over the senior's last 5-10 sessions.
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            Rather than comparing seniors against arbitrary population averages, MindMitra calculates a <strong>rolling personal median baseline</strong> from the user's last 5–10 valid sessions.
           </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-900 border border-emerald-500/30">
-              <span className="text-emerald-300 font-bold block mb-1">Stable Pattern</span>
-              <p className="text-slate-400">Current accuracy within established personal median range ($\pm 10\%$). Difficulty smoothly adjusted.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900 border border-amber-500/30">
-              <span className="text-amber-300 font-bold block mb-1">Recent Change Observation</span>
-              <p className="text-slate-400">Persistent drop below baseline across $\ge 2$ consecutive eligible sessions at the same or lower difficulty.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900 border border-blue-500/30">
-              <span className="text-blue-300 font-bold block mb-1">Improving Trajectory</span>
-              <p className="text-slate-400">Consistent performance progression and prompt response times exceeding established baseline.</p>
-            </div>
-          </div>
+          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+              <span><strong>Stable:</strong> Performance conforms to the established personal baseline range.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-blue-500 shrink-0 mt-0.5" />
+              <span><strong>Improving:</strong> Accuracy or speed consistently exceeds the historical median.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-amber-500 shrink-0 mt-0.5" />
+              <span><strong>Recent Change:</strong> Significant deviation (&gt;15–20%) detected across consecutive sessions.</span>
+            </li>
+          </ul>
         </section>
 
-        {/* Step 4: Caregiver Explainable AI & Routine Reminders */}
-        <section className="cosmic-card p-8 border border-indigo-500/30">
+        {/* Step 4: Explainability & Medical Guardrails */}
+        <section className="mb-8 card p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-pink-600/30 border border-pink-400/40 flex items-center justify-center text-pink-300 font-bold">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
               04
             </div>
-            <h2 className="text-2xl font-bold text-white">Explainable AI Insights & Caregiver Support</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">3-Tier Explainable AI & Non-Diagnostic Guardrails</h2>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed mb-6">
-            MindMitra converts raw metrics into clear, actionable, structured explanations for caregivers without medical jargon:
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            Caregiver summaries are generated using a 3-tier cascade (Tier 1: Google Gemini 2.0 Flash ➔ Tier 2: Nemotron-3 Super ➔ Tier 3: Deterministic Rule-Based Engine).
           </p>
-
-          <div className="p-5 rounded-2xl bg-slate-950 border border-indigo-500/20 text-xs space-y-2">
-            <div className="flex items-center justify-between text-indigo-300 font-bold">
-              <span>Structured Insight Format</span>
-              <span className="text-[10px] text-slate-500">Gemini 2.0 Flash + Deterministic Guardrails</span>
-            </div>
-            <p className="text-slate-300"><strong className="text-white">1. What Changed:</strong> Identification of the specific domain and baseline deviation.</p>
-            <p className="text-slate-300"><strong className="text-white">2. Why Highlighted:</strong> Evidence delta (e.g. 3 of last 4 sessions below baseline, +29% response latency).</p>
-            <p className="text-slate-300"><strong className="text-white">3. Interpretation:</strong> Plain-language behavioral observation explaining that this indicates recent game variation, not a clinical diagnosis.</p>
-            <p className="text-slate-300"><strong className="text-white">4. Suggested Action:</strong> Recommends continued observation or discussing persistent patterns with healthcare professionals.</p>
+          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-3">
+            <ShieldCheck size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <span>
+              <strong>Medical Disclaimer:</strong> MindMitra is strictly an assistive cognitive wellness companion and does NOT provide clinical diagnoses.
+            </span>
           </div>
         </section>
 
-        {/* Bottom CTA */}
-        <div className="mt-16 text-center">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-base font-bold shadow-xl shadow-indigo-600/25"
+        {/* Call to Action */}
+        <div className="text-center pt-4">
+          <button
+            onClick={() => navigate('/login')}
+            className="elderly-btn-primary text-base py-3.5 px-8 rounded-xl inline-flex items-center gap-2 shadow-sm"
           >
-            <span>Experience MindMitra Now</span>
+            <span>Get Started with MindMitra</span>
             <ArrowRight size={18} />
-          </Link>
+          </button>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-indigo-500/20 py-8 px-6 text-center text-xs text-slate-500">
-        <p>© 2026 MindMitra. Designed for dignified cognitive wellbeing and caregiver assistance.</p>
-      </footer>
     </div>
   );
 }
