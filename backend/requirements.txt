@@ -1,10 +1,6 @@
 fastapi
-uvicorn[standard]
+uvicorn
 python-dotenv
 aiohttp
-pandas
-numpy
-scikit-learn
-joblib
 pydantic
 psycopg2-binary

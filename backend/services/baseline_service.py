@@ -4,7 +4,7 @@ Calculates domain-specific personal baseline metrics using robust statistical me
 from historical eligible sessions (excluding the current session).
 """
 
-import numpy as np
+import statistics
 from typing import List, Dict, Any, Optional
 
 def calculate_personal_baseline(prior_eligible_sessions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -35,20 +35,20 @@ def calculate_personal_baseline(prior_eligible_sessions: List[Dict[str, Any]]) -
         return None
 
     # Robust baseline calculations (Median & Mean)
-    acc_median = float(np.median(accuracies))
-    acc_mean = float(np.mean(accuracies))
-    acc_std = float(np.std(accuracies)) if len(accuracies) > 1 else 0.0
-    acc_min = float(np.min(accuracies))
-    acc_max = float(np.max(accuracies))
+    acc_median = float(statistics.median(accuracies))
+    acc_mean = float(statistics.mean(accuracies))
+    acc_std = float(statistics.stdev(accuracies)) if len(accuracies) > 1 else 0.0
+    acc_min = float(min(accuracies))
+    acc_max = float(max(accuracies))
 
-    latency_median = float(np.median(latencies))
-    latency_mean = float(np.mean(latencies))
-    latency_std = float(np.std(latencies)) if len(latencies) > 1 else 0.0
+    latency_median = float(statistics.median(latencies))
+    latency_mean = float(statistics.mean(latencies))
+    latency_std = float(statistics.stdev(latencies)) if len(latencies) > 1 else 0.0
 
-    repeat_error_median = float(np.median(repeat_error_rates))
-    correction_median = float(np.median(correction_rates))
-    completion_time_median = float(np.median(completion_times)) if completion_times else 0.0
-    typical_difficulty = int(round(float(np.median(difficulties)))) if difficulties else 1
+    repeat_error_median = float(statistics.median(repeat_error_rates))
+    correction_median = float(statistics.median(correction_rates))
+    completion_time_median = float(statistics.median(completion_times)) if completion_times else 0.0
+    typical_difficulty = int(round(float(statistics.median(difficulties)))) if difficulties else 1
 
     return {
         "sessions_used": len(prior_eligible_sessions),

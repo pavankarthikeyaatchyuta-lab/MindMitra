@@ -5,7 +5,6 @@ difficulty context analysis, and structured machine-readable reason code generat
 """
 
 from typing import List, Dict, Any, Optional
-import numpy as np
 
 from .config import (
     MIN_TREND_SESSIONS,
