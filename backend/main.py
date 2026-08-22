@@ -252,7 +252,7 @@ def init_db():
             pwd_hash = hash_password("mindmitra123")
             c.execute("""
                 INSERT INTO caregivers (id, name, email, password_hash, created_at, updated_at, active)
-                VALUES (1, 'Pavan Kumar', 'pavan@mindmitra.com', ?, ?, ?, 1)
+                VALUES (1, 'Pavan Kumar', 'pavan@mindmitra.com', ?, ?, ?, TRUE)
             """, (pwd_hash, now, now))
 
         sync_postgres_sequences(conn)
@@ -393,7 +393,7 @@ def register_caregiver(req: CaregiverRegister):
         pwd_hash = hash_password(req.password)
         c.execute("""
             INSERT INTO caregivers (name, email, password_hash, created_at, updated_at, active)
-            VALUES (?, ?, ?, ?, ?, 1)
+            VALUES (?, ?, ?, ?, ?, TRUE)
         """, (name, email, pwd_hash, now, now))
         conn.commit()
         caregiver_id = c.lastrowid
@@ -530,15 +530,15 @@ def create_elderly_profile(p: ProfileCreate, current=Depends(get_current_caregiv
         c = conn.cursor()
         c.execute("""
             INSERT INTO elderly_profiles (caregiver_id, name, age, preferred_language, voice_enabled, created_at, updated_at, active, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'active')
-        """, (caregiver_id, p.name.strip(), p.age, p.preferred_language, 1 if p.voice_enabled else 0, now, now))
+            VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'active')
+        """, (caregiver_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now, now))
         profile_id = c.lastrowid
 
         # Sync to users table for backward compat
         c.execute("""
             INSERT INTO users (id, display_name, age, preferred_language, voice_enabled, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (profile_id, p.name.strip(), p.age, p.preferred_language, 1 if p.voice_enabled else 0, now))
+        """, (profile_id, p.name.strip(), p.age, p.preferred_language, p.voice_enabled, now))
         conn.commit()
 
         return {
@@ -1033,7 +1033,7 @@ def add_familiar_person(fp: FamiliarPersonCreate, current=Depends(get_current_ca
             c.execute("""
                 INSERT INTO familiar_people (user_id, name, relationship, photo_url, consent_confirmed, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (fp.user_id, fp.name.strip(), fp.relationship.strip(), fp.photo_url, 1 if fp.consent_confirmed else 0, now))
+            """, (fp.user_id, fp.name.strip(), fp.relationship.strip(), fp.photo_url, fp.consent_confirmed, now))
             conn.commit()
             new_id = c.lastrowid
             logger.info(f"[POST /api/familiar-people] 201 Created: new_id={new_id} profile_id={fp.user_id} caregiver_id={caregiver_id}")
