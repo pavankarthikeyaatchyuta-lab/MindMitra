@@ -236,7 +236,10 @@ def init_db():
 
 @app.on_event("startup")
 def startup_event():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        logger.error(f"[Startup Fail] Database initialization failed: {e}")
 
 # --- AUTH DEPENDENCY ---
 
