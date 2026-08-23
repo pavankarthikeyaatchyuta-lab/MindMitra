@@ -115,8 +115,8 @@ export default function ConnectHub() {
       // Check online presence for MindMitra contacts
       const presenceMap: Record<number, boolean> = {};
       for (const conn of conns) {
-        const targetId = conn.target_user_id || conn.contact_user_id;
-        if (conn.contact_type === 'mindmitra_user' && targetId) {
+        const targetId = Number(conn.target_user_id || conn.contact_user_id);
+        if (targetId && !isNaN(targetId) && targetId > 0) {
           try {
             const pres = await api.getCallPresence(targetId);
             presenceMap[conn.id] = pres.online;
@@ -138,8 +138,8 @@ export default function ConnectHub() {
     if (!connections.length) return;
     const presenceMap: Record<number, boolean> = {};
     for (const conn of connections) {
-      const targetId = conn.target_user_id || conn.contact_user_id;
-      if (conn.contact_type === 'mindmitra_user' && targetId) {
+      const targetId = Number(conn.target_user_id || conn.contact_user_id);
+      if (targetId && !isNaN(targetId) && targetId > 0) {
         try {
           const pres = await api.getCallPresence(targetId);
           presenceMap[conn.id] = pres.online;

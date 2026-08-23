@@ -1185,7 +1185,7 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
 @app.post("/api/presence/heartbeat")
 @app.post("/presence/heartbeat")
 def record_presence_heartbeat(req: HeartbeatRequest, current=Depends(get_current_caregiver)):
-    now = datetime.datetime.now().isoformat()
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     with get_db() as conn:
         c = conn.cursor()
         c.execute("DELETE FROM active_presence WHERE user_id = ?", (req.user_id,))
@@ -1227,13 +1227,20 @@ def get_call_presence(target_id: int):
             last_seen_str = str(raw_ts) if raw_ts else None
             last_seen_dt = parse_heartbeat_timestamp(raw_ts)
             if last_seen_dt:
-                now_utc = datetime.datetime.utcnow()
+                now_utc = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
                 now_local = datetime.datetime.now()
                 diff_utc = (now_utc - last_seen_dt).total_seconds()
                 diff_local = (now_local - last_seen_dt).total_seconds()
-                # Online if within 25 seconds (with 5s clock-drift tolerance)
-                if (-5 <= diff_utc <= 25) or (-5 <= diff_local <= 25):
+                if abs(diff_utc) <= 45 or abs(diff_local) <= 45 or (-10 <= diff_utc <= 45):
                     is_online = True
+        
+        if not is_online and target_id in user_presence:
+            mem_dt = parse_heartbeat_timestamp(user_presence[target_id])
+            if mem_dt:
+                now_utc = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+                if abs((now_utc - mem_dt).total_seconds()) <= 45:
+                    is_online = True
+
         return {"target_id": target_id, "online": is_online, "last_seen": last_seen_str}
 
 @app.post("/api/call/signal")
