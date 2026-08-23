@@ -2049,3 +2049,40 @@ def get_debug_realtime_status(current=Depends(get_current_caregiver)):
             "presences": presences,
             "recent_signals": recent_signals
         }
+
+@app.get("/api/debug/test-signal")
+@app.get("/debug/test-signal")
+def debug_test_signal():
+    import traceback
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            # Ensure call_signals table exists
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS call_signals (
+                    id SERIAL PRIMARY KEY,
+                    call_id TEXT,
+                    caller_profile_id INTEGER,
+                    caller_name TEXT,
+                    caller_relationship TEXT,
+                    target_user_id INTEGER,
+                    signal_type TEXT,
+                    payload TEXT,
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP
+                )
+            """)
+            conn.commit()
+            
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            c.execute("""
+                INSERT INTO call_signals (call_id, caller_profile_id, caller_name, caller_relationship, target_user_id, signal_type, payload, status, created_at)
+                VALUES ('test_call', 1, 'Polayya', 'Neighbor', 2, 'offer', '{}', 'pending', ?)
+            """, (now,))
+            conn.commit()
+
+            c.execute("SELECT * FROM call_signals WHERE target_user_id = 2")
+            rows = [dict(r) for r in c.fetchall()]
+            return {"status": "ok", "rows": rows}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
