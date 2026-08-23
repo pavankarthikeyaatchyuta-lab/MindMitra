@@ -26,13 +26,59 @@
 ---
 
 > 🌐 **Live Web Application**: [https://mind-mitra-sigma.vercel.app/](https://mind-mitra-sigma.vercel.app/)  
-> 💬 **Tagline**: *"An AI companion for cognitive wellbeing."*
+> 💬 **Core Philosophy**: *"We are not monetizing screen time; we are monetizing better elderly care, dignified engagement, and caregiver peace of mind."*
 
-MindMitra is an AI/ML-assisted cognitive wellness, community engagement, and memory companion designed specifically for older adults and their caregivers. Built around the core architecture of **One Caregiver $\rightarrow$ Multiple Elderly Profiles**, MindMitra unifies three vital caregiving dimensions:
+MindMitra is a **B2C and B2B2C cognitive-wellness and memory companion platform** designed specifically for older adults, family caregivers, and elder-care organizations. Built around the core architecture of **One Caregiver $\rightarrow$ Multiple Elderly Profiles**, MindMitra unifies three vital caregiving dimensions:
 
 1. 🏡 **Home Mode**: Daily individual cognitive workouts with adaptive machine learning, personal baselines, and explainable AI.
 2. 👥 **Community Mode**: Facilitator-led group cognitive and social sessions with Pass-and-Play rotation and real activity telemetry.
 3. 📞 **Connect Mode**: Account-to-account real-time WebRTC voice calling, live presence detection, and private memory story archives.
+
+---
+
+## 💼 Business Model & Market Strategy
+
+MindMitra operates on a **caregiver-first business model**. The primary beneficiary is the elderly individual, while the paying customer is the family caregiver, senior community center, NGO, or assisted living facility.
+
+```
+                                    MINDMITRA ECOSYSTEM
+                                             │
+      ┌──────────────────────────────────────┼──────────────────────────────────────┐
+      ▼                                      ▼                                      ▼
+1. B2C — FAMILIES                   2. B2B2C — COMMUNITIES / NGOs          3. B2B — CARE FACILITIES
+   ├── 1 Caregiver $\rightarrow$ Many Parents  ├── 1 Facilitator $\rightarrow$ Group Circle    ├── Multi-Resident Oversight
+   ├── Convenience & Personalization      ├── Shared Single-Device Model         ├── Structured Workflow Integration
+   └── Longitudinal Peace of Mind         └── Scalable Hybrid Group Sessions     └── Multi-Caregiver Coordination
+```
+
+### 👥 The 3 Customer Segments
+
+1. **B2C — Family Caregivers**:
+   - A son, daughter, or guardian supports multiple aging parents or grandparents from one unified account.
+   - **Value Driver**: Families pay for convenience, personalization, longitudinal visibility, and peace of mind — not simply games.
+2. **B2B2C — Senior Communities & NGOs**:
+   - Senior activity centers do not require a separate smartphone for every resident. One facilitator manages group sessions using a shared device paired with offline interaction.
+   - **Value Driver**: Scalable activity scheduling, participant management, and structured community session tools.
+3. **B2B — Assisted Living & Professional Care Facilities**:
+   - Elder-care residences manage dozens of residents and care staff across structured shifts.
+   - **Value Driver**: Operational compliance, standardized cognitive enrichment workflows, and care audit logging.
+
+### 💰 Revenue Model
+
+```
+                                   MINDMITRA REVENUE
+                                          │
+    ┌─────────────────────┬───────────────┴───────────────┬─────────────────────┐
+    ▼                     ▼                               ▼                     ▼
+FAMILY SUBSCRIPTION   COMMUNITY SUBSCRIPTION    CARE FACILITY LICENSE    OPTIONAL ACTIVITY KITS
+(B2C Recurring SaaS)  (B2B2C Organization SaaS) (B2B Enterprise SaaS)    (Physical Hybrid Add-on)
+- Multi-profile access - Facilitator dashboard   - Multi-caregiver roles  - Physical puzzle boards
+- AI baseline insights - Group session tools     - Compliance reporting   - Memory prompt cards
+- WebRTC voice calling - Offline session cache   - Priority telemetry     - Tactile sensory tools
+```
+
+- **Tiered Recurring Subscriptions**: Pricing scales with the number of managed elderly profiles, active participants, caregiver seats, and facility size, calibrated through ongoing pilot validation.
+- **Physical Activity Kits**: Tangible offline activity kits (wooden sequence blocks, themed memory flashcards, art canvases) complementing the digital platform.
 
 ---
 
