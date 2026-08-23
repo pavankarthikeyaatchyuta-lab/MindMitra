@@ -1,3 +1,61 @@
+
+// Web Audio Tone Synthesizers for Ringtone & Ringback
+let ringAudioCtx: AudioContext | null = null;
+let ringOscillator: OscillatorNode | null = null;
+let ringGain: GainNode | null = null;
+let ringInterval: any = null;
+
+function playRingtone() {
+  stopRingtone();
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    ringAudioCtx = new AudioContextClass();
+    
+    const playPulse = () => {
+      if (!ringAudioCtx || ringAudioCtx.state === 'closed') return;
+      try {
+        const osc1 = ringAudioCtx.createOscillator();
+        const osc2 = ringAudioCtx.createOscillator();
+        const gain = ringAudioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime); // A4
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime); // B4
+
+        gain.gain.setValueAtTime(0.12, ringAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ringAudioCtx.currentTime + 1.2);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ringAudioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(ringAudioCtx.currentTime + 1.2);
+        osc2.stop(ringAudioCtx.currentTime + 1.2);
+      } catch (e) {}
+    };
+
+    playPulse();
+    ringInterval = setInterval(playPulse, 2500);
+  } catch (e) {}
+}
+
+function stopRingtone() {
+  if (ringInterval) {
+    clearInterval(ringInterval);
+    ringInterval = null;
+  }
+  if (ringAudioCtx && ringAudioCtx.state !== 'closed') {
+    try {
+      ringAudioCtx.close();
+    } catch (e) {}
+    ringAudioCtx = null;
+  }
+}
+
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { api } from '../services/api';
 import { useAppContext } from './AppContext';
@@ -221,6 +279,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }, 2500);
     }
   };
+
+  // Sound effects on call state change
+  useEffect(() => {
+    if (callState === 'RINGING' || callState === 'CALLING') {
+      playRingtone();
+    } else {
+      stopRingtone();
+    }
+    return () => {
+      stopRingtone();
+    };
+  }, [callState]);
 
   // Action: Start Outgoing Call
   const startCall = async (contact: TrustedConnection) => {
