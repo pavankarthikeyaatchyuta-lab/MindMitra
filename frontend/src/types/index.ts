@@ -196,6 +196,7 @@ export interface CommunitySession {
   notes?: string;
   participant_count?: number;
   participants?: CommunityParticipant[];
+  profile_ids?: number[];
   participant_notes?: string;
   attended?: boolean;
 }

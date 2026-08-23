@@ -189,15 +189,19 @@ export const api = {
   },
 
   // Community Mode
-  startCommunitySession: (name: string, activityType: string, profileIds: number[], notes?: string) =>
-    fetchJSON<CommunitySession>('/community/sessions/start', {
+  startCommunitySession: (name: string, activityType: string, profileIds: number[], notes?: string, forceNew?: boolean) =>
+    fetchJSON<CommunitySession & { reused?: boolean }>('/community/sessions/start', {
       method: 'POST',
-      body: JSON.stringify({ name, activity_type: activityType, profile_ids: profileIds, notes }),
+      body: JSON.stringify({ name, activity_type: activityType, profile_ids: profileIds, notes, force_new: !!forceNew }),
     }),
   completeCommunitySession: (id: number, durationMinutes?: number, notes?: string, participantNotes?: Record<string, string>) =>
     fetchJSON<{ status: string; id: number }>(`/community/sessions/${id}/complete`, {
       method: 'POST',
       body: JSON.stringify({ duration_minutes: durationMinutes, notes, participant_notes: participantNotes }),
+    }),
+  abandonCommunitySession: (id: number) =>
+    fetchJSON<{ status: string; id: number }>(`/community/sessions/${id}/abandon`, {
+      method: 'POST',
     }),
   getCaregiverCommunitySessions: (caregiverId: number) =>
     fetchJSON<CommunitySession[]>(`/community/sessions/caregiver/${caregiverId}`, {}, `community_caregiver_${caregiverId}`),
@@ -213,6 +217,20 @@ export const api = {
     fetchJSON<{ id: number; status: string }>('/connections', { method: 'POST', body: JSON.stringify(conn) }),
   deleteTrustedConnection: (id: number) =>
     fetchJSON<{ status: string; id: number }>(`/connections/${id}`, { method: 'DELETE' }),
+
+  // WebRTC Audio Call Signaling
+  sendCallSignal: (caller_profile_id: number, recipient_profile_id: number, signal_type: string, payload?: any, call_id?: string) =>
+    fetchJSON<{ status: string; signal_type: string }>('/call/signal', {
+      method: 'POST',
+      body: JSON.stringify({ caller_profile_id, recipient_profile_id, signal_type, payload, call_id })
+    }),
+  pollCallSignals: (profileId: number) =>
+    fetchJSON<{ signals: Array<{ caller_profile_id: number; recipient_profile_id: number; signal_type: string; payload?: any; call_id?: string; timestamp: string }>; profile_id: number }>(`/call/signals/${profileId}`),
+  endCallSignal: (caller_profile_id: number, recipient_profile_id: number) =>
+    fetchJSON<{ status: string }>('/call/end', {
+      method: 'POST',
+      body: JSON.stringify({ caller_profile_id, recipient_profile_id, signal_type: 'hangup' })
+    }),
 
   // Memory Stories
   getProfileStories: (profileId: number) =>

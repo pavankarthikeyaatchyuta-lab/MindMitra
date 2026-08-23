@@ -864,6 +864,7 @@ class StartCommunitySessionRequest(BaseModel):
     activity_type: str
     profile_ids: List[int]
     notes: Optional[str] = None
+    force_new: Optional[bool] = False
 
 class CompleteCommunitySessionRequest(BaseModel):
     duration_minutes: Optional[int] = None
@@ -892,16 +893,51 @@ class MemoryStoryRequest(BaseModel):
     category: Optional[str] = "Life Memory"
     is_private: Optional[bool] = True
 
+class WebRTCSignalRequest(BaseModel):
+    caller_profile_id: int
+    recipient_profile_id: int
+    signal_type: str
+    payload: Optional[Dict[str, Any]] = None
+    call_id: Optional[str] = None
+
+# In-memory WebRTC signaling queue (recipient_profile_id -> signal messages)
+call_signals_queue: Dict[int, List[Dict[str, Any]]] = {}
+
 @app.post("/api/community/sessions/start")
 @app.post("/community/sessions/start")
 def start_community_session(req: StartCommunitySessionRequest, current=Depends(get_current_caregiver)):
     caregiver_id = current["caregiver_id"] if current else 1
-    now = datetime.datetime.now().isoformat()
+    now_dt = datetime.datetime.now()
+    now = now_dt.isoformat()
+    four_hours_ago = (now_dt - datetime.timedelta(hours=4)).isoformat()
+
     with get_db() as conn:
         c = conn.cursor()
+
+        # Check for duplicate / already in_progress session if not forcing new
+        if not req.force_new:
+            c.execute("""
+                SELECT id, name, activity_type, started_at, status FROM community_sessions
+                WHERE caregiver_id = ? AND status IN ('active', 'in_progress') AND started_at >= ?
+                ORDER BY id DESC LIMIT 1
+            """, (caregiver_id, four_hours_ago))
+            existing = c.fetchone()
+            if existing:
+                c.execute("SELECT profile_id FROM community_participants WHERE community_session_id = ?", (existing["id"],))
+                pids = [r["profile_id"] for r in c.fetchall()]
+                return {
+                    "id": existing["id"],
+                    "name": existing["name"],
+                    "activity_type": existing["activity_type"],
+                    "started_at": existing["started_at"],
+                    "status": "in_progress",
+                    "profile_ids": pids if pids else req.profile_ids,
+                    "reused": True
+                }
+
         c.execute("""
             INSERT INTO community_sessions (caregiver_id, name, activity_type, started_at, status, notes)
-            VALUES (?, ?, ?, ?, 'active', ?)
+            VALUES (?, ?, ?, ?, 'in_progress', ?)
         """, (caregiver_id, req.name, req.activity_type, now, req.notes or ""))
         session_id = c.lastrowid
 
@@ -912,7 +948,7 @@ def start_community_session(req: StartCommunitySessionRequest, current=Depends(g
             """, (session_id, pid))
         conn.commit()
 
-    return {"id": session_id, "name": req.name, "activity_type": req.activity_type, "started_at": now, "profile_ids": req.profile_ids}
+    return {"id": session_id, "name": req.name, "activity_type": req.activity_type, "started_at": now, "status": "in_progress", "profile_ids": req.profile_ids, "reused": False}
 
 @app.post("/api/community/sessions/{id}/complete")
 @app.post("/community/sessions/{id}/complete")
@@ -940,6 +976,16 @@ def complete_community_session(id: int, req: CompleteCommunitySessionRequest, cu
 
         conn.commit()
     return {"status": "completed", "id": id, "completed_at": now}
+
+@app.post("/api/community/sessions/{id}/abandon")
+@app.post("/community/sessions/{id}/abandon")
+def abandon_community_session(id: int, current=Depends(get_current_caregiver)):
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("UPDATE community_sessions SET completed_at = ?, status = 'abandoned' WHERE id = ?", (now, id))
+        conn.commit()
+    return {"status": "abandoned", "id": id, "completed_at": now}
 
 @app.get("/api/community/sessions/caregiver/{caregiver_id}")
 @app.get("/community/sessions/caregiver/{caregiver_id}")
@@ -1037,6 +1083,41 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
         c.execute("DELETE FROM trusted_connections WHERE id = ?", (id,))
         conn.commit()
         return {"status": "deleted", "id": id}
+
+# --- ENDPOINTS: WEBRTC CALL SIGNALING ---
+
+@app.post("/api/call/signal")
+@app.post("/call/signal")
+def send_call_signal(req: WebRTCSignalRequest, current=Depends(get_current_caregiver)):
+    recipient_id = req.recipient_profile_id
+    if recipient_id not in call_signals_queue:
+        call_signals_queue[recipient_id] = []
+    
+    # Store message with timestamp
+    signal_msg = {
+        "caller_profile_id": req.caller_profile_id,
+        "recipient_profile_id": req.recipient_profile_id,
+        "signal_type": req.signal_type,
+        "payload": req.payload,
+        "call_id": req.call_id or f"call_{req.caller_profile_id}_{req.recipient_profile_id}",
+        "timestamp": datetime.datetime.now().isoformat()
+    }
+    call_signals_queue[recipient_id].append(signal_msg)
+    return {"status": "queued", "signal_type": req.signal_type}
+
+@app.get("/api/call/signals/{profile_id}")
+@app.get("/call/signals/{profile_id}")
+def poll_call_signals(profile_id: int, current=Depends(get_current_caregiver)):
+    signals = call_signals_queue.pop(profile_id, [])
+    return {"signals": signals, "profile_id": profile_id}
+
+@app.post("/api/call/end")
+@app.post("/call/end")
+def end_call(req: WebRTCSignalRequest, current=Depends(get_current_caregiver)):
+    # Clean queues for both ends
+    call_signals_queue.pop(req.caller_profile_id, None)
+    call_signals_queue.pop(req.recipient_profile_id, None)
+    return {"status": "ended"}
 
 # --- ENDPOINTS: MEMORY STORIES ---
 
