@@ -310,14 +310,14 @@ export default function ConnectHub() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20 transition-colors">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
-        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1f293d] pb-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/caregiver')}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors"
+              className="p-2.5 rounded-xl bg-white dark:bg-[#121926] hover:bg-slate-200 dark:hover:bg-[#1a2336] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
               title="Return to Caregiver Dashboard"
             >
               <ArrowLeft size={18} />
@@ -328,17 +328,17 @@ export default function ConnectHub() {
                   <PhoneCall className="text-blue-600 dark:text-blue-400" size={24} />
                   <span>Connect Mode & Trusted Calling</span>
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                   WebRTC Voice Calling
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                 Active Profile:{' '}
-                <strong className="text-slate-800 dark:text-slate-200">
+                <strong className="text-slate-900 dark:text-slate-200">
                   {currentProfile?.display_name || currentProfile?.name || 'Selected Elderly Profile'}
                 </strong>{' '}
                 • Caregiver:{' '}
-                <strong className="text-slate-800 dark:text-slate-200">
+                <strong className="text-slate-900 dark:text-slate-200">
                   {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
                 </strong>
               </p>
@@ -356,14 +356,14 @@ export default function ConnectHub() {
           {/* Left 2 Cols: Trusted Voice Contacts & Memory Stories */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trusted Voice Connections Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Phone className="text-blue-600 dark:text-blue-400" size={20} />
                     <span>Trusted Contacts</span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                     MindMitra Voice Calling & Family Phone Directory
                   </p>
                 </div>
@@ -387,7 +387,7 @@ export default function ConnectHub() {
                     return (
                       <div
                         key={conn.id}
-                        className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900 flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                        className="p-5 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/70 dark:bg-[#0e1424] flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-[#2d3a54] transition-all"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -396,7 +396,7 @@ export default function ConnectHub() {
                                 {contactName.charAt(0)}
                                 {isMindMitra && (
                                   <span
-                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
+                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#0e1424] ${
                                       isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                                     }`}
                                     title={isOnline ? 'Online (Ready to Call)' : 'Offline / Standby'}
@@ -407,7 +407,7 @@ export default function ConnectHub() {
                                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
                                   {contactName}
                                 </h4>
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                                   {conn.relationship}
                                 </span>
                               </div>
@@ -423,21 +423,21 @@ export default function ConnectHub() {
                           </div>
 
                           {/* Contact Metadata */}
-                          <div className="space-y-1 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                          <div className="space-y-1 mt-1 text-[11px] text-slate-600 dark:text-slate-400">
                             <p className="flex items-center gap-1">
                               <Shield size={12} className="text-blue-500" />
                               <span>Caregiver: {conn.caregiver_name || 'Atchyuta Pavan Karthikeya'}</span>
                             </p>
                             {isMindMitra ? (
                               <div className="flex items-center gap-2 pt-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 text-[10px] font-bold">
                                   MindMitra Contact
                                 </span>
                                 <span
                                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
                                     isOnline
-                                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
-                                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'
+                                      : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                                   }`}
                                 >
                                   {isOnline ? '● Online' : '○ Offline'}
@@ -445,11 +445,11 @@ export default function ConnectHub() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 pt-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 text-[10px] font-bold">
                                   External Contact
                                 </span>
                                 {conn.phone_number && (
-                                  <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px]">
+                                  <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">
                                     {conn.phone_number}
                                   </span>
                                 )}
@@ -472,7 +472,7 @@ export default function ConnectHub() {
                           ) : (
                             <button
                               onClick={() => setSelectedPhoneContact(conn)}
-                              className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                              className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-[#1a2336] hover:bg-slate-300 dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-300 dark:border-[#1f293d]"
                             >
                               <Smartphone size={16} />
                               <span>Phone Call</span>
@@ -484,10 +484,10 @@ export default function ConnectHub() {
                   })}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-[#1f293d] rounded-2xl">
                   <Phone className="mx-auto text-slate-400 mb-2" size={32} />
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Trusted Contacts Added Yet</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Trusted Contacts Added Yet</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     Add family members or neighbors for instant 1-tap voice calling.
                   </p>
                 </div>
@@ -495,14 +495,14 @@ export default function ConnectHub() {
             </div>
 
             {/* Memory Stories Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <BookOpen className="text-amber-500" size={20} />
                     <span>Private Voice Memory Stories</span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                     Audio recordings preserved for reminiscence and family archives
                   </p>
                 </div>
@@ -521,7 +521,7 @@ export default function ConnectHub() {
                   {stories.map((story) => (
                     <div
                       key={story.id}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/50 dark:bg-[#0e1424] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -531,7 +531,7 @@ export default function ConnectHub() {
                           </span>
                         </div>
                         {story.transcript_text && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
                             {story.transcript_text}
                           </p>
                         )}
@@ -546,10 +546,10 @@ export default function ConnectHub() {
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-[#1f293d] rounded-2xl">
                   <Mic className="mx-auto text-slate-400 mb-2" size={32} />
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Memory Stories Recorded</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Memory Stories Recorded</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     Capture precious memories and life stories using your microphone.
                   </p>
                 </div>
@@ -559,14 +559,14 @@ export default function ConnectHub() {
 
           {/* Right Column: Interest Circles */}
           <div className="space-y-6">
-            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Sparkles className="text-blue-500" size={20} />
                     <span>Peer Interest Circles</span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                     Neighborhood social topics
                   </p>
                 </div>
@@ -579,7 +579,7 @@ export default function ConnectHub() {
                     <div
                       key={circle.id}
                       onClick={() => setSelectedCircle(circle)}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/50 dark:bg-[#0e1424] hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -589,12 +589,12 @@ export default function ConnectHub() {
                         </div>
                         <div>
                           <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{circle.title}</h4>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                             {circle.members} Active Members
                           </span>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">{circle.desc}</p>
+                      <p className="text-xs text-slate-700 dark:text-slate-300">{circle.desc}</p>
                     </div>
                   );
                 })}
@@ -606,39 +606,39 @@ export default function ConnectHub() {
         {/* Modal: External Phone Call Dialog */}
         {selectedPhoneContact && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-extrabold flex items-center gap-2">
-                  <Smartphone size={20} className="text-purple-500" />
+                <h3 className="text-lg font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Smartphone size={20} className="text-purple-600 dark:text-purple-400" />
                   <span>External Phone Call</span>
                 </h3>
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-center">
-                <h4 className="text-xl font-bold">{selectedPhoneContact.display_name || selectedPhoneContact.contact_name}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedPhoneContact.relationship} • External Contact</p>
-                <p className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 mt-2">
+              <div className="p-4 bg-slate-50 dark:bg-[#0e1424] rounded-2xl border border-slate-200 dark:border-[#1f293d] space-y-2 text-center">
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedPhoneContact.display_name || selectedPhoneContact.contact_name}</h4>
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">{selectedPhoneContact.relationship} • External Contact</p>
+                <p className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {selectedPhoneContact.phone_number || 'No phone number stored'}
                 </p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   Caregiver Verified: {selectedPhoneContact.caregiver_name || 'Atchyuta Pavan Karthikeya'}
                 </p>
               </div>
 
-              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+              <p className="text-xs text-slate-600 dark:text-slate-400 text-center">
                 This external contact will be dialed directly through your device's cellular telephone line.
               </p>
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
                 >
                   Close
                 </button>
@@ -656,31 +656,31 @@ export default function ConnectHub() {
           </div>
         )}
 
-        {/* Modal: Add Trusted Contact */}
+        {/* Modal: Add Trusted Contact (Theme-Consistent) */}
         {showAddContactModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold flex items-center gap-2">
+                <h3 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
                   <UserCheck size={18} className="text-blue-600 dark:text-blue-400" />
                   <span>Add Trusted Contact</span>
                 </h3>
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Contact Type Selector Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#0e1424] rounded-xl border border-slate-200 dark:border-[#1f293d]">
                 <button
                   onClick={() => setContactType('mindmitra_user')}
                   className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
                     contactType === 'mindmitra_user'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   MindMitra Contact
@@ -690,7 +690,7 @@ export default function ConnectHub() {
                   className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
                     contactType === 'external'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   External Contact
@@ -701,7 +701,7 @@ export default function ConnectHub() {
                 /* Select Real MindMitra User */
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">
                       Search MindMitra Contact
                     </label>
                     <div className="relative">
@@ -711,7 +711,7 @@ export default function ConnectHub() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search MindMitra contact..."
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -724,37 +724,37 @@ export default function ConnectHub() {
                           key={p.id}
                           onClick={() => {
                             setSelectedSystemProfile(p);
-                            setNewContactName(p.display_name || p.name);
+                            setNewContactName(p.display_name || p.name || '');
                           }}
                           className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
                             isSelected
-                              ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 font-bold text-blue-700 dark:text-blue-300'
-                              : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                              ? 'border-blue-500 bg-blue-50/90 dark:bg-blue-950/60 font-bold text-blue-900 dark:text-blue-200'
+                              : 'border-slate-200 dark:border-[#1f293d] hover:bg-slate-100 dark:hover:bg-[#1a2336] text-slate-800 dark:text-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-[10px]">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/80 text-blue-800 dark:text-blue-200 flex items-center justify-center font-bold text-[11px]">
                               {(p.display_name || p.name).charAt(0)}
                             </div>
                             <div>
-                              <span>{p.display_name || p.name}</span>
-                              <span className="text-[10px] text-slate-400 block font-normal">
+                              <span className="font-bold text-slate-900 dark:text-white block">{p.display_name || p.name}</span>
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400 block font-normal">
                                 {p.preferred_language?.toUpperCase() || 'EN'} • Active MindMitra Account
                               </span>
                             </div>
                           </div>
-                          {isSelected && <Check size={14} className="text-blue-600 dark:text-blue-400" />}
+                          {isSelected && <Check size={16} className="text-blue-600 dark:text-blue-400" />}
                         </div>
                       );
                     })}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">Relationship</label>
                     <select
                       value={newContactRel}
                       onChange={(e) => setNewContactRel(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       <option value="Neighbor">Neighbor</option>
                       <option value="Daughter">Daughter</option>
@@ -770,8 +770,8 @@ export default function ConnectHub() {
                   </div>
 
                   {/* Read-Only Caregiver Context */}
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Caregiver:</span>{' '}
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-xs text-slate-700 dark:text-slate-300">
+                    <span className="font-bold text-slate-900 dark:text-white">Caregiver:</span>{' '}
                     {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
                   </div>
                 </div>
@@ -779,22 +779,22 @@ export default function ConnectHub() {
                 /* External Contact Form */
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Name</label>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">Contact Name</label>
                     <input
                       type="text"
                       value={newContactName}
                       onChange={(e) => setNewContactName(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="e.g. Suresh, Dr. Anita"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">Relationship</label>
                     <select
                       value={newContactRel}
                       onChange={(e) => setNewContactRel(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       <option value="Neighbor">Neighbor</option>
                       <option value="Daughter">Daughter</option>
@@ -811,37 +811,37 @@ export default function ConnectHub() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">
                       Phone Number
                     </label>
                     <input
                       type="tel"
                       value={newContactPhone}
                       onChange={(e) => setNewContactPhone(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="+91 98765 43210"
                     />
                   </div>
 
                   {/* Read-Only Caregiver Context */}
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Caregiver:</span>{' '}
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-xs text-slate-700 dark:text-slate-300">
+                    <span className="font-bold text-slate-900 dark:text-white">Caregiver:</span>{' '}
                     {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#1f293d]">
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddContact}
                   disabled={contactType === 'mindmitra_user' ? !selectedSystemProfile : !newContactName.trim()}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white disabled:opacity-50 shadow-md shadow-blue-500/20"
+                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white disabled:opacity-50 shadow-md shadow-blue-500/20 transition-all"
                 >
                   Save Contact
                 </button>
@@ -852,38 +852,38 @@ export default function ConnectHub() {
 
         {/* Modal: Memory Story Recording */}
         {showAddStoryModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold flex items-center gap-2">
+                <h3 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
                   <Mic size={18} className="text-amber-500" />
                   <span>Record Memory Story</span>
                 </h3>
                 <button
                   onClick={() => setShowAddStoryModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Story Title</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">Story Title</label>
                 <input
                   type="text"
                   value={newStoryTitle}
                   onChange={(e) => setNewStoryTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="e.g. My First Harvest Festival in Village"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">Category</label>
                 <select
                   value={newStoryCategory}
                   onChange={(e) => setNewStoryCategory(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="Childhood & Village">Childhood & Village</option>
                   <option value="Festivals & Traditions">Festivals & Traditions</option>
@@ -893,8 +893,8 @@ export default function ConnectHub() {
               </div>
 
               {/* Real Audio Recorder Controls */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center space-y-3">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-center space-y-3">
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
                   Microphone Audio Capture:
                 </span>
 
@@ -934,32 +934,32 @@ export default function ConnectHub() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">
                   Transcript / Family Notes (Optional)
                 </label>
                 <textarea
                   rows={2}
                   value={newStoryText}
                   onChange={(e) => setNewStoryText(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="Optional summary or notes..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#1f293d]">
                 <button
                   onClick={() => {
                     setShowAddStoryModal(false);
                     setRecordedAudioUrl(null);
                   }}
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveRecordedStory}
                   disabled={!newStoryTitle.trim()}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50"
+                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 shadow-md transition-all"
                 >
                   Save Story
                 </button>
