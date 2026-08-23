@@ -75,6 +75,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (res && res.caregiver) {
             setCaregiver(res.caregiver);
             localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
+
+            // Auto-select active profile if none is currently selected
+            const savedUser = localStorage.getItem('mindmitra_current_user');
+            if (!savedUser || !currentUser) {
+              try {
+                const profs = await api.getProfiles();
+                if (profs && profs.length > 0) {
+                  switchProfile(profs[0]);
+                }
+              } catch {}
+            }
           }
         } catch (err: any) {
           if (err?.status === 401) {
@@ -109,7 +120,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('mindmitra_token', res.token);
         localStorage.setItem('mindmitra_caregiver', JSON.stringify(res.caregiver));
         setCaregiver(res.caregiver);
-        setCurrentUser(null);
+
+        // Auto-select first profile for seamless presence
+        try {
+          const profs = await api.getProfiles();
+          if (profs && profs.length > 0) {
+            switchProfile(profs[0]);
+          } else {
+            setCurrentUser(null);
+          }
+        } catch {
+          setCurrentUser(null);
+        }
+
         return { success: true };
       }
       return { success: false, error: 'Invalid response from backend server.' };

@@ -74,14 +74,14 @@ export default function ConnectHub() {
     loadData();
     loadAvailableProfiles();
 
-    const presenceInterval = setInterval(checkPresences, 3000);
+    // High-frequency presence check every 2 seconds
+    const presenceInterval = setInterval(checkPresences, 2000);
     return () => clearInterval(presenceInterval);
   }, [currentProfile]);
 
   const loadAvailableProfiles = async () => {
     try {
       const profiles = await api.getProfiles();
-      // Filter out the current active profile so user doesn't add themselves
       const others = profiles.filter((p: any) => p.id !== currentProfile?.id);
       setAvailableProfiles(others);
       if (others.length > 0) {
@@ -89,7 +89,6 @@ export default function ConnectHub() {
         setNewContactName(others[0].display_name || others[0].name || '');
       }
     } catch {
-      // Fallback demo options
       const demoUsers = [
         { id: 2, display_name: 'Leelu', relationship: 'Neighbor', caregiver_name: 'Atchyuta Pavan Karthikeya' },
         { id: 1, display_name: 'Polayya', relationship: 'Neighbor', caregiver_name: 'Atchyuta Pavan Karthikeya' },
@@ -314,14 +313,14 @@ export default function ConnectHub() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20 transition-colors">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Header */}
-        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1f293d] pb-4">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/caregiver')}
-              className="p-2.5 rounded-xl bg-white dark:bg-[#121926] hover:bg-slate-200 dark:hover:bg-[#1a2336] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition-colors shadow-xs"
               title="Return to Caregiver Dashboard"
             >
               <ArrowLeft size={18} />
@@ -360,7 +359,7 @@ export default function ConnectHub() {
           {/* Left 2 Cols: Trusted Voice Contacts & Memory Stories */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trusted Voice Connections Card */}
-            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -391,7 +390,7 @@ export default function ConnectHub() {
                     return (
                       <div
                         key={conn.id}
-                        className="p-5 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/70 dark:bg-[#0e1424] flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-[#2d3a54] transition-all"
+                        className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -400,7 +399,7 @@ export default function ConnectHub() {
                                 {contactName.charAt(0)}
                                 {isMindMitra && (
                                   <span
-                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#0e1424] ${
+                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-800 ${
                                       isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                                     }`}
                                     title={isOnline ? 'Online (Ready to Call)' : 'Offline / Standby'}
@@ -476,7 +475,7 @@ export default function ConnectHub() {
                           ) : (
                             <button
                               onClick={() => setSelectedPhoneContact(conn)}
-                              className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-[#1a2336] hover:bg-slate-300 dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-300 dark:border-[#1f293d]"
+                              className="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-200 dark:border-slate-700"
                             >
                               <Smartphone size={16} />
                               <span>Phone Call</span>
@@ -488,7 +487,7 @@ export default function ConnectHub() {
                   })}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-[#1f293d] rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <Phone className="mx-auto text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Trusted Contacts Added Yet</p>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -499,7 +498,7 @@ export default function ConnectHub() {
             </div>
 
             {/* Memory Stories Card */}
-            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -525,7 +524,7 @@ export default function ConnectHub() {
                   {stories.map((story) => (
                     <div
                       key={story.id}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/50 dark:bg-[#0e1424] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -550,7 +549,7 @@ export default function ConnectHub() {
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-[#1f293d] rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <Mic className="mx-auto text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Memory Stories Recorded</p>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -563,7 +562,7 @@ export default function ConnectHub() {
 
           {/* Right Column: Interest Circles */}
           <div className="space-y-6">
-            <div className="p-6 bg-white dark:bg-[#121926] border border-slate-200 dark:border-[#1f293d] rounded-3xl shadow-sm">
+            <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -583,7 +582,7 @@ export default function ConnectHub() {
                     <div
                       key={circle.id}
                       onClick={() => setSelectedCircle(circle)}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-[#1f293d] bg-slate-50/50 dark:bg-[#0e1424] hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -609,8 +608,8 @@ export default function ConnectHub() {
 
         {/* Modal: External Phone Call Dialog */}
         {selectedPhoneContact && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
                   <Smartphone size={20} className="text-purple-600 dark:text-purple-400" />
@@ -618,13 +617,13 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-[#0e1424] rounded-2xl border border-slate-200 dark:border-[#1f293d] space-y-2 text-center">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-center">
                 <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedPhoneContact.display_name || selectedPhoneContact.contact_name}</h4>
                 <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">{selectedPhoneContact.relationship} • External Contact</p>
                 <p className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-2">
@@ -642,7 +641,7 @@ export default function ConnectHub() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
                 >
                   Close
                 </button>
@@ -660,10 +659,10 @@ export default function ConnectHub() {
           </div>
         )}
 
-        {/* Modal: Add Trusted Contact (Theme-Consistent) */}
+        {/* Modal: Add Trusted Contact (Light, System & Dark Theme) */}
         {showAddContactModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
                   <UserCheck size={18} className="text-blue-600 dark:text-blue-400" />
@@ -671,14 +670,14 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Contact Type Selector Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-[#0e1424] rounded-xl border border-slate-200 dark:border-[#1f293d]">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => setContactType('mindmitra_user')}
                   className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
@@ -715,7 +714,7 @@ export default function ConnectHub() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search MindMitra contact..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -733,7 +732,7 @@ export default function ConnectHub() {
                           className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
                             isSelected
                               ? 'border-blue-500 bg-blue-50/90 dark:bg-blue-950/60 font-bold text-blue-900 dark:text-blue-200'
-                              : 'border-slate-200 dark:border-[#1f293d] hover:bg-slate-100 dark:hover:bg-[#1a2336] text-slate-800 dark:text-slate-200'
+                              : 'border-slate-200 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200'
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -758,7 +757,7 @@ export default function ConnectHub() {
                     <select
                       value={newContactRel}
                       onChange={(e) => setNewContactRel(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       <option value="Neighbor">Neighbor</option>
                       <option value="Daughter">Daughter</option>
@@ -774,7 +773,7 @@ export default function ConnectHub() {
                   </div>
 
                   {/* Read-Only Caregiver Context */}
-                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-xs text-slate-700 dark:text-slate-300">
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
                     <span className="font-bold text-slate-900 dark:text-white">Caregiver:</span>{' '}
                     {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
                   </div>
@@ -788,7 +787,7 @@ export default function ConnectHub() {
                       type="text"
                       value={newContactName}
                       onChange={(e) => setNewContactName(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="e.g. Suresh, Dr. Anita"
                     />
                   </div>
@@ -798,7 +797,7 @@ export default function ConnectHub() {
                     <select
                       value={newContactRel}
                       onChange={(e) => setNewContactRel(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
                       <option value="Neighbor">Neighbor</option>
                       <option value="Daughter">Daughter</option>
@@ -822,23 +821,23 @@ export default function ConnectHub() {
                       type="tel"
                       value={newContactPhone}
                       onChange={(e) => setNewContactPhone(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="+91 98765 43210"
                     />
                   </div>
 
                   {/* Read-Only Caregiver Context */}
-                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-xs text-slate-700 dark:text-slate-300">
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
                     <span className="font-bold text-slate-900 dark:text-white">Caregiver:</span>{' '}
                     {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#1f293d]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -856,8 +855,8 @@ export default function ConnectHub() {
 
         {/* Modal: Memory Story Recording */}
         {showAddStoryModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-[#121926] rounded-3xl border border-slate-200 dark:border-[#1f293d] max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-extrabold flex items-center gap-2 text-slate-900 dark:text-white">
                   <Mic size={18} className="text-amber-500" />
@@ -865,7 +864,7 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setShowAddStoryModal(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1a2336] transition-colors"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -877,7 +876,7 @@ export default function ConnectHub() {
                   type="text"
                   value={newStoryTitle}
                   onChange={(e) => setNewStoryTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="e.g. My First Harvest Festival in Village"
                 />
               </div>
@@ -887,7 +886,7 @@ export default function ConnectHub() {
                 <select
                   value={newStoryCategory}
                   onChange={(e) => setNewStoryCategory(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="Childhood & Village">Childhood & Village</option>
                   <option value="Festivals & Traditions">Festivals & Traditions</option>
@@ -897,7 +896,7 @@ export default function ConnectHub() {
               </div>
 
               {/* Real Audio Recorder Controls */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0e1424] border border-slate-200 dark:border-[#1f293d] text-center space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center space-y-3">
                 <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
                   Microphone Audio Capture:
                 </span>
@@ -945,18 +944,18 @@ export default function ConnectHub() {
                   rows={2}
                   value={newStoryText}
                   onChange={(e) => setNewStoryText(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-[#1f293d] bg-slate-50 dark:bg-[#0e1424] text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="Optional summary or notes..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#1f293d]">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => {
                     setShowAddStoryModal(false);
                     setRecordedAudioUrl(null);
                   }}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1a2336] dark:hover:bg-[#243048] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-[#1f293d] transition-colors"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
