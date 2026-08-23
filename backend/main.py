@@ -1998,3 +1998,38 @@ def debug_auth_health(authorization: Optional[str] = Header(None)):
 def debug_routes():
     return [r.path for r in app.routes if hasattr(r, 'path')]
 
+
+@app.get("/api/debug/realtime-status")
+@app.get("/debug/realtime-status")
+def get_debug_realtime_status(current=Depends(get_current_caregiver)):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT user_id, active_session_id, online, last_heartbeat, updated_at FROM active_presence")
+        rows = c.fetchall()
+        presences = []
+        for r in rows:
+            d = dict(r)
+            raw_ts = d.get("last_heartbeat")
+            parsed_dt = parse_heartbeat_timestamp(raw_ts)
+            diff_secs = (now.replace(tzinfo=None) - parsed_dt).total_seconds() if parsed_dt else None
+            is_active = (0 <= diff_secs <= 30) if diff_secs is not None else False
+            presences.append({
+                "user_id": d["user_id"],
+                "active_session_id": d.get("active_session_id"),
+                "last_heartbeat": str(raw_ts),
+                "seconds_ago": round(diff_secs, 1) if diff_secs is not None else None,
+                "is_online": is_active
+            })
+
+        c.execute("SELECT id, call_id, caller_profile_id, caller_name, target_user_id, signal_type, status, created_at FROM call_signals ORDER BY id DESC LIMIT 10")
+        recent_signals = [dict(sr) for sr in c.fetchall()]
+
+        return {
+            "realtime_configured": True,
+            "authenticated_caregiver_id": current["caregiver_id"] if current else None,
+            "server_time_utc": now.isoformat(),
+            "active_presence_count": len(presences),
+            "presences": presences,
+            "recent_signals": recent_signals
+        }
