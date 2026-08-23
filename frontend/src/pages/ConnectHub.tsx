@@ -1,8 +1,36 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, PhoneCall, PhoneOff, Mic, MicOff, Plus, Users, Shield, Heart, Music, Sparkles, BookOpen, Trash2, ArrowLeft, Volume2, VolumeX, Radio, CheckCircle2, Play, Square, X, AlertCircle, Clock, UserCheck } from 'lucide-react';
+import {
+  Phone,
+  PhoneCall,
+  PhoneOff,
+  Mic,
+  MicOff,
+  Plus,
+  Users,
+  Shield,
+  Heart,
+  Music,
+  Sparkles,
+  BookOpen,
+  Trash2,
+  ArrowLeft,
+  Volume2,
+  VolumeX,
+  Radio,
+  CheckCircle2,
+  Play,
+  Square,
+  X,
+  AlertCircle,
+  Clock,
+  UserCheck,
+  Smartphone,
+  ExternalLink,
+} from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { useCall } from '../context/CallContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
 import ThemeToggle from '../components/ThemeToggle';
 import { User, TrustedConnection, MemoryStory } from '../types';
@@ -10,32 +38,24 @@ import { User, TrustedConnection, MemoryStory } from '../types';
 export default function ConnectHub() {
   const navigate = useNavigate();
   const { currentProfile, caregiver } = useApp();
+  const { startCall, callState, activeCall } = useCall();
 
   const [connections, setConnections] = useState<TrustedConnection[]>([]);
   const [stories, setStories] = useState<MemoryStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [contactPresence, setContactPresence] = useState<Record<number, boolean>>({});
 
-  // --- WEBRTC CALLING STATE ---
-  const [activeCallContact, setActiveCallContact] = useState<TrustedConnection | null>(null);
-  const [callState, setCallState] = useState<'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'declined' | 'failed' | 'unavailable'>('idle');
-  const [callErrorMessage, setCallErrorMessage] = useState<string>('');
-  const [isMuted, setIsMuted] = useState(false);
-  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
-  const [incomingCall, setIncomingCall] = useState<{ caller_profile_id: number; caller_name: string; offer: any } | null>(null);
-
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
-  const pollIntervalRef = useRef<any>(null);
-  const callTimeoutRef = useRef<any>(null);
-
   // --- CONTACT MODAL STATE ---
+  const [contactType, setContactType] = useState<'mindmitra_user' | 'external'>('mindmitra_user');
   const [newContactName, setNewContactName] = useState('');
-  const [newContactRel, setNewContactRel] = useState('Daughter');
-  const [newContactTargetId, setNewContactTargetId] = useState<number>(1);
+  const [newContactRel, setNewContactRel] = useState('Neighbor');
+  const [newContactCaregiver, setNewContactCaregiver] = useState('Atchyuta Pavan Karthikeya');
+  const [newContactTargetId, setNewContactTargetId] = useState<number>(2);
   const [newContactPhone, setNewContactPhone] = useState('');
   const [showAddContactModal, setShowAddContactModal] = useState(false);
+
+  // --- EXTERNAL PHONE CALL MODAL ---
+  const [selectedPhoneContact, setSelectedPhoneContact] = useState<TrustedConnection | null>(null);
 
   // --- REAL MICROPHONE RECORDING STATE ---
   const [showAddStoryModal, setShowAddStoryModal] = useState(false);
@@ -53,37 +73,13 @@ export default function ConnectHub() {
   // --- INTEREST CIRCLE MODAL STATE ---
   const [selectedCircle, setSelectedCircle] = useState<any | null>(null);
 
-  const rtcConfig: RTCConfiguration = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-  };
-
   useEffect(() => {
     if (!currentProfile?.id) return;
     loadData();
 
-    // Start background signaling poller for incoming calls & WebRTC signals
-    startSignalingPoller();
-
-    return () => {
-      stopSignalingPoller();
-      cleanupWebRTC();
-      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-    };
+    const presenceInterval = setInterval(checkPresences, 3000);
+    return () => clearInterval(presenceInterval);
   }, [currentProfile]);
-
-  // Live call timer
-  useEffect(() => {
-    let timer: any = null;
-    if (callState === 'connected') {
-      timer = setInterval(() => setCallDurationSeconds(s => s + 1), 1000);
-    } else {
-      setCallDurationSeconds(0);
-    }
-    return () => clearInterval(timer);
-  }, [callState]);
 
   const loadData = async () => {
     if (!currentProfile?.id) return;
@@ -99,12 +95,14 @@ export default function ConnectHub() {
       // Check online presence for contacts
       const presenceMap: Record<number, boolean> = {};
       for (const conn of conns) {
-        const targetId = conn.contact_user_id || conn.profile_id;
-        try {
-          const pres = await api.getCallPresence(targetId);
-          presenceMap[conn.id] = pres.online;
-        } catch {
-          presenceMap[conn.id] = false;
+        const targetId = conn.target_user_id || conn.contact_user_id || conn.profile_id;
+        if (targetId) {
+          try {
+            const pres = await api.getCallPresence(targetId);
+            presenceMap[conn.id] = pres.online;
+          } catch {
+            presenceMap[conn.id] = false;
+          }
         }
       }
       setContactPresence(presenceMap);
@@ -114,307 +112,64 @@ export default function ConnectHub() {
     setLoading(false);
   };
 
-  // --- WEBRTC SIGNALING POLLER ---
-  const startSignalingPoller = () => {
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    pollIntervalRef.current = setInterval(async () => {
-      if (!currentProfile?.id) return;
-      try {
-        const res = await api.pollCallSignals(currentProfile.id);
-        if (res.signals && res.signals.length > 0) {
-          for (const sig of res.signals) {
-            handleIncomingSignal(sig);
-          }
+  const checkPresences = async () => {
+    if (!connections.length) return;
+    const presenceMap: Record<number, boolean> = { ...contactPresence };
+    for (const conn of connections) {
+      const targetId = conn.target_user_id || conn.contact_user_id || conn.profile_id;
+      if (targetId) {
+        try {
+          const pres = await api.getCallPresence(targetId);
+          presenceMap[conn.id] = pres.online;
+        } catch {
+          presenceMap[conn.id] = false;
         }
-      } catch (e) {
-        // Polling failure silent fallback
       }
-    }, 1500);
-  };
-
-  const stopSignalingPoller = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
     }
+    setContactPresence(presenceMap);
   };
 
-  // Handle incoming WebRTC signal
-  const handleIncomingSignal = async (sig: any) => {
-    const { caller_profile_id, caller_name, signal_type, payload } = sig;
-
-    if (signal_type === 'offer') {
-      const matchedContact = connections.find(c => (c.contact_user_id === caller_profile_id || c.profile_id === caller_profile_id));
-      setIncomingCall({
-        caller_profile_id,
-        caller_name: caller_name || matchedContact?.display_name || matchedContact?.contact_name || `Family Member #${caller_profile_id}`,
-        offer: payload
-      });
-      setCallState('ringing');
-    } else if (signal_type === 'answer' && pcRef.current) {
-      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-      try {
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload));
-        setCallState('connected');
-      } catch (e) {
-        console.warn('Error setting remote description:', e);
-      }
-    } else if (signal_type === 'ice-candidate' && pcRef.current) {
-      try {
-        await pcRef.current.addIceCandidate(new RTCIceCandidate(payload));
-      } catch (e) {
-        console.warn('Error adding ICE candidate:', e);
-      }
-    } else if (signal_type === 'reject') {
-      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-      cleanupWebRTC();
-      setCallState('declined');
-      setTimeout(() => {
-        setCallState('idle');
-        setActiveCallContact(null);
-      }, 3000);
-    } else if (signal_type === 'hangup' || signal_type === 'timeout') {
-      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-      cleanupWebRTC();
-      setCallState('ended');
-      setTimeout(() => {
-        setCallState('idle');
-        setActiveCallContact(null);
-        setIncomingCall(null);
-      }, 1500);
-    }
-  };
-
-  // --- START OUTGOING WEBRTC CALL ---
-  const handleStartCall = async (contact: TrustedConnection) => {
-    if (!currentProfile?.id) return;
-    const targetUserId = contact.contact_user_id || contact.profile_id;
-    const contactDisplayName = contact.display_name || contact.contact_name;
-
-    setActiveCallContact(contact);
-    setCallState('calling');
-    setCallErrorMessage('');
-
+  // --- ADD CONTACT HANDLER ---
+  const handleAddContact = async () => {
+    if (!newContactName.trim() || !currentProfile?.id) return;
     try {
-      // 1. Acquire microphone with explicit error handling
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        localStreamRef.current = stream;
-      } catch (micErr: any) {
-        console.warn('Microphone permission denied or not found:', micErr);
-        setCallErrorMessage('Microphone access is required to place this call. Please allow microphone permissions in your browser.');
-        setCallState('failed');
-        setTimeout(() => {
-          setCallState('idle');
-          setActiveCallContact(null);
-        }, 4000);
-        return;
-      }
-
-      // 2. Initialize PeerConnection
-      const pc = new RTCPeerConnection(rtcConfig);
-      pcRef.current = pc;
-
-      // Add local audio tracks to PC
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-      // Handle remote audio stream
-      pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
-        }
-      };
-
-      // Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate && currentProfile?.id) {
-          api.sendCallSignal(
-            currentProfile.id,
-            targetUserId,
-            'ice-candidate',
-            event.candidate.toJSON(),
-            undefined,
-            currentProfile.display_name || currentProfile.name
-          );
-        }
-      };
-
-      // 3. Create WebRTC Offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // 4. Send offer to recipient via signaling server
-      await api.sendCallSignal(
-        currentProfile.id,
-        targetUserId,
-        'offer',
-        offer,
-        undefined,
-        currentProfile.display_name || currentProfile.name
-      );
-
-      // 5. Set 25-Second Ringing Timeout (No simulated fake connection!)
-      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-      callTimeoutRef.current = setTimeout(async () => {
-        if (callState === 'calling' || callState === 'connecting') {
-          await api.sendCallSignal(currentProfile.id, targetUserId, 'timeout');
-          cleanupWebRTC();
-          setCallState('unavailable');
-          setTimeout(() => {
-            setCallState('idle');
-            setActiveCallContact(null);
-          }, 3500);
-        }
-      }, 25000);
-
-    } catch (err: any) {
-      console.error('Call initialization failed:', err);
-      cleanupWebRTC();
-      setCallErrorMessage(`Call initialization failed: ${err.message || 'Error'}`);
-      setCallState('failed');
-      setTimeout(() => {
-        setCallState('idle');
-        setActiveCallContact(null);
-      }, 3500);
+      await api.addTrustedConnection({
+        profile_id: currentProfile.id,
+        contact_name: newContactName,
+        display_name: newContactName,
+        contact_type: contactType,
+        relationship: newContactRel,
+        caregiver_name: newContactCaregiver,
+        target_user_id: contactType === 'mindmitra_user' ? newContactTargetId : undefined,
+        contact_user_id: contactType === 'mindmitra_user' ? newContactTargetId : undefined,
+        phone_number: contactType === 'external' ? newContactPhone : undefined,
+        phone_or_address: contactType === 'external' ? newContactPhone : `Account #${newContactTargetId}`,
+        status: 'approved',
+      });
+      setShowAddContactModal(false);
+      setNewContactName('');
+      setNewContactPhone('');
+      loadData();
+    } catch (err) {
+      console.error('Failed to add contact:', err);
     }
   };
 
-  // --- ACCEPT INCOMING CALL ---
-  const handleAcceptCall = async () => {
-    if (!incomingCall || !currentProfile?.id) return;
-    setCallState('connecting');
-
+  // --- DELETE CONTACT HANDLER ---
+  const handleDeleteContact = async (id: number) => {
     try {
-      // 1. Acquire local microphone
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        localStreamRef.current = stream;
-      } catch (micErr: any) {
-        alert('Microphone access is required to accept this call.');
-        handleDeclineCall();
-        return;
-      }
-
-      const pc = new RTCPeerConnection(rtcConfig);
-      pcRef.current = pc;
-
-      // Add local audio tracks
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-      // Handle incoming remote audio
-      pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
-        }
-      };
-
-      // Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate && currentProfile?.id && incomingCall) {
-          api.sendCallSignal(
-            currentProfile.id,
-            incomingCall.caller_profile_id,
-            'ice-candidate',
-            event.candidate.toJSON(),
-            undefined,
-            currentProfile.display_name || currentProfile.name
-          );
-        }
-      };
-
-      // 2. Set remote offer & create WebRTC answer
-      await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      // 3. Send answer back to caller
-      await api.sendCallSignal(
-        currentProfile.id,
-        incomingCall.caller_profile_id,
-        'answer',
-        answer,
-        undefined,
-        currentProfile.display_name || currentProfile.name
-      );
-
-      const matched = connections.find(c => c.contact_user_id === incomingCall.caller_profile_id || c.profile_id === incomingCall.caller_profile_id);
-      setActiveCallContact({
-        id: incomingCall.caller_profile_id,
-        profile_id: incomingCall.caller_profile_id,
-        contact_user_id: incomingCall.caller_profile_id,
-        contact_name: incomingCall.caller_name,
-        display_name: incomingCall.caller_name,
-        relationship: matched?.relationship || 'Approved Family Member',
-        phone_or_address: '',
-        status: 'approved'
-      });
-      setIncomingCall(null);
-      setCallState('connected');
-
-    } catch (err: any) {
-      console.error('Failed to accept call:', err);
-      cleanupWebRTC();
-      setCallState('failed');
-      setTimeout(() => {
-        setCallState('idle');
-        setIncomingCall(null);
-      }, 3000);
+      await api.deleteTrustedConnection(id);
+      loadData();
+    } catch (err) {
+      console.error('Failed to delete contact:', err);
     }
   };
 
-  // --- DECLINE INCOMING CALL ---
-  const handleDeclineCall = async () => {
-    if (incomingCall && currentProfile?.id) {
-      await api.sendCallSignal(currentProfile.id, incomingCall.caller_profile_id, 'reject');
-    }
-    setIncomingCall(null);
-    setCallState('idle');
-  };
-
-  // --- END / HANGUP CALL ---
-  const handleEndCall = async () => {
-    if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
-    if (currentProfile?.id && activeCallContact) {
-      const targetUserId = activeCallContact.contact_user_id || activeCallContact.profile_id;
-      await api.sendCallSignal(currentProfile.id, targetUserId, 'hangup');
-    }
-    cleanupWebRTC();
-    setCallState('ended');
-    setTimeout(() => {
-      setCallState('idle');
-      setActiveCallContact(null);
-      setIncomingCall(null);
-    }, 1200);
-  };
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const cleanupWebRTC = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-  };
-
-  // --- REAL MICROPHONE RECORDING (MEDIARECORDER) ---
+  // --- REAL MICROPHONE RECORDING HANDLERS ---
   const startStoryRecording = async () => {
+    audioChunksRef.current = [];
+    setRecordTimerSeconds(0);
     try {
-      audioChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -430,28 +185,24 @@ export default function ConnectHub() {
         const audioUrl = URL.createObjectURL(audioBlob);
         setRecordedAudioUrl(audioUrl);
 
-        // Convert to base64 Data URL for persistent storage
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           setRecordedAudioBase64(reader.result as string);
         };
 
-        // Stop stream tracks
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecordingStory(true);
-      setRecordTimerSeconds(0);
 
-      if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
       recordIntervalRef.current = setInterval(() => {
-        setRecordTimerSeconds(s => s + 1);
+        setRecordTimerSeconds((s) => s + 1);
       }, 1000);
-
-    } catch (err: any) {
-      alert(`Microphone access is required to record stories: ${err.message}`);
+    } catch (err) {
+      console.error('Microphone permission denied for story recording:', err);
+      alert('Microphone access is required to record memory stories.');
     }
   };
 
@@ -464,450 +215,346 @@ export default function ConnectHub() {
   };
 
   const handleSaveRecordedStory = async () => {
-    if (!currentProfile?.id || !newStoryTitle.trim()) {
-      alert('Please enter a title for the memory story.');
-      return;
-    }
+    if (!newStoryTitle.trim() || !currentProfile?.id) return;
     try {
       await api.createMemoryStory({
         profile_id: currentProfile.id,
-        title: newStoryTitle.trim(),
-        audio_url: recordedAudioBase64 || recordedAudioUrl || '',
-        transcript_text: newStoryText.trim(),
+        title: newStoryTitle,
         category: newStoryCategory,
+        transcript_text: newStoryText,
+        audio_url: recordedAudioBase64 || '',
         is_private: true,
       });
-
-      // Reset
+      setShowAddStoryModal(false);
       setNewStoryTitle('');
       setNewStoryText('');
       setRecordedAudioUrl(null);
       setRecordedAudioBase64(null);
-      setShowAddStoryModal(false);
       loadData();
-    } catch (err: any) {
-      alert(`Error saving story: ${err.message}`);
+    } catch (err) {
+      console.error('Failed to save memory story:', err);
     }
   };
 
-  // --- CONTACTS MANAGEMENT ---
-  const handleAddContact = async () => {
-    if (!currentProfile?.id || !newContactName.trim()) return;
-    try {
-      await api.addTrustedConnection({
-        profile_id: currentProfile.id,
-        contact_name: newContactName.trim(),
-        display_name: newContactName.trim(),
-        contact_user_id: newContactTargetId,
-        relationship: newContactRel,
-        phone_or_address: newContactPhone.trim(),
-      });
-      setNewContactName('');
-      setNewContactPhone('');
-      setShowAddContactModal(false);
-      loadData();
-    } catch (err: any) {
-      alert(`Error adding contact: ${err.message}`);
-    }
-  };
-
-  const handleDeleteContact = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this trusted connection?')) return;
-    try {
-      await api.deleteTrustedConnection(id);
-      loadData();
-    } catch (err: any) {
-      alert(`Error deleting connection: ${err.message}`);
-    }
-  };
-
-  const formatTimer = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const interestCircles = [
     {
-      title: 'Traditional Music & Bhajans',
-      category: 'Music & Devotion',
+      id: 'bhajans',
+      title: 'Morning Bhajans & Stotrams',
+      members: 14,
+      desc: 'Shared spiritual hymns, morning devotional recitations, and calm daily prayer.',
       icon: Music,
-      color: 'from-purple-500 to-indigo-600',
-      members: '12 Seniors',
-      description: 'A soothing circle for reminiscing classical morning ragas, devotional bhajans, and temple hymns.',
-      activityKey: 'conversation_circle'
-    },
-    {
-      title: 'Childhood & Village Stories',
-      category: 'Oral History',
-      icon: BookOpen,
       color: 'from-amber-500 to-orange-600',
-      members: '18 Seniors',
-      description: 'Sharing tales of childhood village festivities, ancestral homes, harvests, and folk tales.',
-      activityKey: 'story_chain'
     },
     {
-      title: 'Gardening & Herbal Plants',
-      category: 'Nature & Health',
-      icon: Sparkles,
+      id: 'gardening',
+      title: 'Courtyard Gardening & Plants',
+      members: 9,
+      desc: 'Growing Tulsi, jasmine flowers, and organic terrace vegetables together.',
+      icon: Heart,
       color: 'from-emerald-500 to-teal-600',
-      members: '9 Seniors',
-      description: 'Discussing home remedies, Tulsi & Neem cultivation, terrace gardens, and seasonal flowers.',
-      activityKey: 'memory_circle'
+    },
+    {
+      id: 'stories',
+      title: 'Folk Tales & Heritage Memories',
+      members: 18,
+      desc: 'Preserving village histories, ancestral recipes, and family folklore across generations.',
+      icon: BookOpen,
+      color: 'from-blue-500 to-indigo-600',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
-      {/* Hidden audio tag for WebRTC remote incoming audio */}
-      <audio ref={remoteAudioRef} autoPlay />
-
-      {/* Top Navbar */}
-      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-300 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/caregiver')}
-            className="text-slate-900 dark:text-slate-300 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
-            title="Back to Overview"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black text-slate-900 dark:text-white">Trusted Connect Mode</h1>
-              {currentProfile && (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
-                  {currentProfile.display_name || currentProfile.name}
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Top Header */}
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/caregiver')}
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors"
+              title="Return to Caregiver Dashboard"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <PhoneCall className="text-emerald-600 dark:text-emerald-400" size={24} />
+                  <span>Connect Mode & Trusted Calling</span>
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                  Real WebRTC
                 </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
-              Voice-First WebRTC Calling • Private Audio Memory Stories • Safe Trusted Circles
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <CaregiverAccountMenu />
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
-        {/* INCOMING CALL BANNER */}
-        {incomingCall && (
-          <div className="card p-6 bg-gradient-to-r from-emerald-900 via-slate-900 to-teal-950 text-white border-emerald-400 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-bounce">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-emerald-400/40 animate-pulse">
-                <PhoneCall size={28} />
               </div>
-              <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-300 block">
-                  Incoming Voice Call...
-                </span>
-                <h2 className="text-2xl font-black text-white">{incomingCall.caller_name}</h2>
-                <p className="text-xs text-emerald-100 font-medium">Caregiver-Approved Trusted Connection</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleAcceptCall}
-                className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-emerald-300 active:scale-95 transition-all"
-              >
-                <PhoneCall size={18} />
-                <span>Accept Call</span>
-              </button>
-
-              <button
-                onClick={handleDeclineCall}
-                className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all"
-              >
-                <PhoneOff size={18} />
-                <span>Decline</span>
-              </button>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Active Profile:{' '}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {currentProfile?.display_name || currentProfile?.name || 'Selected Elderly Profile'}
+                </strong>{' '}
+                • Caregiver:{' '}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
+                </strong>
+              </p>
             </div>
           </div>
-        )}
 
-        {/* ACTIVE WEBRTC CALL OVERLAY BANNER */}
-        {activeCallContact && (
-          <div className={`card p-6 text-white shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in transition-all ${
-            callState === 'connected'
-              ? 'bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border-emerald-500/50'
-              : callState === 'calling' || callState === 'connecting'
-              ? 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-indigo-500/50'
-              : callState === 'unavailable' || callState === 'declined' || callState === 'failed'
-              ? 'bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border-amber-500/50'
-              : 'bg-slate-900 border-slate-700'
-          }`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg ring-4 ${
-                callState === 'connected'
-                  ? 'bg-emerald-600 text-white ring-emerald-400/30'
-                  : callState === 'calling'
-                  ? 'bg-indigo-600 text-white ring-indigo-400/30 animate-pulse'
-                  : 'bg-slate-700 text-slate-300 ring-slate-600'
-              }`}>
-                {callState === 'connected' ? <PhoneCall size={26} /> : <Phone size={26} />}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block">
-                    {callState === 'calling'
-                      ? 'Calling Trusted Contact...'
-                      : callState === 'connecting'
-                      ? 'Establishing WebRTC Connection...'
-                      : callState === 'connected'
-                      ? 'Live Peer-to-Peer Voice Call'
-                      : callState === 'unavailable'
-                      ? 'Contact Unavailable'
-                      : callState === 'declined'
-                      ? 'Call Declined'
-                      : callState === 'failed'
-                      ? 'Call Failed'
-                      : 'Call Ended'}
-                  </span>
-                  {callState === 'connected' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      {formatTimer(callDurationSeconds)}
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-xl font-black text-white">
-                  {callState === 'calling' && `Calling ${activeCallContact.display_name || activeCallContact.contact_name}...`}
-                  {callState === 'connecting' && `Connecting to ${activeCallContact.display_name || activeCallContact.contact_name}...`}
-                  {callState === 'connected' && `Connected with ${activeCallContact.display_name || activeCallContact.contact_name}`}
-                  {callState === 'unavailable' && `${activeCallContact.display_name || activeCallContact.contact_name} is unavailable`}
-                  {callState === 'declined' && `${activeCallContact.display_name || activeCallContact.contact_name} declined the call`}
-                  {callState === 'failed' && (callErrorMessage || 'Microphone access is required to place this call.')}
-                  {callState === 'ended' && 'Call Ended'}
-                </h2>
-                <p className="text-xs text-slate-300 font-medium">
-                  {activeCallContact.relationship} • {callState === 'connected' ? 'Live Two-Way Audio' : 'Approved Trusted Connection'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {callState === 'connected' && (
-                <button
-                  onClick={toggleMute}
-                  className={`px-4 py-2.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 border transition-all ${
-                    isMuted
-                      ? 'bg-amber-500 text-white border-amber-400'
-                      : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-                  }`}
-                >
-                  {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-                  <span>{isMuted ? 'Unmute' : 'Mute Mic'}</span>
-                </button>
-              )}
-
-              {(callState === 'calling' || callState === 'connecting' || callState === 'connected') && (
-                <button
-                  onClick={handleEndCall}
-                  className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-rose-400/40 active:scale-95 transition-all"
-                >
-                  <PhoneOff size={18} />
-                  <span>{callState === 'connected' ? 'End Call' : 'Cancel Call'}</span>
-                </button>
-              )}
-            </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <CaregiverAccountMenu />
           </div>
-        )}
+        </header>
 
+        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left 2 Cols: Trusted Voice Contacts & Memory Stories */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trusted Voice Connections Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700">
+            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Phone className="text-emerald-600 dark:text-emerald-400" size={20} />
-                    <span>Trusted Voice Connections</span>
+                    <span>Trusted Contacts</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    1-Tap Real WebRTC Voice Calling for {currentProfile?.display_name || currentProfile?.name || 'this profile'}
+                    Verified MindMitra WebRTC Calls & Family Phone Directory
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowAddContactModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-extrabold flex items-center gap-1 border border-slate-300 dark:border-slate-700"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all"
                 >
-                  <Plus size={15} />
+                  <Plus size={16} />
                   <span>Add Contact</span>
                 </button>
               </div>
 
               {connections.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {connections.map((conn) => {
                     const contactName = conn.display_name || conn.contact_name;
+                    const isMindMitra = conn.contact_type === 'mindmitra_user' || !!conn.target_user_id;
                     const isOnline = !!contactPresence[conn.id];
 
                     return (
                       <div
                         key={conn.id}
-                        className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                        className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900 flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-sm flex items-center justify-center relative">
-                            {contactName.charAt(0)}
-                            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
-                              isOnline ? 'bg-emerald-500' : 'bg-slate-400'
-                            }`} title={isOnline ? 'Online (Ready to Call)' : 'Offline / Standby'} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{contactName}</h4>
-                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md ${
-                                isOnline
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                              }`}>
-                                {isOnline ? 'Online' : 'Approved'}
-                              </span>
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-base flex items-center justify-center relative">
+                                {contactName.charAt(0)}
+                                {isMindMitra && (
+                                  <span
+                                    className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
+                                      isOnline ? 'bg-emerald-500' : 'bg-slate-400'
+                                    }`}
+                                    title={isOnline ? 'Online (Ready to Call)' : 'Standby / Offline'}
+                                  />
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                                  {contactName}
+                                </h4>
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                  {conn.relationship}
+                                </span>
+                              </div>
                             </div>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
-                              {conn.relationship}
-                            </span>
+
+                            <button
+                              onClick={() => handleDeleteContact(conn.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              title="Remove Connection"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          {/* Contact Metadata */}
+                          <div className="space-y-1 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            <p className="flex items-center gap-1">
+                              <Shield size={12} className="text-blue-500" />
+                              <span>Caregiver: {conn.caregiver_name || 'Atchyuta Pavan Karthikeya'}</span>
+                            </p>
+                            {isMindMitra ? (
+                              <div className="flex items-center gap-2 pt-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                                  MindMitra Contact
+                                </span>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isOnline
+                                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  {isOnline ? '● Online' : '○ Standby'}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 pt-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                                  External Contact
+                                </span>
+                                {conn.phone_number && (
+                                  <span className="font-mono text-slate-600 dark:text-slate-400 text-[11px]">
+                                    {conn.phone_number}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleStartCall(conn)}
-                            disabled={callState === 'calling' || callState === 'connected'}
-                            className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm flex items-center gap-1.5 text-xs active:scale-95 disabled:opacity-50 transition-all"
-                            title={`Call ${contactName}`}
-                          >
-                            <PhoneCall size={15} />
-                            <span>Call {contactName}</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteContact(conn.id)}
-                            className="p-2 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
-                            title="Remove Connection"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        {/* Action Buttons */}
+                        <div>
+                          {isMindMitra ? (
+                            <button
+                              onClick={() => startCall(conn)}
+                              disabled={callState === 'CALLING' || callState === 'CONNECTED'}
+                              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 disabled:opacity-50 transition-all"
+                            >
+                              <PhoneCall size={16} />
+                              <span>Call {contactName}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setSelectedPhoneContact(conn)}
+                              className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                            >
+                              <Smartphone size={16} />
+                              <span>Phone Call</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="py-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
-                  <Shield size={32} className="mx-auto mb-2 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">No trusted connections added yet for {currentProfile?.display_name || currentProfile?.name}</p>
-                  <button
-                    onClick={() => setShowAddContactModal(true)}
-                    className="elderly-btn-primary py-2 px-4 text-xs inline-flex items-center gap-1.5"
-                  >
-                    <Plus size={14} /> Add Trusted Family Contact
-                  </button>
+                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+                  <Phone className="mx-auto text-slate-400 mb-2" size={32} />
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Trusted Contacts Added Yet</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Add family members or neighbors for instant 1-tap calling.
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* My Memory Stories Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700">
+            {/* Memory Stories Card */}
+            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <BookOpen className="text-amber-600 dark:text-amber-400" size={20} />
-                    <span>My Memory Stories</span>
+                    <BookOpen className="text-amber-500" size={20} />
+                    <span>Private Voice Memory Stories</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Preserved voice recordings & childhood oral histories for {currentProfile?.display_name || currentProfile?.name}
+                    Audio recordings preserved for reminiscence and family archives
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowAddStoryModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold flex items-center gap-1 shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all"
                 >
-                  <Mic size={15} />
+                  <Mic size={16} />
                   <span>Record Story</span>
                 </button>
               </div>
 
               {stories.length > 0 ? (
                 <div className="space-y-3">
-                  {stories.map((st) => (
+                  {stories.map((story) => (
                     <div
-                      key={st.id}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 space-y-2.5"
+                      key={story.id}
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                     >
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{st.title}</h4>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300">
-                          {st.category || 'Life Memory'}
-                        </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{story.title}</h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                            {story.category}
+                          </span>
+                        </div>
+                        {story.transcript_text && (
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                            {story.transcript_text}
+                          </p>
+                        )}
                       </div>
 
-                      {st.transcript_text && (
-                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium italic bg-white dark:bg-slate-850 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                          "{st.transcript_text}"
-                        </p>
-                      )}
-
-                      {st.audio_url && (
-                        <div className="pt-1">
-                          <audio controls src={st.audio_url} className="w-full h-8" />
+                      {story.audio_url && (
+                        <div className="w-full sm:w-auto shrink-0">
+                          <audio controls src={story.audio_url} className="w-full sm:w-60 h-8" />
                         </div>
                       )}
-
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-semibold pt-1">
-                        <Volume2 size={14} className="text-amber-500" />
-                        <span>Private Story • Recorded on {new Date(st.created_at || Date.now()).toLocaleDateString()}</span>
-                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="py-8 text-center text-xs text-slate-500 font-medium">
-                  No memory stories recorded yet. Tap "Record Story" to capture a voice memory with the microphone.
+                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+                  <Mic className="mx-auto text-slate-400 mb-2" size={32} />
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Memory Stories Recorded</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Capture precious memories and life stories using your microphone.
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right Col: Interest Circles */}
+          {/* Right Column: Interest Circles */}
           <div className="space-y-6">
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Sparkles size={16} className="text-purple-600 dark:text-purple-400" />
-                <span>Social Interest Circles</span>
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-4">
-                Click any circle to view details or launch a dedicated group session.
-              </p>
+            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="text-blue-500" size={20} />
+                    <span>Peer Interest Circles</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Neighborhood social topics
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-3">
-                {interestCircles.map((circle, ci) => {
+                {interestCircles.map((circle) => {
                   const Icon = circle.icon;
                   return (
                     <div
-                      key={ci}
+                      key={circle.id}
                       onClick={() => setSelectedCircle(circle)}
-                      className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs cursor-pointer hover:border-purple-400 transition-all"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
                     >
-                      <div className="flex items-center gap-3 mb-1">
-                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${circle.color} text-white flex items-center justify-center font-bold shadow-xs shrink-0`}>
-                          <Icon size={18} />
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${circle.color} text-white flex items-center justify-center shadow-md`}
+                        >
+                          <Icon size={20} />
                         </div>
                         <div>
-                          <h4 className="font-extrabold text-slate-900 dark:text-white">{circle.title}</h4>
-                          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">{circle.members}</span>
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{circle.title}</h4>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            {circle.members} Active Members
+                          </span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium line-clamp-2 mt-1">
-                        {circle.description}
-                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{circle.desc}</p>
                     </div>
                   );
                 })}
@@ -916,57 +563,100 @@ export default function ConnectHub() {
           </div>
         </div>
 
-        {/* Modal: Interest Circle Details */}
-        {selectedCircle && (
+        {/* Modal: External Phone Call Dialog */}
+        {selectedPhoneContact && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
-              <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${selectedCircle.color} text-white flex items-center justify-center font-bold`}>
-                    <Sparkles size={16} />
-                  </div>
-                  <h3 className="text-base font-black">{selectedCircle.title}</h3>
-                </div>
-                <button onClick={() => setSelectedCircle(null)} className="p-1 text-slate-400 hover:text-slate-600">
+            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-extrabold flex items-center gap-2">
+                  <Smartphone size={20} className="text-purple-500" />
+                  <span>External Phone Call</span>
+                </h3>
+                <button
+                  onClick={() => setSelectedPhoneContact(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                >
                   <X size={18} />
                 </button>
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                {selectedCircle.description}
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                Community Size: <strong className="text-purple-600 dark:text-purple-400">{selectedCircle.members}</strong> across regional senior centers.
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-center">
+                <h4 className="text-xl font-bold">{selectedPhoneContact.display_name || selectedPhoneContact.contact_name}</h4>
+                <p className="text-xs text-slate-500">{selectedPhoneContact.relationship} • External Contact</p>
+                <p className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 mt-2">
+                  {selectedPhoneContact.phone_number || 'No phone number stored'}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Caregiver Verified: {selectedPhoneContact.caregiver_name || 'Atchyuta Pavan Karthikeya'}
+                </p>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                This external contact will be dialed directly through your device's cellular telephone line.
+              </p>
+
+              <div className="flex justify-end gap-3 pt-2">
                 <button
-                  onClick={() => setSelectedCircle(null)}
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  onClick={() => setSelectedPhoneContact(null)}
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                 >
                   Close
                 </button>
-                <button
-                  onClick={() => {
-                    sessionStorage.setItem('mindmitra_preselected_activity', selectedCircle.activityKey);
-                    navigate('/community');
-                  }}
-                  className="elderly-btn-primary text-xs py-2 px-5 rounded-xl flex items-center gap-1.5"
-                >
-                  <Play size={14} fill="currentColor" />
-                  <span>Start Group Session</span>
-                </button>
+                {selectedPhoneContact.phone_number && (
+                  <a
+                    href={`tel:${selectedPhoneContact.phone_number}`}
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 shadow-md shadow-purple-600/30"
+                  >
+                    <Phone size={14} />
+                    <span>Dial {selectedPhoneContact.phone_number}</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Modal: Add Contact */}
+        {/* Modal: Add Trusted Contact */}
         {showAddContactModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl">
-              <h3 className="text-base font-extrabold">Add Trusted Family Contact</h3>
+            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold flex items-center gap-2">
+                  <UserCheck size={18} className="text-emerald-600" />
+                  <span>Add Trusted Contact</span>
+                </h3>
+                <button
+                  onClick={() => setShowAddContactModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Contact Type Selector Tabs */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                <button
+                  onClick={() => setContactType('mindmitra_user')}
+                  className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
+                    contactType === 'mindmitra_user'
+                      ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  MindMitra Contact
+                </button>
+                <button
+                  onClick={() => setContactType('external')}
+                  className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
+                    contactType === 'external'
+                      ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  External Contact
+                </button>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Name</label>
                 <input
@@ -974,9 +664,10 @@ export default function ConnectHub() {
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                  placeholder="e.g. Anitha Kumar"
+                  placeholder="e.g. Leelu, Anita, Suresh"
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
                 <select
@@ -984,30 +675,59 @@ export default function ConnectHub() {
                   onChange={(e) => setNewContactRel(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
                 >
+                  <option value="Neighbor">Neighbor</option>
                   <option value="Daughter">Daughter</option>
                   <option value="Son">Son</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
                   <option value="Spouse">Spouse</option>
                   <option value="Primary Caregiver">Primary Caregiver</option>
                   <option value="Doctor">Doctor</option>
-                  <option value="Neighbor">Neighbor</option>
+                  <option value="Friend">Friend</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Target Account / Device ID
-                </label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Caregiver Name</label>
                 <input
-                  type="number"
-                  value={newContactTargetId}
-                  onChange={(e) => setNewContactTargetId(Number(e.target.value) || 1)}
+                  type="text"
+                  value={newContactCaregiver}
+                  onChange={(e) => setNewContactCaregiver(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                  placeholder="1"
+                  placeholder="Atchyuta Pavan Karthikeya"
                 />
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                  Matches the recipient's authenticated profile ID for peer-to-peer WebRTC voice routing.
-                </p>
               </div>
+
+              {contactType === 'mindmitra_user' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    MindMitra Target User / Profile ID
+                  </label>
+                  <input
+                    type="number"
+                    value={newContactTargetId}
+                    onChange={(e) => setNewContactTargetId(Number(e.target.value) || 1)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                    placeholder="2"
+                  />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                    Routes real-time WebRTC audio signals directly to this authenticated account session.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={newContactPhone}
+                    onChange={(e) => setNewContactPhone(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
@@ -1018,23 +738,32 @@ export default function ConnectHub() {
                 </button>
                 <button
                   onClick={handleAddContact}
-                  className="elderly-btn-primary text-xs py-2 px-5 rounded-xl"
+                  disabled={!newContactName.trim()}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
                 >
-                  Save Connection
+                  Save Contact
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Modal: Real MediaRecorder Memory Story Recording */}
+        {/* Modal: Memory Story Recording */}
         {showAddStoryModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <Mic size={18} className="text-amber-500" />
-                <span>Record Private Memory Story</span>
-              </h3>
+            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold flex items-center gap-2">
+                  <Mic size={18} className="text-amber-500" />
+                  <span>Record Memory Story</span>
+                </h3>
+                <button
+                  onClick={() => setShowAddStoryModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Story Title</label>
@@ -1062,7 +791,7 @@ export default function ConnectHub() {
               </div>
 
               {/* Real Audio Recorder Controls */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center space-y-3">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                   Microphone Audio Capture:
                 </span>
@@ -1103,13 +832,15 @@ export default function ConnectHub() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Transcript / Family Notes (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Transcript / Family Notes (Optional)
+                </label>
                 <textarea
                   rows={2}
                   value={newStoryText}
                   onChange={(e) => setNewStoryText(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium"
-                  placeholder="Optional summary or transcribed details of the recording..."
+                  placeholder="Optional summary or notes..."
                 />
               </div>
 
@@ -1126,9 +857,9 @@ export default function ConnectHub() {
                 <button
                   onClick={handleSaveRecordedStory}
                   disabled={!newStoryTitle.trim()}
-                  className="elderly-btn-primary text-xs py-2 px-5 rounded-xl disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50"
                 >
-                  Save Private Story
+                  Save Story
                 </button>
               </div>
             </div>

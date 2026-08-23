@@ -1,6 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { CallProvider } from './context/CallContext';
+import { GlobalCallOverlay } from './components/GlobalCallOverlay';
 import { ThemeProvider } from './context/ThemeContext';
 import { WifiOff } from 'lucide-react';
 
@@ -64,6 +66,9 @@ function AppContent() {
       {/* Offline Status */}
       <OfflineBanner />
 
+      {/* Global Real-Time Call Overlay & Incoming Ring Banner */}
+      <GlobalCallOverlay />
+
       {/* Main Page Routing */}
       <main className="flex-grow flex flex-col">
         <Suspense fallback={<LoadingScreen />}>
@@ -100,12 +105,11 @@ function AppContent() {
             <Route path="/profiles/:profileId/people" element={<ProtectedRoute><CaregiverFamiliarPeople /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/reminders" element={<ProtectedRoute><CaregiverReminders /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/history" element={<ProtectedRoute><CaregiverHistory /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/community" element={<ProtectedRoute><CommunityHub /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/connect" element={<ProtectedRoute><ConnectHub /></ProtectedRoute>} />
 
-            {/* Elderly Gameplay Interaction Routes */}
-            <Route path="/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            {/* Games routes */}
             <Route path="/games/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
-            <Route path="/profiles/:profileId/session/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
-            <Route path="/profiles/:profileId/games/:gameType" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
             <Route path="/session/complete" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
 
             {/* Catch-all fallback to Home */}
@@ -122,7 +126,9 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AppProvider>
-          <AppContent />
+          <CallProvider>
+            <AppContent />
+          </CallProvider>
         </AppProvider>
       </ThemeProvider>
     </BrowserRouter>

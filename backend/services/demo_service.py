@@ -216,26 +216,38 @@ def seed_demo_scenarios(db_path: str = "mindmitra.db") -> Dict[str, Any]:
         VALUES (2, 'medication', 'Night Calcium Tablet', '09:00 PM', 'Daily', 1, ?)
     """, (now.isoformat(),))
 
-    # 8. Seed Profile-Specific Approved Trusted Connections
-    # Profile 1 (Rajesh / Polayya): Pavan (Son, target_id=1), Leelu (Neighbor, target_id=2)
+    # 8. Seed Profile-Specific Approved Trusted Connections (Type A MindMitra + Type B External)
     c.execute("DELETE FROM trusted_connections WHERE profile_id IN (1, 2, 3)")
+    # Profile 1 (Rajesh / Polayya)
     c.execute("""
-        INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
-        VALUES (1, 'Pavan', 'Pavan', 1, 'Son', '+91 98765 43210', 'approved', ?)
+        INSERT INTO trusted_connections (
+            profile_id, contact_name, display_name, contact_type, relationship,
+            caregiver_name, target_user_id, contact_user_id, phone_number, phone_or_address,
+            status, created_at
+        ) VALUES (1, 'Leelu', 'Leelu', 'mindmitra_user', 'Neighbor', 'Atchyuta Pavan Karthikeya', 2, 2, '', 'Flat 4B, Courtyard', 'approved', ?)
     """, (now.isoformat(),))
     c.execute("""
-        INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
-        VALUES (1, 'Leelu', 'Leelu', 2, 'Neighbor', 'Flat 4B, Courtyard', 'approved', ?)
+        INSERT INTO trusted_connections (
+            profile_id, contact_name, display_name, contact_type, relationship,
+            caregiver_name, target_user_id, contact_user_id, phone_number, phone_or_address,
+            status, created_at
+        ) VALUES (1, 'Suresh', 'Suresh', 'external', 'Brother', 'Atchyuta Pavan Karthikeya', NULL, NULL, '+91 98765 43210', '+91 98765 43210', 'approved', ?)
     """, (now.isoformat(),))
 
-    # Profile 2 (Sunita / Leelu): Polayya (Neighbor, target_id=1), Pavan (Caregiver, target_id=1)
+    # Profile 2 (Sunita / Leelu)
     c.execute("""
-        INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
-        VALUES (2, 'Polayya', 'Polayya', 1, 'Neighbor', 'Flat 2A, Courtyard', 'approved', ?)
+        INSERT INTO trusted_connections (
+            profile_id, contact_name, display_name, contact_type, relationship,
+            caregiver_name, target_user_id, contact_user_id, phone_number, phone_or_address,
+            status, created_at
+        ) VALUES (2, 'Polayya', 'Polayya', 'mindmitra_user', 'Neighbor', 'Atchyuta Pavan Karthikeya', 1, 1, '', 'Flat 2A, Courtyard', 'approved', ?)
     """, (now.isoformat(),))
     c.execute("""
-        INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
-        VALUES (2, 'Pavan', 'Pavan', 1, 'Primary Caregiver', '+91 98765 43210', 'approved', ?)
+        INSERT INTO trusted_connections (
+            profile_id, contact_name, display_name, contact_type, relationship,
+            caregiver_name, target_user_id, contact_user_id, phone_number, phone_or_address,
+            status, created_at
+        ) VALUES (2, 'Anita', 'Anita', 'external', 'Daughter', 'Atchyuta Pavan Karthikeya', NULL, NULL, '+91 91234 56789', '+91 91234 56789', 'approved', ?)
     """, (now.isoformat(),))
 
     sync_postgres_sequences(conn)

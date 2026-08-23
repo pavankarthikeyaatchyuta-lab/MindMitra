@@ -213,25 +213,56 @@ export const api = {
   // Connect Mode & Trusted Connections
   getProfileConnections: (profileId: number) =>
     fetchJSON<TrustedConnection[]>(`/connections/profile/${profileId}`, {}, `connections_${profileId}`),
-  addTrustedConnection: (conn: { profile_id: number; contact_name?: string; display_name?: string; contact_user_id?: number; relationship: string; phone_or_address?: string }) =>
-    fetchJSON<{ id: number; status: string; display_name: string; contact_user_id: number }>('/connections', { method: 'POST', body: JSON.stringify(conn) }),
+  addTrustedConnection: (conn: {
+    profile_id: number;
+    contact_name?: string;
+    display_name?: string;
+    contact_type?: 'mindmitra_user' | 'external';
+    relationship: string;
+    caregiver_name?: string;
+    target_user_id?: number;
+    contact_user_id?: number;
+    phone_number?: string;
+    phone_or_address?: string;
+    status?: string;
+  }) =>
+    fetchJSON<{ id: number; status: string; display_name: string; contact_type: string; target_user_id?: number }>('/connections', { method: 'POST', body: JSON.stringify(conn) }),
   deleteTrustedConnection: (id: number) =>
     fetchJSON<{ status: string; id: number }>(`/connections/${id}`, { method: 'DELETE' }),
 
-  // WebRTC Audio Call Signaling & Presence
-  sendCallSignal: (caller_profile_id: number, recipient_profile_id: number, signal_type: string, payload?: any, call_id?: string, caller_name?: string) =>
-    fetchJSON<{ status: string; signal_type: string }>('/call/signal', {
+  // WebRTC Audio Call Signaling & Presence (Database-Backed)
+  sendPresenceHeartbeat: (userId: number, sessionId?: string) =>
+    fetchJSON<{ status: string; user_id: number; timestamp: string }>('/presence/heartbeat', {
       method: 'POST',
-      body: JSON.stringify({ caller_profile_id, recipient_profile_id, signal_type, payload, call_id, caller_name })
+      body: JSON.stringify({ user_id: userId, session_id: sessionId })
     }),
-  pollCallSignals: (profileId: number) =>
-    fetchJSON<{ signals: Array<{ caller_profile_id: number; caller_name?: string; recipient_profile_id: number; signal_type: string; payload?: any; call_id?: string; timestamp: string }>; profile_id: number }>(`/call/signals/${profileId}`),
+  sendCallSignal: (caller_profile_id: number, target_user_id: number, signal_type: string, payload?: any, call_id?: string, caller_name?: string) =>
+    fetchJSON<{ status: string; signal_type: string; target_user_id: number }>('/call/signal', {
+      method: 'POST',
+      body: JSON.stringify({ caller_profile_id, target_user_id, recipient_profile_id: target_user_id, signal_type, payload, call_id, caller_name })
+    }),
+  pollCallSignals: (targetUserId: number) =>
+    fetchJSON<{
+      signals: Array<{
+        id: number;
+        call_id: string;
+        caller_profile_id: number;
+        caller_name?: string;
+        caller_relationship?: string;
+        target_user_id: number;
+        recipient_profile_id: number;
+        signal_type: string;
+        payload?: any;
+        timestamp: string;
+      }>;
+      target_user_id: number;
+    }>(`/call/signals/${targetUserId}`),
   getCallPresence: (targetId: number) =>
     fetchJSON<{ target_id: number; online: boolean; last_seen?: string }>(`/call/presence/${targetId}`),
-  endCallSignal: (caller_profile_id: number, recipient_profile_id: number) =>
-    fetchJSON<{ status: string }>('/call/end', {
+  endCallSignal: (caller_profile_id: number, target_user_id: number, call_id?: string) =>
+    fetchJSON<{ status: string; call_id: string }>('/call/end', {
       method: 'POST',
-      body: JSON.stringify({ caller_profile_id, recipient_profile_id, signal_type: 'hangup' })
+      body: JSON.stringify({ caller_profile_id, target_user_id, recipient_profile_id: target_user_id, call_id, signal_type: 'hangup' })
     }),
 
   // Memory Stories

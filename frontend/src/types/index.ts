@@ -224,12 +224,16 @@ export interface CommunityEvent {
 export interface TrustedConnection {
   id: number;
   profile_id: number;
+  contact_type: 'mindmitra_user' | 'external';
   contact_name: string;
   display_name?: string;
-  contact_user_id?: number;
   relationship: string;
+  caregiver_name?: string;
+  target_user_id?: number;
+  contact_user_id?: number;
+  phone_number?: string;
   phone_or_address?: string;
-  status: string;
+  status: 'approved' | 'pending' | 'declined' | 'blocked' | 'removed';
   approval_required?: boolean;
   created_at?: string;
 }

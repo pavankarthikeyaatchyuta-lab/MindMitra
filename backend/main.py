@@ -274,8 +274,14 @@ def init_db():
             CREATE TABLE IF NOT EXISTS trusted_connections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 profile_id INTEGER,
+                contact_type TEXT DEFAULT 'mindmitra_user',
                 contact_name TEXT,
+                display_name TEXT,
                 relationship TEXT,
+                caregiver_name TEXT,
+                target_user_id INTEGER,
+                contact_user_id INTEGER,
+                phone_number TEXT,
                 phone_or_address TEXT,
                 status TEXT DEFAULT 'approved',
                 approval_required BOOLEAN DEFAULT 0,
@@ -297,6 +303,33 @@ def init_db():
             )
         """)
 
+        # 16. Real-time Active Presence (Database-backed for Serverless & Multi-Device)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS active_presence (
+                user_id INTEGER PRIMARY KEY,
+                active_session_id TEXT,
+                online BOOLEAN DEFAULT 1,
+                last_heartbeat TIMESTAMP,
+                updated_at TIMESTAMP
+            )
+        """)
+
+        # 17. Real-time WebRTC Call Signals Queue (Database-backed)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS call_signals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                call_id TEXT,
+                caller_profile_id INTEGER,
+                caller_name TEXT,
+                caller_relationship TEXT,
+                target_user_id INTEGER,
+                signal_type TEXT,
+                payload TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP
+            )
+        """)
+
         # Perform table migrations safely
         for col_def in [
             ("game_sessions", "invalid_for_trend", "BOOLEAN DEFAULT 0"),
@@ -306,7 +339,11 @@ def init_db():
             ("elderly_profiles", "active", "BOOLEAN DEFAULT 1"),
             ("elderly_profiles", "status", "TEXT DEFAULT 'active'"),
             ("trusted_connections", "contact_user_id", "INTEGER"),
+            ("trusted_connections", "target_user_id", "INTEGER"),
             ("trusted_connections", "display_name", "TEXT"),
+            ("trusted_connections", "contact_type", "TEXT DEFAULT 'mindmitra_user'"),
+            ("trusted_connections", "caregiver_name", "TEXT"),
+            ("trusted_connections", "phone_number", "TEXT"),
         ]:
             tbl, col, dtype = col_def
             if not column_exists(c, tbl, col):
@@ -327,6 +364,12 @@ def init_db():
 
         sync_postgres_sequences(conn)
         conn.commit()
+
+# Ensure database tables exist on module load
+try:
+    init_db()
+except Exception as _e:
+    pass
 
 @app.on_event("startup")
 def startup_event():
@@ -884,10 +927,18 @@ class TrustedConnectionRequest(BaseModel):
     profile_id: int
     contact_name: Optional[str] = ""
     display_name: Optional[str] = ""
-    contact_user_id: Optional[int] = None
+    contact_type: Optional[str] = "mindmitra_user" # "mindmitra_user" | "external"
     relationship: str
+    caregiver_name: Optional[str] = "Atchyuta Pavan Karthikeya"
+    target_user_id: Optional[int] = None
+    contact_user_id: Optional[int] = None
+    phone_number: Optional[str] = ""
     phone_or_address: Optional[str] = ""
     status: Optional[str] = "approved"
+
+class HeartbeatRequest(BaseModel):
+    user_id: int
+    session_id: Optional[str] = None
 
 class MemoryStoryRequest(BaseModel):
     profile_id: int
@@ -899,13 +950,14 @@ class MemoryStoryRequest(BaseModel):
 
 class WebRTCSignalRequest(BaseModel):
     caller_profile_id: int
-    recipient_profile_id: int
+    recipient_profile_id: Optional[int] = None
+    target_user_id: Optional[int] = None
     signal_type: str
     payload: Optional[Dict[str, Any]] = None
     call_id: Optional[str] = None
     caller_name: Optional[str] = None
 
-# In-memory WebRTC signaling queue and user presence mapping
+# In-memory WebRTC fallback
 call_signals_queue: Dict[int, List[Dict[str, Any]]] = {}
 user_presence: Dict[int, str] = {}
 
@@ -1053,6 +1105,8 @@ def record_community_event(req: RecordCommunityEventRequest, current=Depends(get
 
 # --- ENDPOINTS: CONNECT MODE & TRUSTED CONNECTIONS ---
 
+# --- ENDPOINTS: CONNECT MODE & TRUSTED CONNECTIONS ---
+
 @app.get("/api/connections/profile/{profile_id}")
 @app.get("/connections/profile/{profile_id}")
 def get_profile_connections(profile_id: int, current=Depends(get_current_caregiver)):
@@ -1067,6 +1121,14 @@ def get_profile_connections(profile_id: int, current=Depends(get_current_caregiv
             d = dict(r)
             if not d.get("display_name"):
                 d["display_name"] = d.get("contact_name") or "Contact"
+            if not d.get("contact_type"):
+                d["contact_type"] = "mindmitra_user" if (d.get("target_user_id") or d.get("contact_user_id")) else "external"
+            if not d.get("target_user_id"):
+                d["target_user_id"] = d.get("contact_user_id")
+            if not d.get("caregiver_name"):
+                d["caregiver_name"] = "Atchyuta Pavan Karthikeya"
+            if not d.get("phone_number"):
+                d["phone_number"] = d.get("phone_or_address") or ""
             result.append(d)
         return result
 
@@ -1079,13 +1141,31 @@ def add_trusted_connection(req: TrustedConnectionRequest, current=Depends(get_cu
         c = conn.cursor()
         display_name = req.display_name or req.contact_name or "Trusted Contact"
         contact_name = req.contact_name or display_name
-        contact_user_id = req.contact_user_id or 1
+        contact_type = req.contact_type or ("mindmitra_user" if req.target_user_id else "external")
+        target_user_id = req.target_user_id or req.contact_user_id
+        caregiver_name = req.caregiver_name or "Atchyuta Pavan Karthikeya"
+        phone_number = req.phone_number or req.phone_or_address or ""
+
         c.execute("""
-            INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (req.profile_id, contact_name, display_name, contact_user_id, req.relationship, req.phone_or_address or "", req.status or "approved", datetime.datetime.now().isoformat()))
+            INSERT INTO trusted_connections (
+                profile_id, contact_name, display_name, contact_type, relationship,
+                caregiver_name, target_user_id, contact_user_id, phone_number, phone_or_address,
+                status, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            req.profile_id, contact_name, display_name, contact_type, req.relationship,
+            caregiver_name, target_user_id, target_user_id, phone_number, phone_number,
+            req.status or "approved", datetime.datetime.now().isoformat()
+        ))
         conn.commit()
-        return {"id": c.lastrowid, "status": "approved", "display_name": display_name, "contact_user_id": contact_user_id}
+        return {
+            "id": c.lastrowid,
+            "status": req.status or "approved",
+            "display_name": display_name,
+            "contact_type": contact_type,
+            "target_user_id": target_user_id
+        }
 
 @app.delete("/api/connections/{id}")
 @app.delete("/connections/{id}")
@@ -1100,19 +1180,60 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
         conn.commit()
         return {"status": "deleted", "id": id}
 
-# --- ENDPOINTS: WEBRTC CALL SIGNALING & PRESENCE ---
+# --- ENDPOINTS: REAL-TIME WEBRTC CALL SIGNALING & PRESENCE (DATABASE-PERSISTED) ---
+
+@app.post("/api/presence/heartbeat")
+@app.post("/presence/heartbeat")
+def record_presence_heartbeat(req: HeartbeatRequest, current=Depends(get_current_caregiver)):
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM active_presence WHERE user_id = ?", (req.user_id,))
+        c.execute("""
+            INSERT INTO active_presence (user_id, active_session_id, online, last_heartbeat, updated_at)
+            VALUES (?, ?, 1, ?, ?)
+        """, (req.user_id, req.session_id or f"sess_{req.user_id}", now, now))
+        conn.commit()
+        user_presence[req.user_id] = now
+        return {"status": "ok", "user_id": req.user_id, "timestamp": now}
+
+@app.get("/api/call/presence/{target_id}")
+@app.get("/call/presence/{target_id}")
+def get_call_presence(target_id: int):
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT last_heartbeat FROM active_presence WHERE user_id = ?", (target_id,))
+        row = c.fetchone()
+        is_online = False
+        last_seen_str = None
+        if row:
+            last_seen_str = row["last_heartbeat"] if isinstance(row, dict) else row[0]
+            if last_seen_str:
+                try:
+                    last_seen_dt = datetime.datetime.fromisoformat(last_seen_str)
+                    if (datetime.datetime.now() - last_seen_dt).total_seconds() < 25:
+                        is_online = True
+                except:
+                    pass
+        return {"target_id": target_id, "online": is_online, "last_seen": last_seen_str}
 
 @app.post("/api/call/signal")
 @app.post("/call/signal")
 def send_call_signal(req: WebRTCSignalRequest, current=Depends(get_current_caregiver)):
-    recipient_id = req.recipient_profile_id
-    if recipient_id not in call_signals_queue:
-        call_signals_queue[recipient_id] = []
+    now = datetime.datetime.now().isoformat()
+    target_id = req.target_user_id or req.recipient_profile_id
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Missing target_user_id or recipient_profile_id")
     
-    caller_name = req.caller_name
-    if not caller_name:
-        with get_db() as conn:
-            c = conn.cursor()
+    with get_db() as conn:
+        # Authorization check: verify caller profile ownership if authenticated
+        if current and not verify_profile_ownership(conn, current["caregiver_id"], req.caller_profile_id):
+            raise HTTPException(status_code=403, detail="Forbidden: Caller profile not authorized")
+
+        c = conn.cursor()
+        # Lookup caller name
+        caller_name = req.caller_name
+        if not caller_name:
             c.execute("SELECT name FROM elderly_profiles WHERE id = ?", (req.caller_profile_id,))
             p_row = c.fetchone()
             if p_row and p_row["name"]:
@@ -1122,59 +1243,113 @@ def send_call_signal(req: WebRTCSignalRequest, current=Depends(get_current_careg
                 u_row = c.fetchone()
                 caller_name = u_row["display_name"] if u_row else f"Profile #{req.caller_profile_id}"
 
-    # Store message with timestamp
-    signal_msg = {
-        "caller_profile_id": req.caller_profile_id,
-        "caller_name": caller_name,
-        "recipient_profile_id": req.recipient_profile_id,
-        "signal_type": req.signal_type,
-        "payload": req.payload,
-        "call_id": req.call_id or f"call_{req.caller_profile_id}_{req.recipient_profile_id}",
-        "timestamp": datetime.datetime.now().isoformat()
-    }
-    call_signals_queue[recipient_id].append(signal_msg)
-    user_presence[req.caller_profile_id] = datetime.datetime.now().isoformat()
-    return {"status": "queued", "signal_type": req.signal_type, "recipient_profile_id": recipient_id}
+        # Lookup relationship if any
+        c.execute("SELECT relationship FROM trusted_connections WHERE profile_id = ? AND (target_user_id = ? OR contact_user_id = ?)", (req.caller_profile_id, target_id, target_id))
+        rel_row = c.fetchone()
+        caller_rel = rel_row["relationship"] if rel_row else "Trusted Contact"
 
-@app.get("/api/call/signals/{profile_id}")
-@app.get("/call/signals/{profile_id}")
-def poll_call_signals(profile_id: int, current=Depends(get_current_caregiver)):
-    user_presence[profile_id] = datetime.datetime.now().isoformat()
-    signals = call_signals_queue.pop(profile_id, [])
-    return {"signals": signals, "profile_id": profile_id}
+        call_id = req.call_id or f"call_{req.caller_profile_id}_{target_id}"
+        payload_str = json.dumps(req.payload) if req.payload is not None else "{}"
 
-@app.get("/api/call/presence/{target_id}")
-@app.get("/call/presence/{target_id}")
-def get_call_presence(target_id: int):
-    last_seen_str = user_presence.get(target_id)
-    is_online = False
-    if last_seen_str:
-        try:
-            last_seen_dt = datetime.datetime.fromisoformat(last_seen_str)
-            if (datetime.datetime.now() - last_seen_dt).total_seconds() < 45:
-                is_online = True
-        except:
-            pass
-    return {"target_id": target_id, "online": is_online, "last_seen": last_seen_str}
+        # Insert signal into database table
+        c.execute("""
+            INSERT INTO call_signals (call_id, caller_profile_id, caller_name, caller_relationship, target_user_id, signal_type, payload, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        """, (call_id, req.caller_profile_id, caller_name, caller_rel, target_id, req.signal_type, payload_str, now))
+
+        # Update caller heartbeat in presence table
+        c.execute("DELETE FROM active_presence WHERE user_id = ?", (req.caller_profile_id,))
+        c.execute("""
+            INSERT INTO active_presence (user_id, active_session_id, online, last_heartbeat, updated_at)
+            VALUES (?, ?, 1, ?, ?)
+        """, (req.caller_profile_id, f"sess_{req.caller_profile_id}", now, now))
+        conn.commit()
+
+        # Update in-memory queue fallback
+        user_presence[req.caller_profile_id] = now
+
+        return {"status": "queued", "signal_type": req.signal_type, "target_user_id": target_id}
+
+@app.get("/api/call/signals/{target_user_id}")
+@app.get("/call/signals/{target_user_id}")
+def poll_call_signals(target_user_id: int):
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        # 1. Update recipient's heartbeat in presence
+        c.execute("DELETE FROM active_presence WHERE user_id = ?", (target_user_id,))
+        c.execute("""
+            INSERT INTO active_presence (user_id, active_session_id, online, last_heartbeat, updated_at)
+            VALUES (?, ?, 1, ?, ?)
+        """, (target_user_id, f"sess_{target_user_id}", now, now))
+        user_presence[target_user_id] = now
+
+        # 2. Fetch pending signals for this recipient
+        c.execute("""
+            SELECT id, call_id, caller_profile_id, caller_name, caller_relationship, target_user_id, signal_type, payload, created_at
+            FROM call_signals
+            WHERE target_user_id = ? AND status = 'pending'
+            ORDER BY id ASC
+        """, (target_user_id,))
+        rows = c.fetchall()
+
+        signals = []
+        signal_ids = []
+        for r in rows:
+            d = dict(r)
+            payload_data = None
+            if d.get("payload"):
+                try:
+                    payload_data = json.loads(d["payload"])
+                except:
+                    payload_data = d["payload"]
+            signals.append({
+                "id": d["id"],
+                "call_id": d["call_id"],
+                "caller_profile_id": d["caller_profile_id"],
+                "caller_name": d["caller_name"],
+                "caller_relationship": d["caller_relationship"],
+                "target_user_id": d["target_user_id"],
+                "recipient_profile_id": d["target_user_id"],
+                "signal_type": d["signal_type"],
+                "payload": payload_data,
+                "timestamp": d["created_at"]
+            })
+            signal_ids.append(d["id"])
+
+        # 3. Mark fetched signals as delivered
+        if signal_ids:
+            for sid in signal_ids:
+                c.execute("UPDATE call_signals SET status = 'delivered' WHERE id = ?", (sid,))
+        
+        # 4. Housekeeping: purge old signals (> 5 minutes)
+        old_cutoff = (datetime.datetime.now() - datetime.timedelta(minutes=5)).isoformat()
+        c.execute("DELETE FROM call_signals WHERE created_at < ?", (old_cutoff,))
+
+        conn.commit()
+        return {"signals": signals, "target_user_id": target_user_id}
 
 @app.post("/api/call/end")
 @app.post("/call/end")
 def end_call(req: WebRTCSignalRequest, current=Depends(get_current_caregiver)):
-    # Notify peer if signal queue exists
-    if req.recipient_profile_id:
-        if req.recipient_profile_id not in call_signals_queue:
-            call_signals_queue[req.recipient_profile_id] = []
-        call_signals_queue[req.recipient_profile_id].append({
-            "caller_profile_id": req.caller_profile_id,
-            "recipient_profile_id": req.recipient_profile_id,
-            "signal_type": "hangup",
-            "payload": None,
-            "call_id": req.call_id or f"call_{req.caller_profile_id}_{req.recipient_profile_id}",
-            "timestamp": datetime.datetime.now().isoformat()
-        })
-    # Clean queues for caller
-    call_signals_queue.pop(req.caller_profile_id, None)
-    return {"status": "ended"}
+    now = datetime.datetime.now().isoformat()
+    target_id = req.target_user_id or req.recipient_profile_id
+    call_id = req.call_id or f"call_{req.caller_profile_id}_{target_id}"
+
+    with get_db() as conn:
+        c = conn.cursor()
+        # Mark all pending signals for this call as completed
+        c.execute("UPDATE call_signals SET status = 'ended' WHERE call_id = ?", (call_id,))
+        
+        # If target specified, send explicit hangup signal
+        if target_id:
+            c.execute("""
+                INSERT INTO call_signals (call_id, caller_profile_id, caller_name, caller_relationship, target_user_id, signal_type, payload, status, created_at)
+                VALUES (?, ?, ?, 'Trusted Contact', ?, 'hangup', '{}', 'pending', ?)
+            """, (call_id, req.caller_profile_id, req.caller_name or "Caller", target_id, now))
+
+        conn.commit()
+        return {"status": "ended", "call_id": call_id}
 
 # --- ENDPOINTS: MEMORY STORIES ---
 

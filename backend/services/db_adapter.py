@@ -189,6 +189,8 @@ def sync_postgres_sequences(conn):
         "adaptive_decisions",
         "reminders",
         "familiar_people",
+        "trusted_connections",
+        "call_signals",
         "sync_queue"
     ]
     cursor = conn.cursor()
