@@ -220,7 +220,7 @@ export default function ProfileSelection() {
                   : 'text-slate-800 dark:text-slate-300 hover:text-black dark:hover:text-white'
               }`}
             >
-              Active Profiles ({activeProfiles.length})
+              Active Profiles {loading ? '(...)' : `(${activeProfiles.length})`}
             </button>
             <button
               onClick={() => setActiveTab('archived')}
@@ -230,7 +230,7 @@ export default function ProfileSelection() {
                   : 'text-slate-800 dark:text-slate-300 hover:text-black dark:hover:text-white'
               }`}
             >
-              Archived ({archivedProfiles.length})
+              Archived {loading ? '(...)' : `(${archivedProfiles.length})`}
             </button>
           </div>
 
@@ -248,7 +248,28 @@ export default function ProfileSelection() {
           )}
         </div>
 
-        {/* Profiles Grid */}
+        {/* Profiles Grid & 3-State Loading Architecture */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 gap-3 w-full">
+            <div className="w-10 h-10 border-3 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Loading elderly profiles...</p>
+          </div>
+        ) : displayedProfiles.length === 0 ? (
+          <div className="card p-12 text-center w-full max-w-md my-6 border border-dashed border-slate-300 dark:border-slate-700">
+            <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4">
+              {activeTab === 'active' ? 'No active elderly profiles yet.' : 'No archived profiles.'}
+            </p>
+            {activeTab === 'active' && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="elderly-btn-primary text-sm py-2.5 px-6 rounded-xl inline-flex items-center gap-1.5"
+              >
+                <Plus size={16} />
+                <span>+ Add Elderly Profile</span>
+              </button>
+            )}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {displayedProfiles.map((p) => {
             const isSelected = currentUser && currentUser.id === p.id;
@@ -418,27 +439,6 @@ export default function ProfileSelection() {
             </div>
           )}
         </div>
-
-        {/* Empty State for Active Tab */}
-        {activeTab === 'active' && activeProfiles.length === 0 && !loading && (
-          <div className="card p-8 text-center max-w-md w-full my-6">
-            <User size={36} className="text-slate-700 dark:text-slate-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No elderly profiles yet</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
-              Add a profile to begin a personalized cognitive support journey.
-            </p>
-            <button
-              onClick={() => {
-                setFormName('');
-                setFormAge(70);
-                setShowAddModal(true);
-              }}
-              className="elderly-btn-primary text-sm py-2.5 px-6 rounded-xl inline-flex items-center gap-2"
-            >
-              <Plus size={16} />
-              <span>Add Elderly Profile</span>
-            </button>
-          </div>
         )}
       </main>
 

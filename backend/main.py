@@ -849,8 +849,10 @@ def get_user_legacy(id: int):
 
 # --- ENDPOINTS: SESSIONS ---
 
+@app.post("/api/sessions")
 @app.post("/api/sessions/start")
-def start_session(s: SessionStart):
+@app.post("/sessions/start")
+def start_session(s: SessionStart, current=Depends(get_current_caregiver)):
     with get_db() as conn:
         c = conn.cursor()
         now_dt = datetime.datetime.now()

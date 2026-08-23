@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [familiarPeople, setFamiliarPeople] = useState<FamiliarPerson[]>([]);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [startingSession, setStartingSession] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -96,6 +97,25 @@ export default function Dashboard() {
     }
     loadData();
   }, [selectedUserId]);
+
+    const handleStartSession = async () => {
+    if (!selectedUserId) {
+      navigate('/profiles');
+      return;
+    }
+    setStartingSession(true);
+    try {
+      const res = await api.startSession(selectedUserId);
+      sessionStorage.setItem('mindmitra_session_id', String(res.id));
+      sessionStorage.setItem('mindmitra_current_profile_id', String(selectedUserId));
+      navigate('/session');
+    } catch {
+      sessionStorage.setItem('mindmitra_session_id', String(Date.now()));
+      navigate('/session');
+    } finally {
+      setStartingSession(false);
+    }
+  };
 
   const selectedUser = users.find(u => u.id === selectedUserId);
 
@@ -282,13 +302,14 @@ export default function Dashboard() {
               <span className="text-xs px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 font-black">
                 {gameSessions.length} Recorded Sessions
               </span>
-              <Link
-                to="/session"
-                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+              <button
+                onClick={handleStartSession}
+                disabled={startingSession}
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer"
               >
                 <Sparkles size={15} />
-                <span>Start Session</span>
-              </Link>
+                <span>{startingSession ? "Preparing today's session..." : "Start Session"}</span>
+              </button>
             </div>
           </div>
         )}

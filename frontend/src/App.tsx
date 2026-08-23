@@ -99,7 +99,11 @@ function AppContent() {
             {/* Parametric Profile Workspace Routes */}
             <Route path="/profiles/:profileId" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/overview" element={<ProtectedRoute><CaregiverDashboard /></ProtectedRoute>} />
+                        {/* Cognitive Session Routes */}
+            <Route path="/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/session/:sessionId" element={<ProtectedRoute><Session /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/profiles/:profileId/session/:sessionId" element={<ProtectedRoute><Session /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/trends" element={<ProtectedRoute><CaregiverTrends /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/insights" element={<ProtectedRoute><CaregiverInsights /></ProtectedRoute>} />
             <Route path="/profiles/:profileId/people" element={<ProtectedRoute><CaregiverFamiliarPeople /></ProtectedRoute>} />
