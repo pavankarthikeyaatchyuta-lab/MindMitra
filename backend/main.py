@@ -1186,16 +1186,20 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
 @app.post("/presence/heartbeat")
 def record_presence_heartbeat(req: HeartbeatRequest, current=Depends(get_current_caregiver)):
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    with get_db() as conn:
-        c = conn.cursor()
-        c.execute("DELETE FROM active_presence WHERE user_id = ?", (req.user_id,))
-        c.execute("""
-            INSERT INTO active_presence (user_id, active_session_id, online, last_heartbeat, updated_at)
-            VALUES (?, ?, 1, ?, ?)
-        """, (req.user_id, req.session_id or f"sess_{req.user_id}", now, now))
-        conn.commit()
-        user_presence[req.user_id] = now
-        return {"status": "ok", "user_id": req.user_id, "timestamp": now}
+    user_presence[req.user_id] = now
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM active_presence WHERE user_id = ?", (req.user_id,))
+            c.execute("""
+                INSERT INTO active_presence (user_id, active_session_id, online, last_heartbeat, updated_at)
+                VALUES (?, ?, TRUE, ?, ?)
+            """, (req.user_id, req.session_id or f"sess_{req.user_id}", now, now))
+            conn.commit()
+    except Exception as e:
+        logger.warning(f"[Presence Heartbeat DB Warning] {e}")
+    
+    return {"status": "ok", "user_id": req.user_id, "timestamp": now}
 
 def parse_heartbeat_timestamp(ts_val) -> Optional[datetime.datetime]:
     if not ts_val:
