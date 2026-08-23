@@ -14,7 +14,15 @@ import {
   Cpu, 
   TrendingUp, 
   Globe, 
-  Compass, 
+  Compass,
+  PhoneCall,
+  Mic,
+  Music,
+  Sprout,
+  BookOpen,
+  MessageCircle,
+  Radio,
+  Lock,
 } from 'lucide-react';
 
 export default function Welcome() {
@@ -43,7 +51,7 @@ export default function Welcome() {
               <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                 MindMitra
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">Cognitive Wellbeing Companion</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">Cognitive Wellbeing & Community Companion</span>
             </div>
           </Link>
 
@@ -61,7 +69,7 @@ export default function Welcome() {
 
             <button
               onClick={handleGetStarted}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:opacity-95 text-white text-xs sm:text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:opacity-95 text-white text-xs sm:text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <span>Get Started</span>
               <ArrowRight size={15} />
@@ -71,18 +79,18 @@ export default function Welcome() {
       </header>
 
       {/* 2. Hero Section */}
-      <section className="pt-16 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <section className="pt-16 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-300 text-xs font-extrabold uppercase tracking-wider mb-6 shadow-xs">
           <Sparkles size={14} className="text-purple-600 dark:text-purple-400" />
-          <span>AI-Powered Cognitive Engagement & Caregiver Support</span>
+          <span>AI-Powered Cognitive Engagement, Community Circles & Caregiver Insights</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.15] max-w-4xl">
-          Personalized cognitive support, <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">built around the person.</span>
+          Personalized cognitive wellness, <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">connected with family and community.</span>
         </h1>
 
         <p className="mt-6 text-base sm:text-xl text-slate-700 dark:text-slate-200 max-w-3xl leading-relaxed font-medium">
-          Engaging cognitive activities, adaptive intelligence, longitudinal insights and caregiver support in one accessible platform.
+          Dignified cognitive activities, machine learning difficulty adaptation, real-time peer community circles, and encrypted family voice calling in one unified platform.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
@@ -117,7 +125,150 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* 3. Core Product Loop (Play -> Adapt -> Track -> Support) */}
+      {/* 3. NEW: Community Circles & Connect Mode Highlight */}
+      <section className="py-14 px-6 max-w-7xl mx-auto w-full">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider mb-2">
+            <Users size={13} />
+            <span>Social Connection & Reminiscence</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+            Community Circles & Real-Time Trusted Calling
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 text-sm font-medium mt-1.5 max-w-2xl mx-auto">
+            Combating social isolation through structured neighborhood peer circles, group cognitive sessions, and instant 1-tap family voice connections.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Card 1: Community Interest Circles */}
+          <div className="card p-7 bg-gradient-to-br from-blue-50/70 via-indigo-50/50 to-white dark:from-slate-850 dark:via-slate-900 dark:to-slate-900 border-blue-200/80 dark:border-blue-900/60 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                  <Users size={24} />
+                </div>
+                <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 text-xs font-bold">
+                  Peer Social Circles
+                </span>
+              </div>
+
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+                Neighborhood Interest Circles & Group Sessions
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium mb-5">
+                Caregivers can launch interactive group sessions tailored around cultural memory, shared storytelling, and collaborative recall topics:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0">
+                    <Music size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Morning Bhajans & Stotrams</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Devotional recall & mantras</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Sprout size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Courtyard Gardening</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Plants & terrace routines</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center shrink-0">
+                    <BookOpen size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Folktales & Heritage</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Oral history & reminiscence</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Radio size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Classical Music & Ragas</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Auditory memory & rhythm</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+              <span className="font-semibold flex items-center gap-1.5">
+                <Sparkles size={14} className="text-blue-500" /> Real-Time Group Participation
+              </span>
+              <span className="font-mono font-bold text-blue-600 dark:text-blue-400">/community</span>
+            </div>
+          </div>
+
+          {/* Card 2: Connect Mode & Trusted Voice Calling */}
+          <div className="card p-7 bg-gradient-to-br from-purple-50/70 via-indigo-50/50 to-white dark:from-slate-850 dark:via-slate-900 dark:to-slate-900 border-purple-200/80 dark:border-purple-900/60 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20">
+                  <PhoneCall size={24} />
+                </div>
+                <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live WebRTC Voice
+                </span>
+              </div>
+
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+                Connect Mode & Encrypted Family Calling
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium mb-5">
+                A streamlined, elderly-accessible voice calling directory connecting seniors with verified family members, neighbors, and caregivers with zero confusing setup:
+              </p>
+
+              <div className="space-y-3 mb-5">
+                <div className="p-3.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 shrink-0 mt-0.5">
+                    <PhoneCall size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">1-Tap Direct Voice Calling</h4>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                      Peer-to-peer encrypted WebRTC audio with audible chime ringtones, clear connection timers, and large touch targets.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-pink-600 shrink-0 mt-0.5">
+                    <Mic size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Private Voice Memory Stories</h4>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                      Seniors and family members can record and preserve cherished oral history, voice memories, and life anecdotes directly in the app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+              <span className="font-semibold flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-500" /> Caregiver Verified & Isolated
+              </span>
+              <span className="font-mono font-bold text-purple-600 dark:text-purple-400">/connect</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Core Product Loop (Play -> Adapt -> Track -> Support) */}
       <section className="py-14 px-6 max-w-7xl mx-auto w-full">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">The MindMitra Cognitive Wellness Loop</h2>
@@ -207,7 +358,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* 4. 4 Cognitive Games Preview */}
+      {/* 5. 4 Cognitive Games Preview */}
       <section className="py-14 px-6 max-w-7xl mx-auto w-full">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Four Evidence-Informed Cognitive Activities</h2>
@@ -272,7 +423,7 @@ export default function Welcome() {
         </div>
       </section>
 
-      {/* 5. Multilingual & Medical Guardrails */}
+      {/* 6. Multilingual & Medical Guardrails */}
       <section className="py-12 px-6 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card p-6 flex items-start gap-4 bg-blue-50/60 dark:bg-blue-950/20 border-blue-200/70 dark:border-blue-900/50">
