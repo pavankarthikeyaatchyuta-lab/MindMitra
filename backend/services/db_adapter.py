@@ -67,9 +67,12 @@ class UnifiedCursor:
             formatted_sql = formatted_sql.replace("active = 1", "active IS TRUE")
             formatted_sql = formatted_sql.replace("active = 0", "active IS FALSE")
 
-            # Append RETURNING id for INSERT queries if not present
+            # Append RETURNING clause for INSERT queries if not present
             if formatted_sql.strip().upper().startswith("INSERT INTO") and "RETURNING" not in formatted_sql.upper():
-                formatted_sql = formatted_sql.rstrip(";") + " RETURNING id;"
+                if "ACTIVE_PRESENCE" in formatted_sql.upper():
+                    formatted_sql = formatted_sql.rstrip(";") + " RETURNING user_id;"
+                else:
+                    formatted_sql = formatted_sql.rstrip(";") + " RETURNING id;"
 
         self.cursor.execute(formatted_sql, params or ())
         
@@ -78,7 +81,7 @@ class UnifiedCursor:
                 try:
                     res = self.cursor.fetchone()
                     if res:
-                        self.lastrowid = res[0] if isinstance(res, (tuple, list)) else res.get("id")
+                        self.lastrowid = res[0] if isinstance(res, (tuple, list)) else (res.get("id") or res.get("user_id"))
                 except Exception:
                     pass
         else:
