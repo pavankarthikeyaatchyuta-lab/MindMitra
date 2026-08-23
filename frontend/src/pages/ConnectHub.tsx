@@ -113,17 +113,19 @@ export default function ConnectHub() {
       setConnections(conns);
       setStories(stors);
 
-      // Check online presence for contacts
+      // Check online presence for MindMitra contacts
       const presenceMap: Record<number, boolean> = {};
       for (const conn of conns) {
-        const targetId = conn.target_user_id || conn.contact_user_id || conn.profile_id;
-        if (targetId) {
+        const targetId = conn.target_user_id || conn.contact_user_id;
+        if (conn.contact_type === 'mindmitra_user' && targetId) {
           try {
             const pres = await api.getCallPresence(targetId);
             presenceMap[conn.id] = pres.online;
           } catch {
             presenceMap[conn.id] = false;
           }
+        } else {
+          presenceMap[conn.id] = false;
         }
       }
       setContactPresence(presenceMap);
@@ -135,16 +137,18 @@ export default function ConnectHub() {
 
   const checkPresences = async () => {
     if (!connections.length) return;
-    const presenceMap: Record<number, boolean> = { ...contactPresence };
+    const presenceMap: Record<number, boolean> = {};
     for (const conn of connections) {
-      const targetId = conn.target_user_id || conn.contact_user_id || conn.profile_id;
-      if (targetId) {
+      const targetId = conn.target_user_id || conn.contact_user_id;
+      if (conn.contact_type === 'mindmitra_user' && targetId) {
         try {
           const pres = await api.getCallPresence(targetId);
           presenceMap[conn.id] = pres.online;
         } catch {
           presenceMap[conn.id] = false;
         }
+      } else {
+        presenceMap[conn.id] = false;
       }
     }
     setContactPresence(presenceMap);

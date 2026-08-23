@@ -1197,6 +1197,22 @@ def record_presence_heartbeat(req: HeartbeatRequest, current=Depends(get_current
         user_presence[req.user_id] = now
         return {"status": "ok", "user_id": req.user_id, "timestamp": now}
 
+def parse_heartbeat_timestamp(ts_val) -> Optional[datetime.datetime]:
+    if not ts_val:
+        return None
+    if isinstance(ts_val, datetime.datetime):
+        return ts_val.astimezone(datetime.timezone.utc).replace(tzinfo=None) if ts_val.tzinfo else ts_val
+    try:
+        s = str(ts_val).strip()
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.datetime.fromisoformat(s)
+        if dt.tzinfo is not None:
+            return dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        return None
+
 @app.get("/api/call/presence/{target_id}")
 @app.get("/call/presence/{target_id}")
 def get_call_presence(target_id: int):
@@ -1207,14 +1223,17 @@ def get_call_presence(target_id: int):
         is_online = False
         last_seen_str = None
         if row:
-            last_seen_str = row["last_heartbeat"] if isinstance(row, dict) else row[0]
-            if last_seen_str:
-                try:
-                    last_seen_dt = datetime.datetime.fromisoformat(last_seen_str)
-                    if (datetime.datetime.now() - last_seen_dt).total_seconds() < 25:
-                        is_online = True
-                except:
-                    pass
+            raw_ts = row["last_heartbeat"] if isinstance(row, dict) else row[0]
+            last_seen_str = str(raw_ts) if raw_ts else None
+            last_seen_dt = parse_heartbeat_timestamp(raw_ts)
+            if last_seen_dt:
+                now_utc = datetime.datetime.utcnow()
+                now_local = datetime.datetime.now()
+                diff_utc = (now_utc - last_seen_dt).total_seconds()
+                diff_local = (now_local - last_seen_dt).total_seconds()
+                # Online if within 25 seconds (with 5s clock-drift tolerance)
+                if (-5 <= diff_utc <= 25) or (-5 <= diff_local <= 25):
+                    is_online = True
         return {"target_id": target_id, "online": is_online, "last_seen": last_seen_str}
 
 @app.post("/api/call/signal")

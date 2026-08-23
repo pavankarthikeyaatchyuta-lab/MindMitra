@@ -61,7 +61,7 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export function CallProvider({ children }: { children: ReactNode }) {
-  const { currentUser, caregiver } = useAppContext();
+  const { currentUser, currentProfile, caregiver } = useAppContext();
   const [callState, setCallState] = useState<CallState>('IDLE');
   const [activeCall, setActiveCall] = useState<ActiveCallInfo | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
@@ -75,8 +75,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const ringTimeoutTimerRef = useRef<any>(null);
   const pendingOfferPayloadRef = useRef<any>(null);
 
-  // Current active user ID for signaling presence
-  const activeUserId = currentUser?.id || caregiver?.id || 1;
+  // Current active user identity (Profile ID or Caregiver ID)
+  const activeUserId = currentProfile?.id || currentUser?.id || caregiver?.id || null;
 
   // Cleanup helper
   const teardownCallResources = () => {
@@ -97,7 +97,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     pendingOfferPayloadRef.current = null;
   };
 
-  // 1. Continuous Heartbeat (every 3 seconds)
+  // 1. Continuous Heartbeat (every 2.5 seconds)
   useEffect(() => {
     if (!activeUserId) return;
     const sendBeat = async () => {
@@ -106,7 +106,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     };
     sendBeat();
-    const interval = setInterval(sendBeat, 3000);
+    const interval = setInterval(sendBeat, 2500);
     return () => clearInterval(interval);
   }, [activeUserId]);
 
@@ -126,7 +126,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, [callState]);
 
-  // 3. Continuous Background Signaling Poller (every 1.2 seconds)
+  // 3. Continuous Background Signaling Poller (every 1.0 second)
   useEffect(() => {
     if (!activeUserId) return;
 
@@ -147,7 +147,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const interval = setInterval(pollSignals, 1200);
+    pollSignals();
+    const interval = setInterval(pollSignals, 1000);
     return () => clearInterval(interval);
   }, [activeUserId, callState, activeCall]);
 
@@ -189,7 +190,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (peerConnRef.current && payload) {
           try {
             await peerConnRef.current.setRemoteDescription(new RTCSessionDescription(payload));
-            setCallState('CONNECTED');
           } catch (e: any) {
             console.error('[WebRTC] Failed to set remote answer:', e);
             setCallError('Failed to establish audio connection.');
@@ -226,75 +226,131 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const startCall = async (contact: TrustedConnection) => {
     const targetUserId = contact.target_user_id || contact.contact_user_id;
     if (!targetUserId) {
-      setCallError('Cannot place call: Contact does not have a linked MindMitra account ID.');
+      setCallError('Cannot place call: Contact does not have a linked MindMitra account.');
       setCallState('FAILED');
       return;
+    }
+
+    if (!activeUserId) {
+      setCallError('Cannot place call: Please select an active user profile first.');
+      setCallState('FAILED');
+      return;
+    }
+
+    const contactName = contact.display_name || contact.contact_name || 'Contact';
+
+    // 1. Pre-call Real-Time Presence Verification
+    try {
+      const pres = await api.getCallPresence(targetUserId);
+      if (!pres.online) {
+        setCallError(`${contactName} is currently unavailable.`);
+        setActiveCall({
+          targetUserId,
+          displayName: contactName,
+          relationship: contact.relationship,
+          caregiverName: contact.caregiver_name || 'Atchyuta Pavan Karthikeya',
+          isIncoming: false,
+        });
+        setCallState('UNAVAILABLE');
+        setTimeout(() => {
+          setCallState('IDLE');
+          setActiveCall(null);
+        }, 4000);
+        return;
+      }
+    } catch (e) {
+      // If presence network check encounters error, continue with call setup attempt
     }
 
     setCallError(null);
     setCallState('CALLING');
     setActiveCall({
       targetUserId,
-      displayName: contact.display_name || contact.contact_name,
+      displayName: contactName,
       relationship: contact.relationship,
       caregiverName: contact.caregiver_name || 'Atchyuta Pavan Karthikeya',
+      callerProfileId: activeUserId,
       isIncoming: false,
     });
 
     try {
-      // 1. Get Local Microphone Stream
+      // 2. Acquire Local Microphone
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         localStreamRef.current = stream;
       } catch (micErr: any) {
         teardownCallResources();
-        setCallError('Microphone access is required to place this call. Please allow microphone permissions.');
+        setCallError('Microphone access was denied. Please allow microphone permissions in your browser.');
         setCallState('FAILED');
         return;
       }
 
-      // 2. Setup RTCPeerConnection
+      // 3. Setup RTCPeerConnection
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnRef.current = pc;
 
       // Add local audio tracks
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      // Play remote audio
+      // Handle remote audio stream
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
+        if (event.streams && event.streams[0]) {
+          if (!remoteAudioRef.current) {
+            const audio = new Audio();
+            audio.autoplay = true;
+            remoteAudioRef.current = audio;
+          }
           remoteAudioRef.current.srcObject = event.streams[0];
           remoteAudioRef.current.play().catch(() => {});
         }
       };
 
-      // Send ICE candidates to target user
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          api.sendCallSignal(activeUserId, targetUserId, 'ice-candidate', event.candidate.toJSON());
-        }
-      };
-
-      // 3. Create Offer
-      const offer = await pc.createOffer({ offerToReceiveAudio: true });
-      await pc.setLocalDescription(offer);
-
-      // 4. Send Offer Signal via DB-backed API
-      const callerName = currentUser?.display_name || (caregiver ? caregiver.name : 'Polayya');
-      await api.sendCallSignal(activeUserId, targetUserId, 'offer', offer, undefined, callerName);
-
-      // 5. 25-Second Ring Timeout
-      if (ringTimeoutTimerRef.current) clearTimeout(ringTimeoutTimerRef.current);
-      ringTimeoutTimerRef.current = setTimeout(() => {
-        if (callState === 'CALLING' || callState === 'CONNECTING') {
+      // Connection state listener
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        if (state === 'connected') {
+          setCallState('CONNECTED');
+        } else if (state === 'failed' || state === 'disconnected') {
           teardownCallResources();
-          setCallState('UNAVAILABLE');
+          setCallError('Voice connection lost. Please try again.');
+          setCallState('FAILED');
           setTimeout(() => {
             setCallState('IDLE');
             setActiveCall(null);
           }, 4000);
         }
+      };
+
+      // Send ICE candidates to target user
+      pc.onicecandidate = (event) => {
+        if (event.candidate && activeUserId) {
+          api.sendCallSignal(activeUserId, targetUserId, 'ice-candidate', event.candidate.toJSON());
+        }
+      };
+
+      // 4. Create Offer & Dispatch Signal
+      const offer = await pc.createOffer({ offerToReceiveAudio: true });
+      await pc.setLocalDescription(offer);
+
+      const callerName = currentProfile?.display_name || currentUser?.display_name || (caregiver ? caregiver.name : 'Polayya');
+      await api.sendCallSignal(activeUserId, targetUserId, 'offer', offer, undefined, callerName);
+
+      // 5. 25-Second Ring Timeout
+      if (ringTimeoutTimerRef.current) clearTimeout(ringTimeoutTimerRef.current);
+      ringTimeoutTimerRef.current = setTimeout(() => {
+        setCallState((curr) => {
+          if (curr === 'CALLING' || curr === 'CONNECTING') {
+            teardownCallResources();
+            setCallError(`${contactName} is currently unavailable.`);
+            return 'UNAVAILABLE';
+          }
+          return curr;
+        });
+        setTimeout(() => {
+          setCallState((c) => (c === 'UNAVAILABLE' ? 'IDLE' : c));
+          setActiveCall(null);
+        }, 4000);
       }, 25000);
     } catch (err: any) {
       console.error('[WebRTC] Call setup error:', err);
@@ -306,7 +362,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   // Action: Accept Incoming Call
   const acceptCall = async () => {
-    if (!activeCall) return;
+    if (!activeCall || !pendingOfferPayloadRef.current) return;
     if (ringTimeoutTimerRef.current) clearTimeout(ringTimeoutTimerRef.current);
 
     setCallState('CONNECTING');
@@ -319,8 +375,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
         localStreamRef.current = stream;
       } catch (micErr) {
         teardownCallResources();
-        setCallError('Microphone access is required to answer this call. Please allow microphone permissions.');
+        setCallError('Microphone access was denied. Please allow microphone permissions.');
         setCallState('FAILED');
+        if (activeUserId && activeCall.targetUserId) {
+          api.sendCallSignal(activeUserId, activeCall.targetUserId, 'declined', {});
+        }
         return;
       }
 
@@ -328,47 +387,71 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnRef.current = pc;
 
+      // Add local tracks
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
+      // Handle remote audio stream
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
+        if (event.streams && event.streams[0]) {
+          if (!remoteAudioRef.current) {
+            const audio = new Audio();
+            audio.autoplay = true;
+            remoteAudioRef.current = audio;
+          }
           remoteAudioRef.current.srcObject = event.streams[0];
           remoteAudioRef.current.play().catch(() => {});
         }
       };
 
+      // Connection state change
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        if (state === 'connected') {
+          setCallState('CONNECTED');
+        } else if (state === 'failed' || state === 'disconnected') {
+          teardownCallResources();
+          setCallError('Voice connection lost. Please try again.');
+          setCallState('FAILED');
+          setTimeout(() => {
+            setCallState('IDLE');
+            setActiveCall(null);
+          }, 4000);
+        }
+      };
+
+      // Send ICE candidates to caller
       pc.onicecandidate = (event) => {
-        if (event.candidate) {
+        if (event.candidate && activeUserId && activeCall.targetUserId) {
           api.sendCallSignal(activeUserId, activeCall.targetUserId, 'ice-candidate', event.candidate.toJSON());
         }
       };
 
-      // 3. Set Remote Offer & Create Answer
-      if (pendingOfferPayloadRef.current) {
-        await pc.setRemoteDescription(new RTCSessionDescription(pendingOfferPayloadRef.current));
-      }
+      // 3. Set Remote Offer Description
+      await pc.setRemoteDescription(new RTCSessionDescription(pendingOfferPayloadRef.current));
 
+      // 4. Create Answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // 4. Send Answer back to caller
-      const responderName = currentUser?.display_name || (caregiver ? caregiver.name : 'Leelu');
-      await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'answer', answer, activeCall.callId, responderName);
-
-      setCallState('CONNECTED');
+      // 5. Send Answer Signal
+      if (activeUserId && activeCall.targetUserId) {
+        const myName = currentProfile?.display_name || currentUser?.display_name || (caregiver ? caregiver.name : 'Leelu');
+        await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'answer', answer, activeCall.callId, myName);
+      }
     } catch (err: any) {
-      console.error('[WebRTC] Failed to answer call:', err);
+      console.error('[WebRTC] Error during acceptCall:', err);
       teardownCallResources();
-      setCallError('Error establishing audio link.');
+      setCallError('Failed to establish audio connection.');
       setCallState('FAILED');
     }
   };
 
   // Action: Decline Incoming Call
   const declineCall = async () => {
-    if (activeCall) {
+    if (ringTimeoutTimerRef.current) clearTimeout(ringTimeoutTimerRef.current);
+    if (activeUserId && activeCall?.targetUserId) {
       try {
-        await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'declined');
+        await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'declined', {});
       } catch (e) {}
     }
     teardownCallResources();
@@ -376,10 +459,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setActiveCall(null);
   };
 
-  // Action: End Active Call
+  // Action: End Call
   const endCall = async () => {
-    if (activeCall) {
+    if (activeUserId && activeCall?.targetUserId) {
       try {
+        await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'hangup', {});
         await api.endCallSignal(activeUserId, activeCall.targetUserId, activeCall.callId);
       } catch (e) {}
     }
@@ -391,18 +475,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }, 2000);
   };
 
-  // Action: Toggle Mute
+  // Action: Mute / Unmute Local Microphone
   const toggleMute = () => {
     if (localStreamRef.current) {
       const audioTracks = localStreamRef.current.getAudioTracks();
       if (audioTracks.length > 0) {
-        const nextMuted = !isMuted;
-        audioTracks[0].enabled = !nextMuted;
-        setIsMuted(nextMuted);
+        const nextState = !isMuted;
+        audioTracks.forEach((t) => {
+          t.enabled = !nextState;
+        });
+        setIsMuted(nextState);
       }
     }
   };
 
+  // Action: Clear Error / Dismiss
   const clearCallState = () => {
     teardownCallResources();
     setCallState('IDLE');
@@ -426,8 +513,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         clearCallState,
       }}
     >
-      {/* Hidden audio element for WebRTC audio playback */}
-      <audio ref={remoteAudioRef} autoPlay playsInline />
       {children}
     </CallContext.Provider>
   );
