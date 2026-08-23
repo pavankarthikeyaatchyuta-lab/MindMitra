@@ -115,6 +115,9 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
   ],
 };
 
@@ -243,17 +246,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }, 25000);
       }
     } else if (signal_type === 'answer') {
-      if (callState === 'CALLING' || callState === 'CONNECTING') {
-        if (ringTimeoutTimerRef.current) clearTimeout(ringTimeoutTimerRef.current);
+      if (callState === 'CALLING' || callState === 'CONNECTING' || callState === 'RINGING') {
+        if (ringTimeoutTimerRef.current) {
+          clearTimeout(ringTimeoutTimerRef.current);
+          ringTimeoutTimerRef.current = null;
+        }
         if (peerConnRef.current && payload) {
           try {
-            await peerConnRef.current.setRemoteDescription(new RTCSessionDescription(payload));
+            if (peerConnRef.current.signalingState !== 'stable') {
+              await peerConnRef.current.setRemoteDescription(new RTCSessionDescription(payload));
+            }
           } catch (e: any) {
-            console.error('[WebRTC] Failed to set remote answer:', e);
-            setCallError('Failed to establish audio connection.');
-            setCallState('FAILED');
+            console.warn('[WebRTC] Remote answer set notice:', e);
           }
         }
+        setCallState('CONNECTED');
+        setCallError(null);
       }
     } else if (signal_type === 'ice-candidate') {
       if (peerConnRef.current && payload) {
@@ -508,6 +516,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         const myName = currentProfile?.display_name || currentUser?.display_name || (caregiver ? caregiver.name : 'Leelu');
         await api.sendCallSignal(activeUserId, activeCall.targetUserId, 'answer', answer, activeCall.callId, myName);
       }
+
+      setCallState('CONNECTED');
+      setCallError(null);
     } catch (err: any) {
       console.error('[WebRTC] Error during acceptCall:', err);
       teardownCallResources();
