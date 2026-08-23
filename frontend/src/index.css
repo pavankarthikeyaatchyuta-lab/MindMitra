@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --background: #f8fafc;
@@ -12,8 +14,8 @@
     --surface: #ffffff;
     --surface-elevated: #faf5ff;
     --text-primary: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #475569;
+    --text-secondary: #1e293b;
+    --text-muted: #334155;
     --border: #cbd5e1;
     --border-subtle: #e2e8f0;
     --border-card: rgba(226, 232, 240, 0.9);
@@ -41,8 +43,8 @@
     --surface: #121926;
     --surface-elevated: #1a2336;
     --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
     --border: #1f293d;
     --border-subtle: #1e293b;
     --border-card: #1f293d;
