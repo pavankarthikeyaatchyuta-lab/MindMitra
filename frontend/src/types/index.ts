@@ -225,6 +225,8 @@ export interface TrustedConnection {
   id: number;
   profile_id: number;
   contact_name: string;
+  display_name?: string;
+  contact_user_id?: number;
   relationship: string;
   phone_or_address?: string;
   status: string;

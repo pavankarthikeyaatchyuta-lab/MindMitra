@@ -30,28 +30,62 @@ export default function CommunitySessionRun() {
     {
       title: "Making Traditional Masala Chai",
       steps: [
-        "1. Boil water with crushed spices (cardamom & ginger)",
-        "2. Add premium Assam tea leaves",
-        "3. Pour fresh milk and bring to a boil",
-        "4. Simmer gently on low flame for 2 minutes",
-        "5. Strain hot chai into clay cups"
+        "Boil fresh water with crushed cardamom and ginger",
+        "Add premium Assam tea leaves and allow flavor to infuse",
+        "Pour fresh milk and bring the mixture to a boil",
+        "Simmer gently on low flame for two minutes",
+        "Strain hot aromatic chai into clay cups"
       ]
     },
     {
       title: "Morning Routine for Wellbeing",
       steps: [
-        "1. Wake up at sunrise and drink warm water",
-        "2. Light stretches and morning prayer",
-        "3. Nutritious breakfast with fresh fruits",
-        "4. Take prescribed morning medicine",
-        "5. 15-minute peaceful garden walk"
+        "Wake up at sunrise and drink a glass of warm water",
+        "Perform gentle morning stretches and peaceful prayer",
+        "Enjoy a wholesome breakfast with fresh fruits",
+        "Take prescribed morning vitamins and medication",
+        "Take a peaceful 15-minute walk in the garden"
+      ]
+    },
+    {
+      title: "Planting a Sacred Tulsi Herb",
+      steps: [
+        "Prepare a clean terracotta pot with rich organic soil",
+        "Gently position the green Tulsi sapling in the center",
+        "Fill and press the soil firmly around the root base",
+        "Sprinkle fresh water evenly across the surface soil",
+        "Place the potted herb in bright morning sunlight"
       ]
     }
   ];
+
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [sequenceItems, setSequenceItems] = useState<string[]>([]);
   const [sequenceSubmitted, setSequenceSubmitted] = useState(false);
   const [sequenceCorrect, setSequenceCorrect] = useState(false);
   const [sequenceAttempts, setSequenceAttempts] = useState(0);
+  const [sequenceMoves, setSequenceMoves] = useState(0);
+  const [wrongPositions, setWrongPositions] = useState<number[]>([]);
+
+  // Fisher-Yates shuffle that guarantees not in correct order
+  const getShuffledSequence = (steps: string[]) => {
+    let copy = [...steps];
+    let tries = 0;
+    while (tries < 15) {
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      // Check if at least one item is displaced
+      if (copy.some((s, idx) => s !== steps[idx])) {
+        return copy;
+      }
+      tries++;
+    }
+    // Fallback: swap first two
+    [copy[0], copy[1]] = [copy[1], copy[0]];
+    return copy;
+  };
 
   // --- ACTIVITY 3: GROUP VISUAL PUZZLE STATE ---
   const puzzleMotifs = ['🦚 Peacock', '🌺 Lotus', '🐘 Elephant', '🪔 Diya', '☀️ Sun', '🏰 Palace', '🌴 Palm', '⛵ Boat', '🎵 Sitar'];
@@ -112,8 +146,7 @@ export default function CommunitySessionRun() {
     }
 
     // Initialize Sequence Relay with shuffled items
-    const shuffledSeq = [...sequenceTasks[0].steps].sort(() => Math.random() - 0.5);
-    setSequenceItems(shuffledSeq);
+    setSequenceItems(getShuffledSequence(sequenceTasks[0].steps));
 
     // Initialize Puzzle Grid with shuffled positions
     const shuffledPuzzle = [1, 2, 0, 4, 3, 5, 7, 6, 8];
@@ -155,7 +188,7 @@ export default function CommunitySessionRun() {
   const isTurnCompleted = !!completedTurns[currentParticipant.id];
   const nextParticipant = participants[(activeTurnIndex + 1) % participants.length];
 
-  // Advance turn handler
+  // Advance turn handler with fresh randomization
   const handleNextTurn = () => {
     if (participants.length > 0) {
       const nextIdx = (activeTurnIndex + 1) % participants.length;
@@ -167,10 +200,15 @@ export default function CommunitySessionRun() {
       setSelectedRecallItems([]);
       setMemoryScore(null);
 
-      // Reset sequence
-      setSequenceItems([...sequenceTasks[0].steps].sort(() => Math.random() - 0.5));
+      // Rotate task for next participant or re-shuffle fresh sequence
+      const nextTaskIdx = nextIdx % sequenceTasks.length;
+      setCurrentTaskIndex(nextTaskIdx);
+      setSequenceItems(getShuffledSequence(sequenceTasks[nextTaskIdx].steps));
       setSequenceSubmitted(false);
       setSequenceCorrect(false);
+      setSequenceAttempts(0);
+      setSequenceMoves(0);
+      setWrongPositions([]);
 
       // Reset puzzle selection
       setPuzzleSelectedIdx(null);
@@ -178,8 +216,26 @@ export default function CommunitySessionRun() {
   };
 
   // Explicit Facilitator Skip Turn Override
-  const handleSkipTurn = () => {
-    if (confirm(`Skip turn for ${currentParticipant.display_name || currentParticipant.name}?`)) {
+  const handleSkipTurn = async () => {
+    if (confirm(`Skip turn for ${currentParticipant.display_name || currentParticipant.name}? This will record the turn as skipped.`)) {
+      try {
+        if (sessionData.id) {
+          await api.recordCommunityEvent({
+            community_session_id: sessionData.id,
+            profile_id: currentParticipant.id,
+            activity_key: sessionData.activity_type,
+            event_type: 'turn_skipped',
+            data: {
+              participant_name: currentParticipant.display_name || currentParticipant.name,
+              skipped: true,
+              completed: false,
+              reason: 'facilitator_skip'
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to record skip event:', e);
+      }
       handleNextTurn();
     }
   };
@@ -245,23 +301,47 @@ export default function CommunitySessionRun() {
 
   // --- SEQUENCE RELAY HANDLERS ---
   const swapSequenceItems = (fromIdx: number, toIdx: number) => {
-    if (toIdx < 0 || toIdx >= sequenceItems.length) return;
+    if (toIdx < 0 || toIdx >= sequenceItems.length || sequenceCorrect) return;
     const copy = [...sequenceItems];
     const temp = copy[fromIdx];
     copy[fromIdx] = copy[toIdx];
     copy[toIdx] = temp;
     setSequenceItems(copy);
+    setSequenceMoves(m => m + 1);
+
+    // Reset validation state on user edit
+    if (sequenceSubmitted && !sequenceCorrect) {
+      setSequenceSubmitted(false);
+      setWrongPositions([]);
+    }
   };
 
   const checkSequenceOrder = () => {
-    setSequenceAttempts(a => a + 1);
-    const targetSteps = sequenceTasks[0].steps;
-    const isAllCorrect = sequenceItems.every((item, idx) => item === targetSteps[idx]);
+    if (sequenceCorrect) return;
+    const attempts = sequenceAttempts + 1;
+    setSequenceAttempts(attempts);
+    const targetSteps = sequenceTasks[currentTaskIndex].steps;
+
+    const wrongs: number[] = [];
+    sequenceItems.forEach((item, idx) => {
+      if (item !== targetSteps[idx]) {
+        wrongs.push(idx);
+      }
+    });
+
+    const isAllCorrect = wrongs.length === 0;
     setSequenceSubmitted(true);
     setSequenceCorrect(isAllCorrect);
+    setWrongPositions(wrongs);
 
     if (isAllCorrect) {
-      markTurnComplete('sequence_relay', { attempts: sequenceAttempts + 1, solved: true });
+      markTurnComplete('sequence_relay', {
+        attempts,
+        moves: sequenceMoves,
+        correct: true,
+        completed: true,
+        task_title: sequenceTasks[currentTaskIndex].title
+      });
     }
   };
 
@@ -502,61 +582,110 @@ export default function CommunitySessionRun() {
         {/* ---------------------------------------------------- */}
         {sessionData.activity_type === 'sequence_relay' && (
           <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-6">
-            <div className="border-b border-slate-800 pb-3">
-              <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                Cognitive Group Activity
-              </span>
-              <h3 className="text-base font-extrabold text-white mt-1 flex items-center gap-2">
-                <ListOrdered size={18} className="text-emerald-400" /> Sequence Relay: {sequenceTasks[0].title}
-              </h3>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Arrange the steps in the correct chronological order using the arrow buttons.
-              </p>
+            <div className="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                  Cognitive Group Activity
+                </span>
+                <h3 className="text-base font-extrabold text-white mt-1 flex items-center gap-2">
+                  <ListOrdered size={18} className="text-emerald-400" /> Sequence Relay: {sequenceTasks[currentTaskIndex].title}
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  The recipe/routine steps below are shuffled. Use ▲ and ▼ to arrange them in the proper chronological order.
+                </p>
+              </div>
+
+              <div className="text-xs font-extrabold text-slate-400 shrink-0">
+                Moves: <span className="text-white font-black">{sequenceMoves}</span> • Attempts: <span className="text-white font-black">{sequenceAttempts}</span>
+              </div>
             </div>
 
             <div className="space-y-3 max-w-xl mx-auto">
-              {sequenceItems.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-between gap-3 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-indigo-900/60 text-indigo-300 font-black text-xs flex items-center justify-center">
-                      {idx + 1}
-                    </span>
-                    <span className="text-xs font-bold text-white">{step}</span>
-                  </div>
+              {sequenceItems.map((step, idx) => {
+                const isWrong = sequenceSubmitted && !sequenceCorrect && wrongPositions.includes(idx);
+                const isRight = sequenceSubmitted && !sequenceCorrect && !wrongPositions.includes(idx);
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => swapSequenceItems(idx, idx - 1)}
-                      disabled={idx === 0}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-black disabled:opacity-30"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => swapSequenceItems(idx, idx + 1)}
-                      disabled={idx === sequenceItems.length - 1}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-black disabled:opacity-30"
-                    >
-                      ▼
-                    </button>
+                return (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-md ${
+                      sequenceCorrect
+                        ? 'bg-emerald-950/40 border-emerald-500/60 ring-1 ring-emerald-500/30'
+                        : isWrong
+                        ? 'bg-amber-950/40 border-amber-500/80 ring-1 ring-amber-500/40'
+                        : isRight
+                        ? 'bg-emerald-950/20 border-emerald-500/40'
+                        : 'bg-slate-800 border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="px-2.5 py-1 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-black text-[10px] uppercase tracking-wider">
+                          Position {idx + 1}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">{step}</span>
+                        {isWrong && (
+                          <span className="text-[10px] font-bold text-amber-400 block mt-0.5">
+                            ⚠️ Needs adjustment
+                          </span>
+                        )}
+                        {isRight && (
+                          <span className="text-[10px] font-bold text-emerald-400 block mt-0.5">
+                            ✓ In correct spot
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {!sequenceCorrect && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => swapSequenceItems(idx, idx - 1)}
+                          disabled={idx === 0}
+                          className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-xs font-black disabled:opacity-20 flex items-center justify-center border border-slate-600"
+                          title="Move step up"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => swapSequenceItems(idx, idx + 1)}
+                          disabled={idx === sequenceItems.length - 1}
+                          className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-xs font-black disabled:opacity-20 flex items-center justify-center border border-slate-600"
+                          title="Move step down"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {sequenceSubmitted && (
-              <div className={`p-4 rounded-2xl text-center text-xs font-bold ${
-                sequenceCorrect ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-200' : 'bg-amber-950/80 border border-amber-500/50 text-amber-200'
+              <div className={`p-5 rounded-2xl text-center text-xs font-bold animate-in zoom-in-95 ${
+                sequenceCorrect ? 'bg-emerald-950/90 border border-emerald-500/60 text-emerald-100' : 'bg-amber-950/90 border border-amber-500/60 text-amber-200'
               }`}>
                 {sequenceCorrect ? (
-                  <span className="flex items-center justify-center gap-1.5 text-sm font-extrabold text-emerald-300">
-                    <CheckCircle2 size={18} /> Perfect Sequence! Turn completed successfully.
-                  </span>
+                  <div className="space-y-1">
+                    <span className="flex items-center justify-center gap-2 text-base font-black text-emerald-300">
+                      <CheckCircle2 size={20} /> Perfect sequence! All steps are in correct chronological order.
+                    </span>
+                    <p className="text-xs text-emerald-200 font-medium">
+                      Solved in {sequenceMoves} moves and {sequenceAttempts} attempt(s). You can now advance to the next participant.
+                    </p>
+                  </div>
                 ) : (
-                  <span>Not quite in the right order yet. Check step 2 and 3 and try adjusting!</span>
+                  <div className="space-y-1">
+                    <span className="font-extrabold text-amber-300 block">
+                      Not quite in order yet. {wrongPositions.length} position(s) need adjusting.
+                    </span>
+                    <p className="text-[11px] text-amber-200/90 font-medium">
+                      Look at the highlighted amber positions and use the arrow buttons to swap them!
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -564,9 +693,14 @@ export default function CommunitySessionRun() {
             <div className="flex justify-center pt-2">
               <button
                 onClick={checkSequenceOrder}
-                className="px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm shadow-xl"
+                disabled={sequenceCorrect}
+                className={`px-8 py-3 rounded-2xl font-extrabold text-sm shadow-xl transition-all ${
+                  sequenceCorrect
+                    ? 'bg-emerald-700 text-white opacity-80 cursor-default'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer hover:shadow-indigo-500/25'
+                }`}
               >
-                Check Sequence Order
+                {sequenceCorrect ? 'Sequence Verified ✓' : 'Check Sequence Order'}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, PhoneCall, PhoneOff, Mic, MicOff, Plus, Users, Shield, Heart, Music, Sparkles, BookOpen, Trash2, ArrowLeft, Volume2, VolumeX, Radio, CheckCircle2, Play, Square, X, AlertCircle } from 'lucide-react';
+import { Phone, PhoneCall, PhoneOff, Mic, MicOff, Plus, Users, Shield, Heart, Music, Sparkles, BookOpen, Trash2, ArrowLeft, Volume2, VolumeX, Radio, CheckCircle2, Play, Square, X, AlertCircle, Clock, UserCheck } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import CaregiverAccountMenu from '../components/CaregiverAccountMenu';
@@ -14,10 +14,12 @@ export default function ConnectHub() {
   const [connections, setConnections] = useState<TrustedConnection[]>([]);
   const [stories, setStories] = useState<MemoryStory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [contactPresence, setContactPresence] = useState<Record<number, boolean>>({});
 
   // --- WEBRTC CALLING STATE ---
   const [activeCallContact, setActiveCallContact] = useState<TrustedConnection | null>(null);
-  const [callState, setCallState] = useState<'idle' | 'calling' | 'ringing' | 'connected' | 'ended' | 'declined'>('idle');
+  const [callState, setCallState] = useState<'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'declined' | 'failed' | 'unavailable'>('idle');
+  const [callErrorMessage, setCallErrorMessage] = useState<string>('');
   const [isMuted, setIsMuted] = useState(false);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const [incomingCall, setIncomingCall] = useState<{ caller_profile_id: number; caller_name: string; offer: any } | null>(null);
@@ -26,10 +28,12 @@ export default function ConnectHub() {
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pollIntervalRef = useRef<any>(null);
+  const callTimeoutRef = useRef<any>(null);
 
   // --- CONTACT MODAL STATE ---
   const [newContactName, setNewContactName] = useState('');
   const [newContactRel, setNewContactRel] = useState('Daughter');
+  const [newContactTargetId, setNewContactTargetId] = useState<number>(1);
   const [newContactPhone, setNewContactPhone] = useState('');
   const [showAddContactModal, setShowAddContactModal] = useState(false);
 
@@ -66,6 +70,7 @@ export default function ConnectHub() {
     return () => {
       stopSignalingPoller();
       cleanupWebRTC();
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
     };
   }, [currentProfile]);
 
@@ -90,6 +95,19 @@ export default function ConnectHub() {
       ]);
       setConnections(conns);
       setStories(stors);
+
+      // Check online presence for contacts
+      const presenceMap: Record<number, boolean> = {};
+      for (const conn of conns) {
+        const targetId = conn.contact_user_id || conn.profile_id;
+        try {
+          const pres = await api.getCallPresence(targetId);
+          presenceMap[conn.id] = pres.online;
+        } catch {
+          presenceMap[conn.id] = false;
+        }
+      }
+      setContactPresence(presenceMap);
     } catch (err) {
       console.error('Error loading connect data:', err);
     }
@@ -111,7 +129,7 @@ export default function ConnectHub() {
       } catch (e) {
         // Polling failure silent fallback
       }
-    }, 2000);
+    }, 1500);
   };
 
   const stopSignalingPoller = () => {
@@ -123,20 +141,18 @@ export default function ConnectHub() {
 
   // Handle incoming WebRTC signal
   const handleIncomingSignal = async (sig: any) => {
-    const { caller_profile_id, signal_type, payload } = sig;
+    const { caller_profile_id, caller_name, signal_type, payload } = sig;
 
     if (signal_type === 'offer') {
-      const matchedContact = connections.find(c => c.profile_id === caller_profile_id) || {
-        contact_name: `Trusted Contact #${caller_profile_id}`,
-        relationship: 'Family Member'
-      };
+      const matchedContact = connections.find(c => (c.contact_user_id === caller_profile_id || c.profile_id === caller_profile_id));
       setIncomingCall({
         caller_profile_id,
-        caller_name: matchedContact.contact_name,
+        caller_name: caller_name || matchedContact?.display_name || matchedContact?.contact_name || `Family Member #${caller_profile_id}`,
         offer: payload
       });
       setCallState('ringing');
     } else if (signal_type === 'answer' && pcRef.current) {
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
       try {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload));
         setCallState('connected');
@@ -149,7 +165,16 @@ export default function ConnectHub() {
       } catch (e) {
         console.warn('Error adding ICE candidate:', e);
       }
-    } else if (signal_type === 'hangup' || signal_type === 'reject') {
+    } else if (signal_type === 'reject') {
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+      cleanupWebRTC();
+      setCallState('declined');
+      setTimeout(() => {
+        setCallState('idle');
+        setActiveCallContact(null);
+      }, 3000);
+    } else if (signal_type === 'hangup' || signal_type === 'timeout') {
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
       cleanupWebRTC();
       setCallState('ended');
       setTimeout(() => {
@@ -163,19 +188,36 @@ export default function ConnectHub() {
   // --- START OUTGOING WEBRTC CALL ---
   const handleStartCall = async (contact: TrustedConnection) => {
     if (!currentProfile?.id) return;
+    const targetUserId = contact.contact_user_id || contact.profile_id;
+    const contactDisplayName = contact.display_name || contact.contact_name;
+
     setActiveCallContact(contact);
     setCallState('calling');
+    setCallErrorMessage('');
 
     try {
+      // 1. Acquire microphone with explicit error handling
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+      } catch (micErr: any) {
+        console.warn('Microphone permission denied or not found:', micErr);
+        setCallErrorMessage('Microphone access is required to place this call. Please allow microphone permissions in your browser.');
+        setCallState('failed');
+        setTimeout(() => {
+          setCallState('idle');
+          setActiveCallContact(null);
+        }, 4000);
+        return;
+      }
+
+      // 2. Initialize PeerConnection
       const pc = new RTCPeerConnection(rtcConfig);
       pcRef.current = pc;
 
-      // Acquire microphone
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
-      if (stream) {
-        localStreamRef.current = stream;
-        stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      }
+      // Add local audio tracks to PC
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
       // Handle remote audio stream
       pc.ontrack = (event) => {
@@ -188,44 +230,81 @@ export default function ConnectHub() {
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate && currentProfile?.id) {
-          api.sendCallSignal(currentProfile.id, contact.profile_id, 'ice-candidate', event.candidate.toJSON());
+          api.sendCallSignal(
+            currentProfile.id,
+            targetUserId,
+            'ice-candidate',
+            event.candidate.toJSON(),
+            undefined,
+            currentProfile.display_name || currentProfile.name
+          );
         }
       };
 
-      // Create WebRTC Offer
+      // 3. Create WebRTC Offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // Send offer to recipient via signaling server
-      await api.sendCallSignal(currentProfile.id, contact.profile_id, 'offer', offer);
+      // 4. Send offer to recipient via signaling server
+      await api.sendCallSignal(
+        currentProfile.id,
+        targetUserId,
+        'offer',
+        offer,
+        undefined,
+        currentProfile.display_name || currentProfile.name
+      );
 
-      // Set fallback auto-connect simulation if recipient is offline on hackathon demo
-      setTimeout(() => {
-        if (callState === 'calling') {
-          setCallState('connected');
+      // 5. Set 25-Second Ringing Timeout (No simulated fake connection!)
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = setTimeout(async () => {
+        if (callState === 'calling' || callState === 'connecting') {
+          await api.sendCallSignal(currentProfile.id, targetUserId, 'timeout');
+          cleanupWebRTC();
+          setCallState('unavailable');
+          setTimeout(() => {
+            setCallState('idle');
+            setActiveCallContact(null);
+          }, 3500);
         }
-      }, 3000);
+      }, 25000);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Call initialization failed:', err);
-      setCallState('connected'); // Graceful fallback
+      cleanupWebRTC();
+      setCallErrorMessage(`Call initialization failed: ${err.message || 'Error'}`);
+      setCallState('failed');
+      setTimeout(() => {
+        setCallState('idle');
+        setActiveCallContact(null);
+      }, 3500);
     }
   };
 
   // --- ACCEPT INCOMING CALL ---
   const handleAcceptCall = async () => {
     if (!incomingCall || !currentProfile?.id) return;
+    setCallState('connecting');
+
     try {
+      // 1. Acquire local microphone
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+      } catch (micErr: any) {
+        alert('Microphone access is required to accept this call.');
+        handleDeclineCall();
+        return;
+      }
+
       const pc = new RTCPeerConnection(rtcConfig);
       pcRef.current = pc;
 
-      // Acquire local audio
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
-      if (stream) {
-        localStreamRef.current = stream;
-        stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      }
+      // Add local audio tracks
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
+      // Handle incoming remote audio
       pc.ontrack = (event) => {
         if (remoteAudioRef.current && event.streams[0]) {
           remoteAudioRef.current.srcObject = event.streams[0];
@@ -233,33 +312,57 @@ export default function ConnectHub() {
         }
       };
 
+      // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate && currentProfile?.id && incomingCall) {
-          api.sendCallSignal(currentProfile.id, incomingCall.caller_profile_id, 'ice-candidate', event.candidate.toJSON());
+          api.sendCallSignal(
+            currentProfile.id,
+            incomingCall.caller_profile_id,
+            'ice-candidate',
+            event.candidate.toJSON(),
+            undefined,
+            currentProfile.display_name || currentProfile.name
+          );
         }
       };
 
-      // Set remote offer & create answer
+      // 2. Set remote offer & create WebRTC answer
       await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // Send answer back to caller
-      await api.sendCallSignal(currentProfile.id, incomingCall.caller_profile_id, 'answer', answer);
+      // 3. Send answer back to caller
+      await api.sendCallSignal(
+        currentProfile.id,
+        incomingCall.caller_profile_id,
+        'answer',
+        answer,
+        undefined,
+        currentProfile.display_name || currentProfile.name
+      );
 
+      const matched = connections.find(c => c.contact_user_id === incomingCall.caller_profile_id || c.profile_id === incomingCall.caller_profile_id);
       setActiveCallContact({
         id: incomingCall.caller_profile_id,
         profile_id: incomingCall.caller_profile_id,
+        contact_user_id: incomingCall.caller_profile_id,
         contact_name: incomingCall.caller_name,
-        relationship: 'Family Caller',
+        display_name: incomingCall.caller_name,
+        relationship: matched?.relationship || 'Approved Family Member',
         phone_or_address: '',
         status: 'approved'
       });
       setIncomingCall(null);
       setCallState('connected');
-    } catch (err) {
+
+    } catch (err: any) {
       console.error('Failed to accept call:', err);
-      setCallState('connected');
+      cleanupWebRTC();
+      setCallState('failed');
+      setTimeout(() => {
+        setCallState('idle');
+        setIncomingCall(null);
+      }, 3000);
     }
   };
 
@@ -274,8 +377,10 @@ export default function ConnectHub() {
 
   // --- END / HANGUP CALL ---
   const handleEndCall = async () => {
+    if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
     if (currentProfile?.id && activeCallContact) {
-      await api.sendCallSignal(currentProfile.id, activeCallContact.profile_id, 'hangup');
+      const targetUserId = activeCallContact.contact_user_id || activeCallContact.profile_id;
+      await api.sendCallSignal(currentProfile.id, targetUserId, 'hangup');
     }
     cleanupWebRTC();
     setCallState('ended');
@@ -392,6 +497,8 @@ export default function ConnectHub() {
       await api.addTrustedConnection({
         profile_id: currentProfile.id,
         contact_name: newContactName.trim(),
+        display_name: newContactName.trim(),
+        contact_user_id: newContactTargetId,
         relationship: newContactRel,
         phone_or_address: newContactPhone.trim(),
       });
@@ -499,14 +606,14 @@ export default function ConnectHub() {
                   Incoming Voice Call...
                 </span>
                 <h2 className="text-2xl font-black text-white">{incomingCall.caller_name}</h2>
-                <p className="text-xs text-emerald-100 font-medium">Caregiver-Approved Family Member</p>
+                <p className="text-xs text-emerald-100 font-medium">Caregiver-Approved Trusted Connection</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={handleAcceptCall}
-                className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-emerald-300"
+                className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-emerald-300 active:scale-95 transition-all"
               >
                 <PhoneCall size={18} />
                 <span>Accept Call</span>
@@ -514,7 +621,7 @@ export default function ConnectHub() {
 
               <button
                 onClick={handleDeclineCall}
-                className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg"
+                className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all"
               >
                 <PhoneOff size={18} />
                 <span>Decline</span>
@@ -525,24 +632,60 @@ export default function ConnectHub() {
 
         {/* ACTIVE WEBRTC CALL OVERLAY BANNER */}
         {activeCallContact && (
-          <div className="card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-indigo-500/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+          <div className={`card p-6 text-white shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in transition-all ${
+            callState === 'connected'
+              ? 'bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border-emerald-500/50'
+              : callState === 'calling' || callState === 'connecting'
+              ? 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-indigo-500/50'
+              : callState === 'unavailable' || callState === 'declined' || callState === 'failed'
+              ? 'bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border-amber-500/50'
+              : 'bg-slate-900 border-slate-700'
+          }`}>
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-emerald-400/30">
-                <PhoneCall size={26} />
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg ring-4 ${
+                callState === 'connected'
+                  ? 'bg-emerald-600 text-white ring-emerald-400/30'
+                  : callState === 'calling'
+                  ? 'bg-indigo-600 text-white ring-indigo-400/30 animate-pulse'
+                  : 'bg-slate-700 text-slate-300 ring-slate-600'
+              }`}>
+                {callState === 'connected' ? <PhoneCall size={26} /> : <Phone size={26} />}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block">
-                    {callState === 'calling' ? 'Calling Trusted Contact...' : callState === 'connected' ? 'Live WebRTC Voice Call' : 'Call Ended'}
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block">
+                    {callState === 'calling'
+                      ? 'Calling Trusted Contact...'
+                      : callState === 'connecting'
+                      ? 'Establishing WebRTC Connection...'
+                      : callState === 'connected'
+                      ? 'Live Peer-to-Peer Voice Call'
+                      : callState === 'unavailable'
+                      ? 'Contact Unavailable'
+                      : callState === 'declined'
+                      ? 'Call Declined'
+                      : callState === 'failed'
+                      ? 'Call Failed'
+                      : 'Call Ended'}
                   </span>
                   {callState === 'connected' && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                       {formatTimer(callDurationSeconds)}
                     </span>
                   )}
                 </div>
-                <h2 className="text-xl font-black text-white">{activeCallContact.contact_name}</h2>
-                <p className="text-xs text-slate-300 font-medium">{activeCallContact.relationship} • Peer-to-Peer Encrypted Audio</p>
+                <h2 className="text-xl font-black text-white">
+                  {callState === 'calling' && `Calling ${activeCallContact.display_name || activeCallContact.contact_name}...`}
+                  {callState === 'connecting' && `Connecting to ${activeCallContact.display_name || activeCallContact.contact_name}...`}
+                  {callState === 'connected' && `Connected with ${activeCallContact.display_name || activeCallContact.contact_name}`}
+                  {callState === 'unavailable' && `${activeCallContact.display_name || activeCallContact.contact_name} is unavailable`}
+                  {callState === 'declined' && `${activeCallContact.display_name || activeCallContact.contact_name} declined the call`}
+                  {callState === 'failed' && (callErrorMessage || 'Microphone access is required to place this call.')}
+                  {callState === 'ended' && 'Call Ended'}
+                </h2>
+                <p className="text-xs text-slate-300 font-medium">
+                  {activeCallContact.relationship} • {callState === 'connected' ? 'Live Two-Way Audio' : 'Approved Trusted Connection'}
+                </p>
               </div>
             </div>
 
@@ -561,13 +704,15 @@ export default function ConnectHub() {
                 </button>
               )}
 
-              <button
-                onClick={handleEndCall}
-                className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-rose-400/40"
-              >
-                <PhoneOff size={18} />
-                <span>End Call</span>
-              </button>
+              {(callState === 'calling' || callState === 'connecting' || callState === 'connected') && (
+                <button
+                  onClick={handleEndCall}
+                  className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm flex items-center gap-2 shadow-lg ring-2 ring-rose-400/40 active:scale-95 transition-all"
+                >
+                  <PhoneOff size={18} />
+                  <span>{callState === 'connected' ? 'End Call' : 'Cancel Call'}</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -584,7 +729,7 @@ export default function ConnectHub() {
                     <span>Trusted Voice Connections</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    1-Tap Voice Calling scoped strictly to {currentProfile?.display_name || currentProfile?.name || 'this profile'}
+                    1-Tap Real WebRTC Voice Calling for {currentProfile?.display_name || currentProfile?.name || 'this profile'}
                   </p>
                 </div>
 
@@ -599,42 +744,60 @@ export default function ConnectHub() {
 
               {connections.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {connections.map((conn) => (
-                    <div
-                      key={conn.id}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-sm flex items-center justify-center">
-                          {conn.contact_name.charAt(0)}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{conn.contact_name}</h4>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
-                            {conn.relationship} • Approved
-                          </span>
-                        </div>
-                      </div>
+                  {connections.map((conn) => {
+                    const contactName = conn.display_name || conn.contact_name;
+                    const isOnline = !!contactPresence[conn.id];
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleStartCall(conn)}
-                          className="p-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm flex items-center gap-1 text-xs"
-                          title="Call Trusted Contact"
-                        >
-                          <PhoneCall size={16} />
-                          <span>Call</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteContact(conn.id)}
-                          className="p-2 rounded-lg text-slate-400 hover:text-rose-500"
-                          title="Remove Connection"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                    return (
+                      <div
+                        key={conn.id}
+                        className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-sm flex items-center justify-center relative">
+                            {contactName.charAt(0)}
+                            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                              isOnline ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`} title={isOnline ? 'Online (Ready to Call)' : 'Offline / Standby'} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{contactName}</h4>
+                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md ${
+                                isOnline
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {isOnline ? 'Online' : 'Approved'}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                              {conn.relationship}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleStartCall(conn)}
+                            disabled={callState === 'calling' || callState === 'connected'}
+                            className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm flex items-center gap-1.5 text-xs active:scale-95 disabled:opacity-50 transition-all"
+                            title={`Call ${contactName}`}
+                          >
+                            <PhoneCall size={15} />
+                            <span>Call {contactName}</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteContact(conn.id)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
+                            title="Remove Connection"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
@@ -828,6 +991,22 @@ export default function ConnectHub() {
                   <option value="Doctor">Doctor</option>
                   <option value="Neighbor">Neighbor</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Target Account / Device ID
+                </label>
+                <input
+                  type="number"
+                  value={newContactTargetId}
+                  onChange={(e) => setNewContactTargetId(Number(e.target.value) || 1)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  placeholder="1"
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  Matches the recipient's authenticated profile ID for peer-to-peer WebRTC voice routing.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

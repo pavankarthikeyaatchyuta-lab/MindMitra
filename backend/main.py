@@ -305,6 +305,8 @@ def init_db():
             ("caregivers", "active", "BOOLEAN DEFAULT 1"),
             ("elderly_profiles", "active", "BOOLEAN DEFAULT 1"),
             ("elderly_profiles", "status", "TEXT DEFAULT 'active'"),
+            ("trusted_connections", "contact_user_id", "INTEGER"),
+            ("trusted_connections", "display_name", "TEXT"),
         ]:
             tbl, col, dtype = col_def
             if not column_exists(c, tbl, col):
@@ -880,7 +882,9 @@ class RecordCommunityEventRequest(BaseModel):
 
 class TrustedConnectionRequest(BaseModel):
     profile_id: int
-    contact_name: str
+    contact_name: Optional[str] = ""
+    display_name: Optional[str] = ""
+    contact_user_id: Optional[int] = None
     relationship: str
     phone_or_address: Optional[str] = ""
     status: Optional[str] = "approved"
@@ -899,9 +903,11 @@ class WebRTCSignalRequest(BaseModel):
     signal_type: str
     payload: Optional[Dict[str, Any]] = None
     call_id: Optional[str] = None
+    caller_name: Optional[str] = None
 
-# In-memory WebRTC signaling queue (recipient_profile_id -> signal messages)
+# In-memory WebRTC signaling queue and user presence mapping
 call_signals_queue: Dict[int, List[Dict[str, Any]]] = {}
+user_presence: Dict[int, str] = {}
 
 @app.post("/api/community/sessions/start")
 @app.post("/community/sessions/start")
@@ -1055,7 +1061,14 @@ def get_profile_connections(profile_id: int, current=Depends(get_current_caregiv
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
         c = conn.cursor()
         c.execute("SELECT * FROM trusted_connections WHERE profile_id = ? ORDER BY id ASC", (profile_id,))
-        return [dict(row) for row in c.fetchall()]
+        rows = c.fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            if not d.get("display_name"):
+                d["display_name"] = d.get("contact_name") or "Contact"
+            result.append(d)
+        return result
 
 @app.post("/api/connections")
 @app.post("/connections")
@@ -1064,12 +1077,15 @@ def add_trusted_connection(req: TrustedConnectionRequest, current=Depends(get_cu
         if current and not verify_profile_ownership(conn, current["caregiver_id"], req.profile_id):
             raise HTTPException(status_code=403, detail="Forbidden: Access denied to profile")
         c = conn.cursor()
+        display_name = req.display_name or req.contact_name or "Trusted Contact"
+        contact_name = req.contact_name or display_name
+        contact_user_id = req.contact_user_id or 1
         c.execute("""
-            INSERT INTO trusted_connections (profile_id, contact_name, relationship, phone_or_address, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (req.profile_id, req.contact_name, req.relationship, req.phone_or_address or "", req.status or "approved", datetime.datetime.now().isoformat()))
+            INSERT INTO trusted_connections (profile_id, contact_name, display_name, contact_user_id, relationship, phone_or_address, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (req.profile_id, contact_name, display_name, contact_user_id, req.relationship, req.phone_or_address or "", req.status or "approved", datetime.datetime.now().isoformat()))
         conn.commit()
-        return {"id": c.lastrowid, "status": "approved"}
+        return {"id": c.lastrowid, "status": "approved", "display_name": display_name, "contact_user_id": contact_user_id}
 
 @app.delete("/api/connections/{id}")
 @app.delete("/connections/{id}")
@@ -1084,7 +1100,7 @@ def delete_trusted_connection(id: int, current=Depends(get_current_caregiver)):
         conn.commit()
         return {"status": "deleted", "id": id}
 
-# --- ENDPOINTS: WEBRTC CALL SIGNALING ---
+# --- ENDPOINTS: WEBRTC CALL SIGNALING & PRESENCE ---
 
 @app.post("/api/call/signal")
 @app.post("/call/signal")
@@ -1093,9 +1109,23 @@ def send_call_signal(req: WebRTCSignalRequest, current=Depends(get_current_careg
     if recipient_id not in call_signals_queue:
         call_signals_queue[recipient_id] = []
     
+    caller_name = req.caller_name
+    if not caller_name:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("SELECT name FROM elderly_profiles WHERE id = ?", (req.caller_profile_id,))
+            p_row = c.fetchone()
+            if p_row and p_row["name"]:
+                caller_name = p_row["name"]
+            else:
+                c.execute("SELECT display_name FROM users WHERE id = ?", (req.caller_profile_id,))
+                u_row = c.fetchone()
+                caller_name = u_row["display_name"] if u_row else f"Profile #{req.caller_profile_id}"
+
     # Store message with timestamp
     signal_msg = {
         "caller_profile_id": req.caller_profile_id,
+        "caller_name": caller_name,
         "recipient_profile_id": req.recipient_profile_id,
         "signal_type": req.signal_type,
         "payload": req.payload,
@@ -1103,20 +1133,47 @@ def send_call_signal(req: WebRTCSignalRequest, current=Depends(get_current_careg
         "timestamp": datetime.datetime.now().isoformat()
     }
     call_signals_queue[recipient_id].append(signal_msg)
-    return {"status": "queued", "signal_type": req.signal_type}
+    user_presence[req.caller_profile_id] = datetime.datetime.now().isoformat()
+    return {"status": "queued", "signal_type": req.signal_type, "recipient_profile_id": recipient_id}
 
 @app.get("/api/call/signals/{profile_id}")
 @app.get("/call/signals/{profile_id}")
 def poll_call_signals(profile_id: int, current=Depends(get_current_caregiver)):
+    user_presence[profile_id] = datetime.datetime.now().isoformat()
     signals = call_signals_queue.pop(profile_id, [])
     return {"signals": signals, "profile_id": profile_id}
+
+@app.get("/api/call/presence/{target_id}")
+@app.get("/call/presence/{target_id}")
+def get_call_presence(target_id: int):
+    last_seen_str = user_presence.get(target_id)
+    is_online = False
+    if last_seen_str:
+        try:
+            last_seen_dt = datetime.datetime.fromisoformat(last_seen_str)
+            if (datetime.datetime.now() - last_seen_dt).total_seconds() < 45:
+                is_online = True
+        except:
+            pass
+    return {"target_id": target_id, "online": is_online, "last_seen": last_seen_str}
 
 @app.post("/api/call/end")
 @app.post("/call/end")
 def end_call(req: WebRTCSignalRequest, current=Depends(get_current_caregiver)):
-    # Clean queues for both ends
+    # Notify peer if signal queue exists
+    if req.recipient_profile_id:
+        if req.recipient_profile_id not in call_signals_queue:
+            call_signals_queue[req.recipient_profile_id] = []
+        call_signals_queue[req.recipient_profile_id].append({
+            "caller_profile_id": req.caller_profile_id,
+            "recipient_profile_id": req.recipient_profile_id,
+            "signal_type": "hangup",
+            "payload": None,
+            "call_id": req.call_id or f"call_{req.caller_profile_id}_{req.recipient_profile_id}",
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+    # Clean queues for caller
     call_signals_queue.pop(req.caller_profile_id, None)
-    call_signals_queue.pop(req.recipient_profile_id, None)
     return {"status": "ended"}
 
 # --- ENDPOINTS: MEMORY STORIES ---
