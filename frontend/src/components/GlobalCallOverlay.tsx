@@ -1,6 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, PhoneOff, PhoneCall, Mic, MicOff, AlertCircle, Clock, User, ShieldCheck } from 'lucide-react';
+import { Phone, PhoneOff, PhoneCall, Mic, MicOff, AlertCircle, Clock, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useCall } from '../context/CallContext';
 
 export const GlobalCallOverlay: React.FC = () => {
@@ -10,6 +10,7 @@ export const GlobalCallOverlay: React.FC = () => {
     callDuration,
     isMuted,
     callError,
+    startCall,
     acceptCall,
     declineCall,
     endCall,
@@ -25,9 +26,20 @@ export const GlobalCallOverlay: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getSafeErrorMessage = () => {
+    if (!callError) return "We couldn't establish the voice connection. Please try again.";
+    if (callError.toLowerCase().includes('microphone') || callError.toLowerCase().includes('permission')) {
+      return "Microphone access was denied. Please allow microphone permissions in your browser.";
+    }
+    if (callError.toLowerCase().includes('offline') || callError.toLowerCase().includes('unavailable')) {
+      return `${activeCall?.displayName || 'Contact'} is currently unavailable.`;
+    }
+    return "Unable to establish the voice connection. Please try again.";
+  };
+
   return (
     <AnimatePresence>
-      {/* 1. Incoming Call Dialog Modal */}
+      {/* 1. Incoming Call Modal */}
       {callState === 'RINGING' && activeCall && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -36,29 +48,29 @@ export const GlobalCallOverlay: React.FC = () => {
           className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
         >
           <motion.div
-            initial={{ scale: 0.9, y: 20 }}
+            initial={{ scale: 0.92, y: 20 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
-            className="bg-white dark:bg-slate-900 border-2 border-emerald-500/50 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center relative overflow-hidden"
+            exit={{ scale: 0.92, y: 20 }}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center relative overflow-hidden"
           >
             {/* Animated ringing pulse circles */}
             <div className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none">
-              <div className="w-64 h-64 bg-emerald-500/10 rounded-full animate-ping duration-1000" />
+              <div className="w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full animate-ping duration-1000" />
             </div>
 
-            <div className="w-24 h-24 mx-auto mb-6 bg-emerald-100 dark:bg-emerald-950/60 rounded-full flex items-center justify-center border-4 border-emerald-500/40 animate-bounce">
-              <PhoneCall className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+            <div className="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-blue-500/30 animate-bounce">
+              <PhoneCall className="w-10 h-10" />
             </div>
 
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
               ● Incoming Trusted Call
             </span>
 
-            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-1">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-1">
               {activeCall.displayName}
             </h2>
 
-            <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-1">
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">
               {activeCall.relationship || 'Trusted Contact'}
             </p>
 
@@ -69,17 +81,17 @@ export const GlobalCallOverlay: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={declineCall}
-                className="py-4 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 transition-transform active:scale-95"
+                className="py-3.5 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base flex items-center justify-center gap-2 transition-transform active:scale-95"
               >
-                <PhoneOff className="w-6 h-6" />
+                <PhoneOff className="w-5 h-5 text-rose-500" />
                 Decline
               </button>
 
               <button
                 onClick={acceptCall}
-                className="py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 animate-pulse"
+                className="py-3.5 px-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30 transition-transform active:scale-95 animate-pulse"
               >
-                <Phone className="w-6 h-6" />
+                <Phone className="w-5 h-5" />
                 Accept
               </button>
             </div>
@@ -87,23 +99,23 @@ export const GlobalCallOverlay: React.FC = () => {
         </motion.div>
       )}
 
-      {/* 2. Outgoing Call / Active Call / Call Status Overlay Modal */}
+      {/* 2. In-Call / Calling / Error HUD */}
       {callState !== 'RINGING' && activeCall && (
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 30 }}
-          className="fixed bottom-6 right-6 z-[9999] max-w-md w-full sm:w-96 bg-white dark:bg-slate-900 border-2 border-blue-500/40 rounded-3xl p-6 shadow-2xl"
+          className="fixed bottom-6 right-6 z-[9999] max-w-md w-full sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl"
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                   callState === 'CONNECTED'
-                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600'
+                    ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400'
                     : callState === 'FAILED' || callState === 'UNAVAILABLE' || callState === 'DECLINED'
-                    ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600'
-                    : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 animate-pulse'
+                    ? 'bg-slate-100 dark:bg-slate-800 text-rose-500'
+                    : 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 animate-pulse'
                 }`}
               >
                 {callState === 'CONNECTED' ? (
@@ -115,7 +127,7 @@ export const GlobalCallOverlay: React.FC = () => {
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">
+                <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
                   {activeCall.displayName}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -125,64 +137,64 @@ export const GlobalCallOverlay: React.FC = () => {
             </div>
 
             {callState === 'CONNECTED' && (
-              <span className="flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full">
+              <span className="flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-full border border-blue-200 dark:border-blue-800/40">
                 <Clock className="w-3.5 h-3.5" />
                 {formatDuration(callDuration)}
               </span>
             )}
           </div>
 
-          {/* Status Indicators */}
+          {/* Status Message Area */}
           <div className="mb-4">
             {callState === 'CALLING' && (
               <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 rounded-xl text-center">
                 <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                   Calling {activeCall.displayName}...
                 </p>
-                <p className="text-xs text-blue-500/80 mt-0.5">Ringing recipient browser</p>
+                <p className="text-xs text-blue-500/80 mt-0.5">Waiting for {activeCall.displayName} to answer</p>
               </div>
             )}
 
             {callState === 'CONNECTING' && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-xl text-center">
-                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-                  Establishing secure audio stream...
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/40 rounded-xl text-center">
+                <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                  Connecting audio stream...
                 </p>
               </div>
             )}
 
             {callState === 'CONNECTED' && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Encrypted WebRTC Audio
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Voice Connected
                 </span>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Live 2-Way</span>
+                <span className="text-[11px] text-slate-500 font-medium">Encrypted WebRTC</span>
               </div>
             )}
 
             {callState === 'UNAVAILABLE' && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-xl text-center">
-                <p className="text-sm font-bold text-amber-700 dark:text-amber-300">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                   {activeCall.displayName} is currently unavailable
                 </p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">No answer within 25 seconds</p>
+                <p className="text-xs text-slate-500 mt-0.5">No answer received. Please try again later.</p>
               </div>
             )}
 
             {callState === 'DECLINED' && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 rounded-xl text-center">
-                <p className="text-sm font-bold text-rose-700 dark:text-rose-300">Call Declined</p>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Call Declined</p>
               </div>
             )}
 
             {callState === 'FAILED' && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 rounded-xl text-center">
-                <p className="text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1.5">
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-rose-200 dark:border-rose-900/40 rounded-xl text-center">
+                <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5">
                   <AlertCircle className="w-4 h-4" />
-                  Call Failed
+                  Call couldn't connect
                 </p>
-                {callError && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{callError}</p>}
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{getSafeErrorMessage()}</p>
               </div>
             )}
 
@@ -193,12 +205,12 @@ export const GlobalCallOverlay: React.FC = () => {
             )}
           </div>
 
-          {/* Active Call Controls */}
+          {/* Action Controls */}
           <div className="flex items-center gap-3">
             {callState === 'CONNECTED' && (
               <button
                 onClick={toggleMute}
-                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border transition-all ${
+                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border transition-all ${
                   isMuted
                     ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
@@ -212,7 +224,7 @@ export const GlobalCallOverlay: React.FC = () => {
             {(callState === 'CALLING' || callState === 'CONNECTING' || callState === 'CONNECTED') && (
               <button
                 onClick={endCall}
-                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-rose-600/30 transition-transform active:scale-95"
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-rose-600/30 transition-transform active:scale-95"
               >
                 <PhoneOff className="w-4 h-4" />
                 End Call
@@ -222,7 +234,7 @@ export const GlobalCallOverlay: React.FC = () => {
             {(callState === 'FAILED' || callState === 'UNAVAILABLE' || callState === 'DECLINED' || callState === 'ENDED') && (
               <button
                 onClick={clearCallState}
-                className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 font-bold text-sm transition-all"
+                className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all"
               >
                 Dismiss
               </button>

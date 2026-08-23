@@ -5,9 +5,7 @@ import {
   PhoneCall,
   PhoneOff,
   Mic,
-  MicOff,
   Plus,
-  Users,
   Shield,
   Heart,
   Music,
@@ -15,18 +13,13 @@ import {
   BookOpen,
   Trash2,
   ArrowLeft,
-  Volume2,
-  VolumeX,
   Radio,
-  CheckCircle2,
-  Play,
   Square,
   X,
-  AlertCircle,
-  Clock,
-  UserCheck,
   Smartphone,
-  ExternalLink,
+  Search,
+  UserCheck,
+  Check,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
@@ -38,19 +31,22 @@ import { User, TrustedConnection, MemoryStory } from '../types';
 export default function ConnectHub() {
   const navigate = useNavigate();
   const { currentProfile, caregiver } = useApp();
-  const { startCall, callState, activeCall } = useCall();
+  const { startCall, callState } = useCall();
 
   const [connections, setConnections] = useState<TrustedConnection[]>([]);
   const [stories, setStories] = useState<MemoryStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [contactPresence, setContactPresence] = useState<Record<number, boolean>>({});
 
+  // Registered system profiles for searchable MindMitra user selector
+  const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
+
   // --- CONTACT MODAL STATE ---
   const [contactType, setContactType] = useState<'mindmitra_user' | 'external'>('mindmitra_user');
+  const [selectedSystemProfile, setSelectedSystemProfile] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [newContactName, setNewContactName] = useState('');
   const [newContactRel, setNewContactRel] = useState('Neighbor');
-  const [newContactCaregiver, setNewContactCaregiver] = useState('Atchyuta Pavan Karthikeya');
-  const [newContactTargetId, setNewContactTargetId] = useState<number>(2);
   const [newContactPhone, setNewContactPhone] = useState('');
   const [showAddContactModal, setShowAddContactModal] = useState(false);
 
@@ -76,10 +72,35 @@ export default function ConnectHub() {
   useEffect(() => {
     if (!currentProfile?.id) return;
     loadData();
+    loadAvailableProfiles();
 
     const presenceInterval = setInterval(checkPresences, 3000);
     return () => clearInterval(presenceInterval);
   }, [currentProfile]);
+
+  const loadAvailableProfiles = async () => {
+    try {
+      const profiles = await api.getProfiles();
+      // Filter out the current active profile so user doesn't add themselves
+      const others = profiles.filter((p: any) => p.id !== currentProfile?.id);
+      setAvailableProfiles(others);
+      if (others.length > 0) {
+        setSelectedSystemProfile(others[0]);
+        setNewContactName(others[0].display_name || others[0].name || '');
+      }
+    } catch {
+      // Fallback demo options
+      const demoUsers = [
+        { id: 2, display_name: 'Leelu', relationship: 'Neighbor', caregiver_name: 'Atchyuta Pavan Karthikeya' },
+        { id: 1, display_name: 'Polayya', relationship: 'Neighbor', caregiver_name: 'Atchyuta Pavan Karthikeya' },
+      ].filter((u) => u.id !== currentProfile?.id);
+      setAvailableProfiles(demoUsers);
+      if (demoUsers.length > 0) {
+        setSelectedSystemProfile(demoUsers[0]);
+        setNewContactName(demoUsers[0].display_name);
+      }
+    }
+  };
 
   const loadData = async () => {
     if (!currentProfile?.id) return;
@@ -131,19 +152,33 @@ export default function ConnectHub() {
 
   // --- ADD CONTACT HANDLER ---
   const handleAddContact = async () => {
-    if (!newContactName.trim() || !currentProfile?.id) return;
+    if (!currentProfile?.id) return;
+
+    let contactDisplayName = '';
+    let targetUserId: number | undefined = undefined;
+    const caregiverDisplayName = caregiver?.name || 'Atchyuta Pavan Karthikeya';
+
+    if (contactType === 'mindmitra_user') {
+      if (!selectedSystemProfile) return;
+      contactDisplayName = selectedSystemProfile.display_name || selectedSystemProfile.name || newContactName;
+      targetUserId = selectedSystemProfile.id;
+    } else {
+      if (!newContactName.trim()) return;
+      contactDisplayName = newContactName.trim();
+    }
+
     try {
       await api.addTrustedConnection({
         profile_id: currentProfile.id,
-        contact_name: newContactName,
-        display_name: newContactName,
+        contact_name: contactDisplayName,
+        display_name: contactDisplayName,
         contact_type: contactType,
         relationship: newContactRel,
-        caregiver_name: newContactCaregiver,
-        target_user_id: contactType === 'mindmitra_user' ? newContactTargetId : undefined,
-        contact_user_id: contactType === 'mindmitra_user' ? newContactTargetId : undefined,
+        caregiver_name: caregiverDisplayName,
+        target_user_id: targetUserId,
+        contact_user_id: targetUserId,
         phone_number: contactType === 'external' ? newContactPhone : undefined,
-        phone_or_address: contactType === 'external' ? newContactPhone : `Account #${newContactTargetId}`,
+        phone_or_address: contactType === 'external' ? newContactPhone : `Account #${targetUserId}`,
         status: 'approved',
       });
       setShowAddContactModal(false);
@@ -269,6 +304,11 @@ export default function ConnectHub() {
     },
   ];
 
+  const filteredSystemProfiles = availableProfiles.filter((p) => {
+    const name = p.display_name || p.name || '';
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 sm:p-6 pb-20">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -285,11 +325,11 @@ export default function ConnectHub() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <PhoneCall className="text-emerald-600 dark:text-emerald-400" size={24} />
+                  <PhoneCall className="text-blue-600 dark:text-blue-400" size={24} />
                   <span>Connect Mode & Trusted Calling</span>
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                  Real WebRTC
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  WebRTC Voice Calling
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -316,21 +356,21 @@ export default function ConnectHub() {
           {/* Left 2 Cols: Trusted Voice Contacts & Memory Stories */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trusted Voice Connections Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
+            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Phone className="text-emerald-600 dark:text-emerald-400" size={20} />
+                    <Phone className="text-blue-600 dark:text-blue-400" size={20} />
                     <span>Trusted Contacts</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Verified MindMitra WebRTC Calls & Family Phone Directory
+                    MindMitra Voice Calling & Family Phone Directory
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowAddContactModal(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all"
                 >
                   <Plus size={16} />
                   <span>Add Contact</span>
@@ -347,19 +387,19 @@ export default function ConnectHub() {
                     return (
                       <div
                         key={conn.id}
-                        className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900 flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+                        className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900 flex flex-col justify-between gap-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-base flex items-center justify-center relative">
+                              <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-black text-base flex items-center justify-center relative">
                                 {contactName.charAt(0)}
                                 {isMindMitra && (
                                   <span
-                                    className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
+                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
                                       isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                                     }`}
-                                    title={isOnline ? 'Online (Ready to Call)' : 'Standby / Offline'}
+                                    title={isOnline ? 'Online (Ready to Call)' : 'Offline / Standby'}
                                   />
                                 )}
                               </div>
@@ -400,7 +440,7 @@ export default function ConnectHub() {
                                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
-                                  {isOnline ? '● Online' : '○ Standby'}
+                                  {isOnline ? '● Online' : '○ Offline'}
                                 </span>
                               </div>
                             ) : (
@@ -424,7 +464,7 @@ export default function ConnectHub() {
                             <button
                               onClick={() => startCall(conn)}
                               disabled={callState === 'CALLING' || callState === 'CONNECTED'}
-                              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 disabled:opacity-50 transition-all"
+                              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95 disabled:opacity-50 transition-all"
                             >
                               <PhoneCall size={16} />
                               <span>Call {contactName}</span>
@@ -444,18 +484,18 @@ export default function ConnectHub() {
                   })}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <Phone className="mx-auto text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Trusted Contacts Added Yet</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Add family members or neighbors for instant 1-tap calling.
+                    Add family members or neighbors for instant 1-tap voice calling.
                   </p>
                 </div>
               )}
             </div>
 
             {/* Memory Stories Card */}
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
+            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -481,7 +521,7 @@ export default function ConnectHub() {
                   {stories.map((story) => (
                     <div
                       key={story.id}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -506,7 +546,7 @@ export default function ConnectHub() {
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                   <Mic className="mx-auto text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No Memory Stories Recorded</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -519,7 +559,7 @@ export default function ConnectHub() {
 
           {/* Right Column: Interest Circles */}
           <div className="space-y-6">
-            <div className="card p-6 bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm">
+            <div className="card p-6 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -539,7 +579,7 @@ export default function ConnectHub() {
                     <div
                       key={circle.id}
                       onClick={() => setSelectedCircle(circle)}
-                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
+                      className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all space-y-2"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -566,7 +606,7 @@ export default function ConnectHub() {
         {/* Modal: External Phone Call Dialog */}
         {selectedPhoneContact && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-extrabold flex items-center gap-2">
                   <Smartphone size={20} className="text-purple-500" />
@@ -574,19 +614,19 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-center">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-center">
                 <h4 className="text-xl font-bold">{selectedPhoneContact.display_name || selectedPhoneContact.contact_name}</h4>
-                <p className="text-xs text-slate-500">{selectedPhoneContact.relationship} • External Contact</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedPhoneContact.relationship} • External Contact</p>
                 <p className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 mt-2">
                   {selectedPhoneContact.phone_number || 'No phone number stored'}
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
                   Caregiver Verified: {selectedPhoneContact.caregiver_name || 'Atchyuta Pavan Karthikeya'}
                 </p>
               </div>
@@ -605,7 +645,7 @@ export default function ConnectHub() {
                 {selectedPhoneContact.phone_number && (
                   <a
                     href={`tel:${selectedPhoneContact.phone_number}`}
-                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 shadow-md shadow-purple-600/30"
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center gap-2 shadow-md shadow-blue-500/20"
                   >
                     <Phone size={14} />
                     <span>Dial {selectedPhoneContact.phone_number}</span>
@@ -619,28 +659,28 @@ export default function ConnectHub() {
         {/* Modal: Add Trusted Contact */}
         {showAddContactModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-extrabold flex items-center gap-2">
-                  <UserCheck size={18} className="text-emerald-600" />
+                  <UserCheck size={18} className="text-blue-600 dark:text-blue-400" />
                   <span>Add Trusted Contact</span>
                 </h3>
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Contact Type Selector Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button
                   onClick={() => setContactType('mindmitra_user')}
                   className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
                     contactType === 'mindmitra_user'
-                      ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   MindMitra Contact
@@ -649,87 +689,149 @@ export default function ConnectHub() {
                   onClick={() => setContactType('external')}
                   className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all ${
                     contactType === 'external'
-                      ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   External Contact
                 </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Name</label>
-                <input
-                  type="text"
-                  value={newContactName}
-                  onChange={(e) => setNewContactName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                  placeholder="e.g. Leelu, Anita, Suresh"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
-                <select
-                  value={newContactRel}
-                  onChange={(e) => setNewContactRel(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                >
-                  <option value="Neighbor">Neighbor</option>
-                  <option value="Daughter">Daughter</option>
-                  <option value="Son">Son</option>
-                  <option value="Brother">Brother</option>
-                  <option value="Sister">Sister</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Primary Caregiver">Primary Caregiver</option>
-                  <option value="Doctor">Doctor</option>
-                  <option value="Friend">Friend</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Caregiver Name</label>
-                <input
-                  type="text"
-                  value={newContactCaregiver}
-                  onChange={(e) => setNewContactCaregiver(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                  placeholder="Atchyuta Pavan Karthikeya"
-                />
-              </div>
-
               {contactType === 'mindmitra_user' ? (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    MindMitra Target User / Profile ID
-                  </label>
-                  <input
-                    type="number"
-                    value={newContactTargetId}
-                    onChange={(e) => setNewContactTargetId(Number(e.target.value) || 1)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                    placeholder="2"
-                  />
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                    Routes real-time WebRTC audio signals directly to this authenticated account session.
-                  </p>
+                /* Select Real MindMitra User */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Search MindMitra Contact
+                    </label>
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search MindMitra contact..."
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {filteredSystemProfiles.map((p) => {
+                      const isSelected = selectedSystemProfile?.id === p.id;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            setSelectedSystemProfile(p);
+                            setNewContactName(p.display_name || p.name);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 font-bold text-blue-700 dark:text-blue-300'
+                              : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-[10px]">
+                              {(p.display_name || p.name).charAt(0)}
+                            </div>
+                            <div>
+                              <span>{p.display_name || p.name}</span>
+                              <span className="text-[10px] text-slate-400 block font-normal">
+                                {p.preferred_language?.toUpperCase() || 'EN'} • Active MindMitra Account
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && <Check size={14} className="text-blue-600 dark:text-blue-400" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+                    <select
+                      value={newContactRel}
+                      onChange={(e) => setNewContactRel(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                    >
+                      <option value="Neighbor">Neighbor</option>
+                      <option value="Daughter">Daughter</option>
+                      <option value="Son">Son</option>
+                      <option value="Grandchild">Grandchild</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Brother">Brother</option>
+                      <option value="Sister">Sister</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Read-Only Caregiver Context */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Caregiver:</span>{' '}
+                    {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
+                  </div>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={newContactPhone}
-                    onChange={(e) => setNewContactPhone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                    placeholder="+91 98765 43210"
-                  />
+                /* External Contact Form */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Name</label>
+                    <input
+                      type="text"
+                      value={newContactName}
+                      onChange={(e) => setNewContactName(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      placeholder="e.g. Suresh, Dr. Anita"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+                    <select
+                      value={newContactRel}
+                      onChange={(e) => setNewContactRel(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                    >
+                      <option value="Neighbor">Neighbor</option>
+                      <option value="Daughter">Daughter</option>
+                      <option value="Son">Son</option>
+                      <option value="Grandchild">Grandchild</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Brother">Brother</option>
+                      <option value="Sister">Sister</option>
+                      <option value="Doctor">Doctor</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={newContactPhone}
+                      onChange={(e) => setNewContactPhone(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                      placeholder="+91 98765 43210"
+                    />
+                  </div>
+
+                  {/* Read-Only Caregiver Context */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Caregiver:</span>{' '}
+                    {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
+                  </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   onClick={() => setShowAddContactModal(false)}
                   className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -738,8 +840,8 @@ export default function ConnectHub() {
                 </button>
                 <button
                   onClick={handleAddContact}
-                  disabled={!newContactName.trim()}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                  disabled={contactType === 'mindmitra_user' ? !selectedSystemProfile : !newContactName.trim()}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white disabled:opacity-50 shadow-md shadow-blue-500/20"
                 >
                   Save Contact
                 </button>
@@ -751,7 +853,7 @@ export default function ConnectHub() {
         {/* Modal: Memory Story Recording */}
         {showAddStoryModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 text-slate-900 dark:text-white shadow-2xl animate-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-extrabold flex items-center gap-2">
                   <Mic size={18} className="text-amber-500" />
@@ -759,7 +861,7 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setShowAddStoryModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X size={18} />
                 </button>
@@ -771,7 +873,7 @@ export default function ConnectHub() {
                   type="text"
                   value={newStoryTitle}
                   onChange={(e) => setNewStoryTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
                   placeholder="e.g. My First Harvest Festival in Village"
                 />
               </div>
@@ -781,7 +883,7 @@ export default function ConnectHub() {
                 <select
                   value={newStoryCategory}
                   onChange={(e) => setNewStoryCategory(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"
                 >
                   <option value="Childhood & Village">Childhood & Village</option>
                   <option value="Festivals & Traditions">Festivals & Traditions</option>
@@ -791,7 +893,7 @@ export default function ConnectHub() {
               </div>
 
               {/* Real Audio Recorder Controls */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center space-y-3">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                   Microphone Audio Capture:
                 </span>
@@ -839,12 +941,12 @@ export default function ConnectHub() {
                   rows={2}
                   value={newStoryText}
                   onChange={(e) => setNewStoryText(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white"
                   placeholder="Optional summary or notes..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   onClick={() => {
                     setShowAddStoryModal(false);
