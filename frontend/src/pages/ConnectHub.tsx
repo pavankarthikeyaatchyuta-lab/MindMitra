@@ -418,7 +418,7 @@ export default function ConnectHub() {
 
                             <button
                               onClick={() => handleDeleteContact(conn.id)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                               title="Remove Connection"
                             >
                               <Trash2 size={14} />
@@ -488,7 +488,7 @@ export default function ConnectHub() {
                 </div>
               ) : (
                 <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <Phone className="mx-auto text-slate-400 mb-2" size={32} />
+                  <Phone className="mx-auto text-slate-700 dark:text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Trusted Contacts Added Yet</p>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     Add family members or neighbors for instant 1-tap voice calling.
@@ -550,7 +550,7 @@ export default function ConnectHub() {
                 </div>
               ) : (
                 <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <Mic className="mx-auto text-slate-400 mb-2" size={32} />
+                  <Mic className="mx-auto text-slate-700 dark:text-slate-400 mb-2" size={32} />
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No Memory Stories Recorded</p>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     Capture precious memories and life stories using your microphone.
@@ -617,7 +617,7 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setSelectedPhoneContact(null)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-700 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -670,7 +670,7 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setShowAddContactModal(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-700 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -708,13 +708,13 @@ export default function ConnectHub() {
                       Search MindMitra Contact
                     </label>
                     <div className="relative">
-                      <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+                      <Search size={14} className="absolute left-3 top-3 text-slate-700 dark:text-slate-400" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search MindMitra contact..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 dark:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -787,7 +787,7 @@ export default function ConnectHub() {
                       type="text"
                       value={newContactName}
                       onChange={(e) => setNewContactName(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 dark:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="e.g. Suresh, Dr. Anita"
                     />
                   </div>
@@ -821,7 +821,7 @@ export default function ConnectHub() {
                       type="tel"
                       value={newContactPhone}
                       onChange={(e) => setNewContactPhone(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 dark:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="+91 98765 43210"
                     />
                   </div>
@@ -864,7 +864,7 @@ export default function ConnectHub() {
                 </h3>
                 <button
                   onClick={() => setShowAddStoryModal(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-700 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -876,7 +876,7 @@ export default function ConnectHub() {
                   type="text"
                   value={newStoryTitle}
                   onChange={(e) => setNewStoryTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 dark:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="e.g. My First Harvest Festival in Village"
                 />
               </div>
@@ -944,7 +944,7 @@ export default function ConnectHub() {
                   rows={2}
                   value={newStoryText}
                   onChange={(e) => setNewStoryText(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-700 dark:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="Optional summary or notes..."
                 />
               </div>

@@ -236,7 +236,7 @@ export default function ProfileSelection() {
 
           {(activeProfiles.length > 2 || archivedProfiles.length > 0) && (
             <div className="relative w-full sm:w-64">
-              <Search size={15} className="absolute left-3.5 top-2.5 text-slate-400" />
+              <Search size={15} className="absolute left-3.5 top-2.5 text-slate-700 dark:text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -285,7 +285,7 @@ export default function ProfileSelection() {
                             e.stopPropagation();
                             setActionMenuOpenId(isMenuOpen ? null : p.id);
                           }}
-                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           title="Profile Options"
                         >
                           <MoreVertical size={16} />
@@ -422,7 +422,7 @@ export default function ProfileSelection() {
         {/* Empty State for Active Tab */}
         {activeTab === 'active' && activeProfiles.length === 0 && !loading && (
           <div className="card p-8 text-center max-w-md w-full my-6">
-            <User size={36} className="text-slate-400 mx-auto mb-3" />
+            <User size={36} className="text-slate-700 dark:text-slate-400 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">No elderly profiles yet</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
               Add a profile to begin a personalized cognitive support journey.
@@ -454,7 +454,7 @@ export default function ProfileSelection() {
           <div className="card max-w-lg w-full p-7 shadow-2xl relative">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+              className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
             >
               <X size={18} />
             </button>
@@ -552,7 +552,7 @@ export default function ProfileSelection() {
           <div className="card max-w-lg w-full p-7 shadow-2xl relative">
             <button
               onClick={() => setEditingProfile(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+              className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
             >
               <X size={18} />
             </button>

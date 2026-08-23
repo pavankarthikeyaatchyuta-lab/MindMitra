@@ -319,7 +319,7 @@ export default function History() {
             <div className="bg-white dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-700/90 max-w-lg w-full p-6 shadow-2xl relative text-slate-900 dark:text-white">
               <button
                 onClick={() => setSelectedSessionDetail(null)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X size={18} />
               </button>

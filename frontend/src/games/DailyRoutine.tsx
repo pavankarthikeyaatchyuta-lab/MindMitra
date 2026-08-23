@@ -239,7 +239,7 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
               {selectedItems.length > 0 && !isComplete && (
                 <button
                   onClick={handleUndo}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
                 >
                   <RotateCcw size={12} />
                   <span>Undo</span>
@@ -263,7 +263,7 @@ export default function DailyRoutine({ difficulty, userId, gameSessionId, onComp
               ))}
 
               {selectedItems.length === 0 && (
-                <div className="py-6 text-center text-xs text-slate-400 italic">
+                <div className="py-6 text-center text-xs text-slate-700 dark:text-slate-400 italic">
                   Tap tasks below in order from first to last
                 </div>
               )}

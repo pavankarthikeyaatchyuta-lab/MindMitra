@@ -287,14 +287,14 @@ export default function FamiliarPeople() {
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</h3>
                   <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{p.relationship}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Consent: Verified ✓</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5">Consent: Verified ✓</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => openEdit(p)}
-                  className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-750"
+                  className="p-1.5 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-750"
                   title="Edit"
                 >
                   <Edit2 size={15} />
@@ -312,7 +312,7 @@ export default function FamiliarPeople() {
 
           {people.length === 0 && !loading && (
             <div className="col-span-full card p-8 text-center">
-              <ImageIcon size={36} className="text-slate-400 mx-auto mb-3" />
+              <ImageIcon size={36} className="text-slate-700 dark:text-slate-400 mx-auto mb-3" />
               <h3 className="text-base font-bold text-slate-900 dark:text-white">No familiar people added</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto mb-4">
                 Add family photos to allow the senior to practice facial and relationship recall in a familiar context.
@@ -334,7 +334,7 @@ export default function FamiliarPeople() {
             <div className="card max-w-md w-full p-6 shadow-2xl relative">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+                className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
               >
                 <X size={18} />
               </button>
@@ -384,7 +384,7 @@ export default function FamiliarPeople() {
                     type="file"
                     accept="image/*"
                     onChange={handleFileUpload}
-                    className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="w-full text-xs text-slate-700 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
                   {photoUrl && (
                     <div className="mt-2 flex items-center gap-3">

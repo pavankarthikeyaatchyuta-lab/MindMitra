@@ -9,12 +9,12 @@ import ThemeToggle from '../components/ThemeToggle';
 import { User, TrendData, GameSession, FamiliarPerson, OverallTrend } from '../types';
 
 const TREND_CONFIG: Record<string, { color: string; bg: string; border: string; icon: any; label: string }> = {
-  stable: { color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', icon: Minus, label: 'Stable' },
-  improving: { color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800', icon: TrendingUp, label: 'Improving' },
-  recent_change: { color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', icon: TrendingDown, label: 'Recent Change' },
-  variable: { color: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200 dark:border-purple-800', icon: AlertCircle, label: 'Variable' },
-  observation_available: { color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800', icon: Activity, label: 'Observation Available' },
-  insufficient_history: { color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700', icon: Minus, label: 'Insufficient History' },
+  stable: { color: 'text-emerald-800 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-950/60', border: 'border-emerald-300 dark:border-emerald-800', icon: Minus, label: 'Stable' },
+  improving: { color: 'text-blue-800 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-950/60', border: 'border-blue-300 dark:border-blue-800', icon: TrendingUp, label: 'Improving' },
+  recent_change: { color: 'text-amber-900 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-950/60', border: 'border-amber-300 dark:border-amber-800', icon: TrendingDown, label: 'Recent Change' },
+  variable: { color: 'text-purple-900 dark:text-purple-300', bg: 'bg-purple-100 dark:bg-purple-950/60', border: 'border-purple-300 dark:border-purple-800', icon: AlertCircle, label: 'Variable' },
+  observation_available: { color: 'text-blue-900 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-950/60', border: 'border-blue-300 dark:border-blue-800', icon: Activity, label: 'Observation Available' },
+  insufficient_history: { color: 'text-slate-800 dark:text-slate-300', bg: 'bg-slate-200 dark:bg-slate-800', border: 'border-slate-300 dark:border-slate-700', icon: Minus, label: 'Insufficient History' },
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -115,13 +115,13 @@ export default function Dashboard() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] transition-colors duration-150">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-150">
       {/* Top Navbar */}
-      <nav className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-300 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
+      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/profiles')}
-            className="text-slate-900 dark:text-slate-300 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
+            className="text-slate-900 dark:text-slate-200 hover:text-black dark:hover:text-white p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
             title="Back to Profiles"
           >
             <ArrowLeft size={18} />
@@ -131,8 +131,8 @@ export default function Dashboard() {
               <Activity size={18} />
             </div>
             <div>
-              <h1 className="text-lg font-black text-black dark:text-white">Caregiver Dashboard</h1>
-              <p className="text-[11px] text-slate-900 dark:text-slate-400 font-semibold">Longitudinal Behavioral Trend & Baseline Analysis</p>
+              <h1 className="text-lg font-black text-slate-900 dark:text-white">Caregiver Dashboard</h1>
+              <p className="text-[11px] text-slate-700 dark:text-slate-400 font-bold">Longitudinal Behavioral Trend & Baseline Analysis</p>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function Dashboard() {
                     if (user) switchProfile(user);
                   }
                 }}
-                className="p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-black dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
@@ -172,11 +172,11 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col gap-6">
         {/* Responsive Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-300 dark:border-slate-800 pb-3 text-xs sm:text-sm font-bold">
+        <div className="flex flex-wrap gap-2 sm:gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs sm:text-sm font-bold">
           <Link to="/caregiver" className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white shadow-xs">
             Overview
           </Link>
-          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 font-bold">
+          <Link to="/session" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 font-bold">
             <Sparkles size={14} className="text-amber-500" />
             <span>Today's Session</span>
           </Link>
@@ -188,38 +188,38 @@ export default function Dashboard() {
             <Heart size={14} />
             <span>Connect Mode</span>
           </Link>
-          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
+          <Link to="/caregiver/trends" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Trends & Adaptive AI
           </Link>
-          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
+          <Link to="/caregiver/insights" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Explainable Insights
           </Link>
-          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
+          <Link to="/caregiver/people" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Familiar People
           </Link>
-          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
+          <Link to="/caregiver/reminders" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Reminders
           </Link>
-          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
+          <Link to="/caregiver/history" className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all font-bold">
             Session History
           </Link>
         </div>
 
-        {/* Account-Level Profiles Hub: "Who are you caring for?" */}
+        {/* Account-Level Profiles Hub: "Who are you caring for?" (Theme Consistent) */}
         {users.length > 1 && (
-          <div className="card p-5 bg-gradient-to-br from-slate-900 to-indigo-950 text-white border border-indigo-500/30">
+          <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/30 text-slate-900 dark:text-white shadow-xs">
             <div className="flex justify-between items-center mb-3">
               <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-indigo-300">
+                <h3 className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
                   Caregiver Hub: Who are you caring for?
                 </h3>
-                <p className="text-xs text-slate-300 font-medium">
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-bold mt-0.5">
                   {users.length} Active Elderly Profiles under {caregiver?.name || 'Caregiver'}
                 </p>
               </div>
               <button
                 onClick={() => navigate('/profiles')}
-                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1"
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1 shadow-sm"
               >
                 <span>+ Add Profile</span>
               </button>
@@ -237,22 +237,22 @@ export default function Dashboard() {
                     }}
                     className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                       isSelected
-                        ? 'bg-indigo-600/40 border-indigo-400 text-white ring-2 ring-indigo-400'
-                        : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600'
+                        ? 'bg-indigo-100 dark:bg-indigo-950/70 border-indigo-400 text-indigo-950 dark:text-white ring-2 ring-indigo-500'
+                        : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                      <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
                         {(u.display_name || u.name || 'U').charAt(0)}
                       </div>
                       <div>
-                        <h4 className="text-xs font-extrabold text-white">{u.display_name || u.name}</h4>
-                        <span className="text-[10px] text-indigo-200 font-semibold block">Age {u.age}</span>
+                        <h4 className="text-xs font-black text-slate-900 dark:text-white">{u.display_name || u.name}</h4>
+                        <span className="text-[10px] text-slate-700 dark:text-indigo-200 font-bold block">Age {u.age}</span>
                       </div>
                     </div>
 
                     {isSelected && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                         Active
                       </span>
                     )}
@@ -265,26 +265,26 @@ export default function Dashboard() {
 
         {/* User Card */}
         {selectedUser && (
-          <div className="card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl font-black text-white shadow-xs">
                 {(selectedUser.name || selectedUser.display_name || '👤').charAt(0)}
               </div>
               <div>
-                <h2 className="text-xl font-black text-black dark:text-white">{selectedUser.name || selectedUser.display_name}</h2>
-                <p className="text-slate-900 dark:text-slate-300 text-xs sm:text-sm font-semibold">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">{selectedUser.name || selectedUser.display_name}</h2>
+                <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-bold">
                   Age {selectedUser.age} • Language: {(selectedUser.preferred_language || 'EN').toUpperCase()} • Voice: {selectedUser.voice_enabled ? 'Enabled' : 'Disabled'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-300 font-bold">
+              <span className="text-xs px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 font-black">
                 {gameSessions.length} Recorded Sessions
               </span>
               <Link
                 to="/session"
-                className="elderly-btn-primary text-xs sm:text-sm py-2 px-4 rounded-xl flex items-center gap-1.5"
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-blue-500/20"
               >
                 <Sparkles size={15} />
                 <span>Start Session</span>
@@ -295,22 +295,22 @@ export default function Dashboard() {
 
         {/* Overall Behavioral Trend Banner */}
         {overallTrend && (
-          <div className={`card p-5 border ${
+          <div className={`p-5 rounded-2xl border ${
             overallTrend.overall_status === 'recent_change'
-              ? 'border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20'
+              ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30'
               : overallTrend.overall_status === 'improving'
-              ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
+              ? 'border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
           }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-400 mb-1">
                   <Activity size={14} className="text-blue-700 dark:text-blue-400" /> Overall Behavioral Trend
                 </div>
-                <h3 className="text-lg font-black text-black dark:text-white flex items-center gap-2">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   {overallTrend.headline}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-900 dark:text-slate-300 mt-1 font-medium">
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mt-1 font-bold">
                   {overallTrend.summary}
                 </p>
               </div>
@@ -338,7 +338,7 @@ export default function Dashboard() {
 
         {/* Cognitive Domains Grid */}
         <div>
-          <h2 className="text-lg font-black text-black dark:text-white mb-3">Cognitive Domain Performance</h2>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white mb-3">Cognitive Domain Performance</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {trends.map((t) => {
               const cfg = TREND_CONFIG[t.trend] || TREND_CONFIG.insufficient_history;
@@ -349,13 +349,13 @@ export default function Dashboard() {
               return (
                 <div
                   key={t.game_type}
-                  className={`card p-5 border flex flex-col justify-between transition-all ${
+                  className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-all ${
                     t.trend === 'recent_change' ? 'border-amber-300 dark:border-amber-800' : ''
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-400">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-300">
                         {t.domain_name || t.game_type.replace('_', ' ')}
                       </span>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border flex items-center gap-1 ${cfg.bg} ${cfg.color} ${cfg.border}`}>
@@ -365,10 +365,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-black dark:text-white">
+                      <span className="text-2xl font-black text-slate-900 dark:text-white">
                         {t.current_performance != null ? `${Math.round(t.current_performance * 100)}%` : '—'}
                       </span>
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-400">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-400">
                         Baseline: {
                           t.baseline != null
                             ? `${Math.round(t.baseline * 100)}%`
@@ -379,7 +379,7 @@ export default function Dashboard() {
                       </span>
                     </div>
 
-                    <div className="mt-2 text-xs font-medium text-slate-900 dark:text-slate-300 leading-relaxed">
+                    <div className="mt-2 text-xs font-semibold text-slate-800 dark:text-slate-300 leading-relaxed">
                       {t.trend_description || t.observation_note}
                     </div>
 
@@ -388,7 +388,7 @@ export default function Dashboard() {
                         <span className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-wider block mb-1">
                           Contributing Factors:
                         </span>
-                        <ul className="text-[11px] font-bold text-slate-900 dark:text-slate-300 space-y-1">
+                        <ul className="text-[11px] font-bold text-slate-800 dark:text-slate-300 space-y-1">
                           {t.reasons.map((r, ri) => (
                             <li key={ri} className="flex items-start gap-1.5">
                               <span className="text-blue-700 font-bold">•</span>
@@ -400,7 +400,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[11px] font-bold text-slate-900 dark:text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[11px] font-bold text-slate-700 dark:text-slate-400">
                     <span>{count} eligible session{count === 1 ? '' : 's'}</span>
                     <Link
                       to="/caregiver/insights"
@@ -418,20 +418,20 @@ export default function Dashboard() {
 
         {/* Performance Chart */}
         {chartData.length > 0 && (
-          <div className="card p-6">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
             <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Accuracy Over Recent Sessions</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-                  <XAxis dataKey="session" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="session" stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderColor: 'var(--border-card)',
+                      backgroundColor: '#ffffff',
+                      borderColor: '#cbd5e1',
                       borderRadius: '0.75rem',
-                      color: 'var(--text-primary)',
+                      color: '#0f172a',
                       fontSize: '12px',
                     }}
                   />
@@ -450,7 +450,7 @@ export default function Dashboard() {
         )}
 
         {/* Disclaimer */}
-        <div className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">
+        <div className="text-center py-4 text-xs font-bold text-slate-700 dark:text-slate-400">
           ⚠️ MindMitra is a supportive cognitive companion and does NOT provide clinical diagnosis. Always consult a healthcare professional for clinical concerns.
         </div>
       </div>

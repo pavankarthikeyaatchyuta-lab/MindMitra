@@ -259,7 +259,7 @@ export default function CommunityHub() {
                     Activity: <strong className="text-indigo-600 dark:text-indigo-400 uppercase">{viewSessionDetails.activity_type.replace('_', ' ')}</strong> • {viewSessionDetails.duration_minutes || 15} mins
                   </span>
                 </div>
-                <button onClick={() => setViewSessionDetails(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                <button onClick={() => setViewSessionDetails(null)} className="p-1 rounded-lg text-slate-700 dark:text-slate-400 hover:text-slate-600">
                   <X size={20} />
                 </button>
               </div>
@@ -454,14 +454,14 @@ export default function CommunityHub() {
                         {isChecked ? (
                           <CheckSquare size={18} className="text-indigo-600 dark:text-indigo-400" />
                         ) : (
-                          <Square size={18} className="text-slate-400" />
+                          <Square size={18} className="text-slate-700 dark:text-slate-400" />
                         )}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 italic py-4 text-center">
+                <p className="text-xs text-slate-700 dark:text-slate-400 italic py-4 text-center">
                   No elderly profiles created yet. Create profiles in the Caregiver Overview first.
                 </p>
               )}
@@ -559,7 +559,7 @@ export default function CommunityHub() {
                           {isAbandoned && (
                             <button
                               onClick={() => setViewSessionDetails(s)}
-                              className="px-2 py-1 rounded-lg text-slate-500 hover:text-slate-700 font-semibold text-[11px]"
+                              className="px-2 py-1 rounded-lg text-slate-700 dark:text-slate-400 hover:text-slate-700 font-semibold text-[11px]"
                             >
                               View Summary
                             </button>

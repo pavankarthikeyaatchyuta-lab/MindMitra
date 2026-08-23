@@ -109,7 +109,7 @@ export default function Onboarding() {
                   className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-left flex items-center justify-between text-slate-900 dark:text-white transition-colors"
                 >
                   <span className="font-bold text-sm">{u.display_name || u.name}</span>
-                  <ChevronRight size={16} className="text-slate-400" />
+                  <ChevronRight size={16} className="text-slate-700 dark:text-slate-400" />
                 </button>
               ))}
             </div>

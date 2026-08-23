@@ -151,7 +151,7 @@ export default function Demo() {
                         ? 'bg-emerald-500 text-white'
                         : isCurrent
                         ? 'bg-blue-600 text-white'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                     }`}>
                       {isPast ? '✓' : idx + 1}
                     </div>

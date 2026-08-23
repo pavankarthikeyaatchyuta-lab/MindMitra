@@ -262,7 +262,7 @@ export default function ObjectRecognition({ difficulty, userId, gameSessionId, o
 
   if (questions.length === 0) {
     return (
-      <div className="card p-12 text-center text-slate-500">
+      <div className="card p-12 text-center text-slate-700 dark:text-slate-400">
         <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         Preparing recognition activity...
       </div>

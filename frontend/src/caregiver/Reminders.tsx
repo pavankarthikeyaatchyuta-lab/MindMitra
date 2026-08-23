@@ -256,7 +256,7 @@ export default function Reminders() {
 
           {reminders.length === 0 && (
             <div className="col-span-full card p-8 text-center">
-              <Calendar size={36} className="text-slate-400 mx-auto mb-3" />
+              <Calendar size={36} className="text-slate-700 dark:text-slate-400 mx-auto mb-3" />
               <h3 className="text-base font-bold text-slate-900 dark:text-white">No reminders scheduled</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto mb-4">
                 Schedule medication, hydration, or activity reminders that speak in the senior's preferred language.
@@ -278,7 +278,7 @@ export default function Reminders() {
             <div className="card max-w-md w-full p-6 shadow-2xl relative">
               <button
                 onClick={() => setShowAdd(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+                className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
               >
                 <X size={18} />
               </button>

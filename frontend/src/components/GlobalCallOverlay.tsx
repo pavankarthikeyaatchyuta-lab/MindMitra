@@ -169,7 +169,7 @@ export const GlobalCallOverlay: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   Live Voice Connected
                 </span>
-                <span className="text-[11px] text-slate-500 font-medium">Encrypted WebRTC</span>
+                <span className="text-[11px] text-slate-700 dark:text-slate-400 font-medium">Encrypted WebRTC</span>
               </div>
             )}
 
@@ -178,7 +178,7 @@ export const GlobalCallOverlay: React.FC = () => {
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                   {activeCall.displayName} is currently unavailable
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">No answer received. Please try again later.</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400 mt-0.5">No answer received. Please try again later.</p>
               </div>
             )}
 

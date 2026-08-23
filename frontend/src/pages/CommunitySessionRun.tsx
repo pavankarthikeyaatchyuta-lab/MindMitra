@@ -388,7 +388,7 @@ export default function CommunitySessionRun() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/community')}
-            className="p-2.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800"
+            className="p-2.5 rounded-xl bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-white border border-slate-800"
             title="Return to Community Hub"
           >
             <ArrowLeft size={18} />
@@ -400,7 +400,7 @@ export default function CommunitySessionRun() {
               </span>
               <h1 className="text-base font-extrabold text-white">{sessionData.name}</h1>
             </div>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">
               Shared Tablet/Screen • {participants.length} Seniors in Circle • Turn {activeTurnIndex + 1} of {participants.length}
             </p>
           </div>
@@ -444,7 +444,7 @@ export default function CommunitySessionRun() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleSkipTurn}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5"
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5"
               title="Skip this turn if participant needs more time"
             >
               <SkipForward size={14} />
@@ -457,7 +457,7 @@ export default function CommunitySessionRun() {
               className={`px-6 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all ${
                 isTurnCompleted
                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-2 ring-emerald-400/50 cursor-pointer animate-pulse'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                  : 'bg-slate-800 text-slate-700 dark:text-slate-400 border border-slate-700 cursor-not-allowed opacity-60'
               }`}
             >
               <span>Next: {nextParticipant?.display_name || nextParticipant?.name}</span>
@@ -518,7 +518,7 @@ export default function CommunitySessionRun() {
               <div className="space-y-4">
                 <div className="text-center space-y-1">
                   <h4 className="text-base font-black text-white">Which items were in the courtyard?</h4>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">
                     Tap to select the items you remember ({selectedRecallItems.length} selected):
                   </p>
                 </div>
@@ -533,7 +533,7 @@ export default function CommunitySessionRun() {
                         className={`p-3.5 rounded-2xl border text-center transition-all ${
                           isSelected
                             ? 'bg-indigo-600 border-indigo-400 text-white ring-2 ring-indigo-300 shadow-lg scale-105'
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                            : 'bg-slate-800 border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-500'
                         }`}
                       >
                         <span className="text-2xl block mb-1">{item.split(' ')[0]}</span>
@@ -568,7 +568,7 @@ export default function CommunitySessionRun() {
                   Identified {memoryScore.hits} of {memoryScore.total} items correctly ({memoryScore.accuracy}% accuracy)
                 </p>
                 <div className="flex justify-center gap-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-700">
                     Pass the device to {nextParticipant?.display_name || nextParticipant?.name} for their turn!
                   </span>
                 </div>
@@ -590,12 +590,12 @@ export default function CommunitySessionRun() {
                 <h3 className="text-base font-extrabold text-white mt-1 flex items-center gap-2">
                   <ListOrdered size={18} className="text-emerald-400" /> Sequence Relay: {sequenceTasks[currentTaskIndex].title}
                 </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium mt-0.5">
                   The recipe/routine steps below are shuffled. Use ▲ and ▼ to arrange them in the proper chronological order.
                 </p>
               </div>
 
-              <div className="text-xs font-extrabold text-slate-400 shrink-0">
+              <div className="text-xs font-extrabold text-slate-700 dark:text-slate-400 shrink-0">
                 Moves: <span className="text-white font-black">{sequenceMoves}</span> • Attempts: <span className="text-white font-black">{sequenceAttempts}</span>
               </div>
             </div>
@@ -721,12 +721,12 @@ export default function CommunitySessionRun() {
                 </h3>
               </div>
 
-              <div className="text-xs font-extrabold text-slate-400">
+              <div className="text-xs font-extrabold text-slate-700 dark:text-slate-400">
                 Moves: <span className="text-white">{puzzleMoves}</span>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 text-center font-medium max-w-md mx-auto">
+            <p className="text-xs text-slate-700 dark:text-slate-300 text-center font-medium max-w-md mx-auto">
               Tap a tile, then tap another tile to swap their positions until the 9-motif pattern is assembled correctly.
             </p>
 
@@ -743,7 +743,7 @@ export default function CommunitySessionRun() {
                         ? 'bg-cyan-600 border-cyan-300 ring-4 ring-cyan-400/50 shadow-xl scale-105'
                         : isCorrectSpot
                         ? 'bg-slate-800/90 border-emerald-500/40 text-emerald-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                        : 'bg-slate-800 border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-500'
                     }`}
                   >
                     <span className="text-3xl block mb-1">{puzzleMotifs[tileNum].split(' ')[0]}</span>
@@ -788,7 +788,7 @@ export default function CommunitySessionRun() {
 
             {/* Add Next Sentence Input */}
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-300">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                 {currentParticipant.display_name || currentParticipant.name}'s Contribution (What happens next?):
               </label>
               <div className="flex gap-2">
@@ -862,7 +862,7 @@ export default function CommunitySessionRun() {
                 <span className="text-xs font-bold text-white block">
                   Has {currentParticipant.display_name || currentParticipant.name} shared their memory?
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">
+                <span className="text-[11px] text-slate-700 dark:text-slate-400 font-medium">
                   Mark shared memory to record participation for this senior.
                 </span>
               </div>
@@ -889,7 +889,7 @@ export default function CommunitySessionRun() {
       {/* Bottom Participant Quick Selector & Facilitator Note */}
       <div className="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold text-slate-400">All Participants:</span>
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-400">All Participants:</span>
           {participants.map((p, index) => {
             const isTurnDone = !!completedTurns[p.id];
             return (
@@ -899,7 +899,7 @@ export default function CommunitySessionRun() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
                   index === activeTurnIndex
                     ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-md'
-                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                    : 'bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-800 border border-slate-800'
                 }`}
               >
                 <span>{p.display_name || p.name}</span>

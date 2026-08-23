@@ -71,7 +71,7 @@ export default function CaregiverAccountMenu() {
           </span>
           <span className="text-[10px] text-slate-500 dark:text-slate-400">Caregiver Account</span>
         </div>
-        <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-slate-700 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown Menu */}
@@ -123,7 +123,7 @@ export default function CaregiverAccountMenu() {
           <div className="card max-w-md w-full p-6 shadow-2xl relative">
             <button
               onClick={() => setShowSettingsModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
+              className="absolute top-4 right-4 text-slate-700 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white p-1"
             >
               <X size={18} />
             </button>
