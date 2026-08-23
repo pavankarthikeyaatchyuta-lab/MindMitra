@@ -30,7 +30,8 @@ import { User, TrustedConnection, MemoryStory } from '../types';
 
 export default function ConnectHub() {
   const navigate = useNavigate();
-  const { currentProfile, caregiver } = useApp();
+  const { currentProfile, caregiver, switchProfile } = useApp();
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const { startCall, callState } = useCall();
 
   const [connections, setConnections] = useState<TrustedConnection[]>([]);
@@ -82,6 +83,7 @@ export default function ConnectHub() {
   const loadAvailableProfiles = async () => {
     try {
       const profiles = await api.getProfiles();
+      setAllProfiles(profiles);
       const others = profiles.filter((p: any) => p.id !== currentProfile?.id);
       setAvailableProfiles(others);
       if (others.length > 0) {
@@ -335,16 +337,34 @@ export default function ConnectHub() {
                   WebRTC Voice Calling
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                Active Profile:{' '}
-                <strong className="text-slate-900 dark:text-slate-200">
-                  {currentProfile?.display_name || currentProfile?.name || 'Selected Elderly Profile'}
-                </strong>{' '}
-                • Caregiver:{' '}
-                <strong className="text-slate-900 dark:text-slate-200">
-                  {caregiver?.name || 'Atchyuta Pavan Karthikeya'}
-                </strong>
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-xs text-slate-700 dark:text-slate-400 font-bold">Active Calling Profile:</span>
+                {allProfiles.length > 0 ? (
+                  <select
+                    value={currentProfile?.id ?? ''}
+                    onChange={(e) => {
+                      const selected = allProfiles.find(p => p.id === Number(e.target.value));
+                      if (selected) {
+                        switchProfile(selected);
+                      }
+                    }}
+                    className="py-1 px-2.5 rounded-lg text-xs font-black bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    {allProfiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.display_name || p.name} (Age {p.age})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <strong className="text-xs text-slate-900 dark:text-slate-200 font-extrabold">
+                    {currentProfile?.display_name || currentProfile?.name || 'Selected Elderly Profile'}
+                  </strong>
+                )}
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                  • Caregiver: <strong className="text-slate-900 dark:text-slate-200">{caregiver?.name || 'Atchyuta Pavan Karthikeya'}</strong>
+                </span>
+              </div>
             </div>
           </div>
 
